@@ -77,7 +77,6 @@ export default function Dashboard({ user }) {
 }
 
 function ProjectCard({ project, onClick, onDelete, onRename }) {
-  const [hovering, setHovering] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(project.name);
 
@@ -90,9 +89,9 @@ function ProjectCard({ project, onClick, onDelete, onRename }) {
   return (
     <div
       onClick={() => !editing && onClick()}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      style={{ background: 'var(--bg2)', border: `1px solid ${hovering ? 'var(--border2)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 18, cursor: editing ? 'default' : 'pointer', position: 'relative', transition: 'border-color 0.15s' }}
+      style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 18, cursor: editing ? 'default' : 'pointer', position: 'relative', transition: 'border-color 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
     >
       <div style={{ width: 38, height: 38, background: 'var(--accent-glow)', border: '1px solid rgba(139,124,248,0.25)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, fontSize: 16 }}>✦</div>
 
@@ -107,21 +106,21 @@ function ProjectCard({ project, onClick, onDelete, onRename }) {
           autoFocus
         />
       ) : (
-        <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 4 }}>{project.name}</div>
+        <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 4, paddingRight: 60 }}>{project.name}</div>
       )}
 
       <div style={{ color: 'var(--text3)', fontSize: 11 }}>{project.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '방금 전'}</div>
 
-      {/* 수정/삭제 버튼 */}
-      <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 4, opacity: hovering ? 1 : 0, transition: 'opacity 0.15s' }}>
+      {/* 항상 보이는 수정/삭제 버튼 */}
+      <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 4 }}>
         <button
           className="btn btn-ghost"
-          style={{ fontSize: 11, height: 28, padding: '0 8px' }}
+          style={{ fontSize: 11, height: 26, padding: '0 8px', color: 'var(--text3)' }}
           onClick={e => { e.stopPropagation(); setEditing(true); }}
         >수정</button>
         <button
-          className="btn btn-danger"
-          style={{ fontSize: 11, height: 28, padding: '0 8px' }}
+          className="btn btn-ghost"
+          style={{ fontSize: 11, height: 26, padding: '0 8px', color: 'var(--coral)' }}
           onClick={e => { e.stopPropagation(); if (window.confirm(`'${project.name}' 삭제할까요?`)) onDelete(); }}
         >삭제</button>
       </div>
