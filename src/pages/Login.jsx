@@ -1,8 +1,11 @@
 import React from 'react';
 import { signInWithPopup } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import { auth, googleProvider } from '../firebase';
 
 export default function Login() {
+  const navigate = useNavigate();
+
   const handleGoogle = async () => {
     try { await signInWithPopup(auth, googleProvider); }
     catch (e) { console.error(e); }
@@ -27,6 +30,11 @@ export default function Login() {
           </button>
         </div>
         <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 20 }}>AI 없음 · 창작자 전용</p>
+        <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 8 }}>
+          <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/legal')}>개인정보처리방침</span>
+          {' · '}
+          <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/legal')}>이용약관</span>
+        </p>
       </div>
     </div>
   );

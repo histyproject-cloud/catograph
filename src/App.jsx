@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import Login from './pages/Login';
 import SharedView from './pages/SharedView';
+import Legal from './pages/Legal';
 import './styles/global.css';
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/project/:id" element={user ? <Project user={user} /> : <Navigate to="/login" />} />
         {/* 공유 링크 - 로그인 없이 접근 가능 */}
         <Route path="/shared/:id" element={<SharedView />} />
+        <Route path="/legal" element={<Legal />} />
       </Routes>
     </BrowserRouter>
   );

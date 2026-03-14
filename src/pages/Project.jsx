@@ -70,7 +70,7 @@ export default function Project({ user }) {
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {project?.name || '...'}
         </span>
-        {/* 액션 버튼들 */}
+        {/* 액션 버튼들 - 탭에 따라 다르게 */}
         {activeTab === 'relation' && (
           <button
             className={`btn ${connectMode ? 'btn-primary' : ''}`}
@@ -80,9 +80,11 @@ export default function Project({ user }) {
             {isMobile ? '연결' : connectMode ? (connectFrom ? '대상 선택' : '시작 선택') : '관계 연결'}
           </button>
         )}
-        <button className="btn btn-primary" style={{ fontSize: 12, padding: '0 10px', height: 34 }} onClick={() => setShowAddChar(true)}>
-          {isMobile ? '+' : '+ 캐릭터'}
-        </button>
+        {(activeTab === 'relation' || activeTab === 'characters') && (
+          <button className="btn btn-primary" style={{ fontSize: 12, padding: '0 10px', height: 34 }} onClick={() => setShowAddChar(true)}>
+            {isMobile ? '+ 캐릭터' : '+ 캐릭터'}
+          </button>
+        )}
         <button className="btn" style={{ fontSize: 12, padding: '0 10px', height: 34 }} onClick={() => setShowShareModal(true)}>
           {isMobile ? '공유' : '🔗 공유'}
         </button>
@@ -107,6 +109,7 @@ export default function Project({ user }) {
               onCharClick={handleCharClick}
               onUpdatePosition={(id, pos) => updateCharacter(id, { position: pos })}
               onDeleteRelation={deleteRelation}
+              onUpdateRelation={updateRelation}
             />
           )}
           {activeTab === 'characters' && (
@@ -194,7 +197,7 @@ function CharacterList({ characters, onSelect, selected, onDelete }) {
           {characters.map(c => {
             const ac = getAvatarColor(c.name || '?');
             return (
-              <div key={c.id} onClick={() => onSelect(c)} style={{ background: 'var(--bg2)', border: `1px solid ${selected?.id === c.id ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 14, cursor: 'pointer' }}>
+              <div key={c.id} onClick={() => onSelect(c)} style={{ background: 'var(--bg2)', border: `1px solid ${selected?.id === c.id ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 14, cursor: 'pointer', position: 'relative' }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, marginBottom: 8 }}>{c.name?.[0] || '?'}</div>
                 <div style={{ fontWeight: 500, fontSize: 13 }}>{c.name}</div>
                 <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{c.role}</div>
@@ -203,6 +206,11 @@ function CharacterList({ characters, onSelect, selected, onDelete }) {
                     {c.tags.slice(0, 3).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
                   </div>
                 )}
+                <button
+                  className="btn btn-danger"
+                  style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px' }}
+                  onClick={e => { e.stopPropagation(); if (window.confirm(`'${c.name}' 삭제할까요? 연결된 관계선과 복선도 정리돼요.`)) onDelete(c.id); }}
+                >삭제</button>
               </div>
             );
           })}
@@ -218,17 +226,30 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const { isMobile } = useBreakpoint();
-  const [showDocList, setShowDocList] = useState(!isMobile);
+  const [showDocList, setShowDocList] = useState(true);
 
   const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); if (isMobile) setShowDocList(false); };
   const save = () => { if (selected) onUpdate(selected.id, { title, content }); };
   const addNew = async () => { const ref = await onAdd('새 문서'); selectDoc({ id: ref.id, title: '새 문서', content: '' }); };
+  const handleDelete = (e, d) => {
+    e.stopPropagation();
+    if (window.confirm(`'${d.title}' 삭제할까요?`)) {
+      onDelete(d.id);
+      if (selected?.id === d.id) { setSelected(null); setTitle(''); setContent(''); }
+    }
+  };
 
   const docList = (
     <div style={{ width: isMobile ? '100%' : 190, borderRight: isMobile ? 'none' : '1px solid var(--border)', background: 'var(--bg2)', overflowY: 'auto', padding: 8, flexShrink: 0 }}>
       <button className="btn btn-ghost" style={{ width: '100%', fontSize: 12, marginBottom: 8, justifyContent: 'flex-start' }} onClick={addNew}>+ 새 문서</button>
       {docs.map(d => (
-        <button key={d.id} onClick={() => selectDoc(d)} style={{ width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, background: selected?.id === d.id ? 'var(--bg3)' : 'transparent', color: selected?.id === d.id ? 'var(--text)' : 'var(--text2)', border: 'none', cursor: 'pointer', display: 'block', marginBottom: 2 }}>{d.title}</button>
+        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+          <button onClick={() => selectDoc(d)} style={{ flex: 1, textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, background: selected?.id === d.id ? 'var(--bg3)' : 'transparent', color: selected?.id === d.id ? 'var(--text)' : 'var(--text2)', border: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</button>
+          <button onClick={e => handleDelete(e, d)} style={{ flexShrink: 0, padding: '4px 6px', border: 'none', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 14, borderRadius: 6 }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--coral)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
+          >×</button>
+        </div>
       ))}
     </div>
   );
@@ -240,7 +261,10 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
       )}
       {selected ? (
         <>
-          <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save} style={{ fontSize: 20, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', marginBottom: 14, outline: 'none', borderBottom: '1px solid var(--border)', paddingBottom: 10 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+            <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save} style={{ flex: 1, fontSize: 20, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none' }} />
+            <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px', flexShrink: 0 }} onClick={() => { if (window.confirm(`'${title}' 삭제할까요?`)) { onDelete(selected.id); setSelected(null); if (isMobile) setShowDocList(true); } }}>삭제</button>
+          </div>
           <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save} style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none' }} placeholder="세계관 설정을 자유롭게 작성하세요..." />
         </>
       ) : (
@@ -314,7 +338,37 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) 
 }
 
 function FSCard({ fs, characters, onUpdate, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ title: fs.title, plantedEp: fs.plantedEp || '', resolvedEp: fs.resolvedEp || '', charIds: fs.charIds || [] });
   const linked = characters.filter(c => fs.charIds?.includes(c.id));
+
+  const save = () => { onUpdate(fs.id, form); setEditing(false); };
+
+  if (editing) return (
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius)', padding: '14px', marginBottom: 8 }}>
+      <div className="form-group"><label className="form-label">복선 내용</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} autoFocus /></div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">심은 화수</label><input value={form.plantedEp} onChange={e => setForm(f => ({ ...f, plantedEp: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3화" /></div>
+        <div className="form-group"><label className="form-label">회수 화수</label><input value={form.resolvedEp} onChange={e => setForm(f => ({ ...f, resolvedEp: e.target.value }))} style={{ width: '100%' }} placeholder="미회수면 비워두기" /></div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">연결 캐릭터</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {characters.map(c => {
+            const sel = form.charIds.includes(c.id);
+            const ac = getAvatarColor(c.name);
+            return <span key={c.id} className="tag" onClick={() => setForm(f => ({ ...f, charIds: sel ? f.charIds.filter(id => id !== c.id) : [...f.charIds, c.id] }))}
+              style={{ background: sel ? ac.bg : 'var(--bg4)', color: sel ? ac.color : 'var(--text3)', cursor: 'pointer', border: sel ? `1px solid ${ac.color}40` : '1px solid transparent' }}>{c.name}</span>;
+          })}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button className="btn" style={{ fontSize: 12 }} onClick={() => setEditing(false)}>취소</button>
+        <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={save}>저장</button>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
       <div style={{ flex: 1 }}>
@@ -326,7 +380,10 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
           </div>
         )}
       </div>
-      <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 10px', flexShrink: 0 }} onClick={() => onDelete(fs.id)}>삭제</button>
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <button className="btn btn-ghost" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => setEditing(true)}>수정</button>
+        <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => { if (window.confirm('복선을 삭제할까요?')) onDelete(fs.id); }}>삭제</button>
+      </div>
     </div>
   );
 }

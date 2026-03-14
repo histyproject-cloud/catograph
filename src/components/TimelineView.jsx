@@ -3,15 +3,24 @@ import { getAvatarColor } from './DetailPanel';
 
 export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
   const [form, setForm] = useState({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
   const [expandedId, setExpandedId] = useState(null);
 
-  const handleAdd = async (e) => {
+  const openAdd = () => { setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' }); setEditTarget(null); setShowAdd(true); };
+  const openEdit = (ev) => { setForm({ episode: String(ev.episode), title: ev.title, description: ev.description || '', charIds: ev.charIds || [], foreshadowIds: ev.foreshadowIds || [], type: ev.type || 'event' }); setEditTarget(ev); setShowAdd(true); };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim() || !form.episode) return;
-    await onAdd({ ...form, episode: Number(form.episode) });
+    if (editTarget) {
+      await onUpdate(editTarget.id, { ...form, episode: Number(form.episode) });
+    } else {
+      await onAdd({ ...form, episode: Number(form.episode) });
+    }
     setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
     setShowAdd(false);
+    setEditTarget(null);
   };
 
   const sorted = [...events].sort((a, b) => (a.episode || 0) - (b.episode || 0));
@@ -28,7 +37,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22 }}>타임라인</h2>
-        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => setShowAdd(true)}>+ 이벤트 추가</button>
+        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={openAdd}>+ 이벤트 추가</button>
       </div>
 
       {sorted.length === 0 && !showAdd ? (
@@ -98,8 +107,8 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                         </div>
                       )}
                       <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                        <button className="btn btn-ghost" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); /* TODO: edit */ }}>편집</button>
-                        <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); onDelete(ev.id); }}>삭제</button>
+                        <button className="btn btn-ghost" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); openEdit(ev); }}>편집</button>
+                        <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); if (window.confirm('이벤트를 삭제할까요?')) onDelete(ev.id); }}>삭제</button>
                       </div>
                     </div>
                   )}
@@ -112,10 +121,10 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
 
       {/* 추가 모달 */}
       {showAdd && (
-        <div className="modal-backdrop" onClick={() => setShowAdd(false)}>
+        <div className="modal-backdrop" onClick={() => { setShowAdd(false); setEditTarget(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">이벤트 추가</div>
-            <form onSubmit={handleAdd}>
+            <div className="modal-title">{editTarget ? '이벤트 수정' : '이벤트 추가'}</div>
+            <form onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group" style={{ maxWidth: 100 }}>
                   <label className="form-label">화수 *</label>
@@ -171,8 +180,8 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-                <button type="button" className="btn" onClick={() => setShowAdd(false)}>취소</button>
-                <button type="submit" className="btn btn-primary" disabled={!form.title.trim() || !form.episode}>추가</button>
+                <button type="button" className="btn" onClick={() => { setShowAdd(false); setEditTarget(null); }}>취소</button>
+                <button type="submit" className="btn btn-primary" disabled={!form.title.trim() || !form.episode}>{editTarget ? '저장' : '추가'}</button>
               </div>
             </form>
           </div>
