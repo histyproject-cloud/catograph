@@ -308,8 +308,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
 }
 
 
-const CARD_W = 110;
-const CARD_H = 90;
+
 
 export default function RelationCanvas({ characters, relations, selectedChar, connectMode, connectFrom, onCharClick, onUpdatePosition, onDeleteRelation }) {
   const canvasRef = useRef(null);
