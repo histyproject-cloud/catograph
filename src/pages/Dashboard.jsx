@@ -6,7 +6,7 @@ import { useProjects } from '../hooks/useProject';
 
 export default function Dashboard({ user }) {
   const navigate = useNavigate();
-  const { projects, loading, createProject, deleteProject } = useProjects(user.uid);
+  const { projects, loading, createProject, deleteProject, updateProject } = useProjects(user.uid);
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -50,7 +50,7 @@ export default function Dashboard({ user }) {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-            {projects.map(p => <ProjectCard key={p.id} project={p} onClick={() => navigate(`/project/${p.id}`)} onDelete={() => deleteProject(p.id)} />)}
+            {projects.map(p => <ProjectCard key={p.id} project={p} onClick={() => navigate(`/project/${p.id}`)} onDelete={() => deleteProject(p.id)} onRename={(name) => updateProject(p.id, { name })} />)}
           </div>
         )}
       </main>
@@ -76,20 +76,55 @@ export default function Dashboard({ user }) {
   );
 }
 
-function ProjectCard({ project, onClick, onDelete }) {
+function ProjectCard({ project, onClick, onDelete, onRename }) {
+  const [hovering, setHovering] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(project.name);
+
+  const handleRename = (e) => {
+    e.stopPropagation();
+    if (name.trim() && name !== project.name) onRename(name.trim());
+    setEditing(false);
+  };
+
   return (
-    <div onClick={onClick} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 18, cursor: 'pointer', position: 'relative', transition: 'border-color 0.15s' }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+    <div
+      onClick={() => !editing && onClick()}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      style={{ background: 'var(--bg2)', border: `1px solid ${hovering ? 'var(--border2)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 18, cursor: editing ? 'default' : 'pointer', position: 'relative', transition: 'border-color 0.15s' }}
     >
       <div style={{ width: 38, height: 38, background: 'var(--accent-glow)', border: '1px solid rgba(139,124,248,0.25)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, fontSize: 16 }}>✦</div>
-      <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 4 }}>{project.name}</div>
+
+      {editing ? (
+        <input
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onBlur={handleRename}
+          onKeyDown={e => { if (e.key === 'Enter') handleRename(e); if (e.key === 'Escape') { setName(project.name); setEditing(false); } }}
+          onClick={e => e.stopPropagation()}
+          style={{ width: '100%', fontSize: 14, fontWeight: 500, marginBottom: 4 }}
+          autoFocus
+        />
+      ) : (
+        <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 4 }}>{project.name}</div>
+      )}
+
       <div style={{ color: 'var(--text3)', fontSize: 11 }}>{project.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '방금 전'}</div>
-      <button className="btn btn-ghost" style={{ position: 'absolute', top: 10, right: 10, fontSize: 11, height: 28, padding: '0 8px', opacity: 0 }}
-        onClick={e => { e.stopPropagation(); if (window.confirm('삭제할까요?')) onDelete(); }}
-        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-        onMouseLeave={e => e.currentTarget.style.opacity = '0'}
-      >삭제</button>
+
+      {/* 수정/삭제 버튼 */}
+      <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 4, opacity: hovering ? 1 : 0, transition: 'opacity 0.15s' }}>
+        <button
+          className="btn btn-ghost"
+          style={{ fontSize: 11, height: 28, padding: '0 8px' }}
+          onClick={e => { e.stopPropagation(); setEditing(true); }}
+        >수정</button>
+        <button
+          className="btn btn-danger"
+          style={{ fontSize: 11, height: 28, padding: '0 8px' }}
+          onClick={e => { e.stopPropagation(); if (window.confirm(`'${project.name}' 삭제할까요?`)) onDelete(); }}
+        >삭제</button>
+      </div>
     </div>
   );
 }

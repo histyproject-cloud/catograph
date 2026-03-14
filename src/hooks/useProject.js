@@ -24,7 +24,9 @@ export function useProjects(userId) {
 
   const deleteProject = async (id) => deleteDoc(doc(db, 'projects', id));
 
-  return { projects, loading, createProject, deleteProject };
+  const updateProject = async (id, data) => updateDoc(doc(db, 'projects', id), data);
+
+  return { projects, loading, createProject, deleteProject, updateProject };
 }
 
 export function useCharacters(projectId) {

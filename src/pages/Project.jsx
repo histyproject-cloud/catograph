@@ -50,7 +50,16 @@ export default function Project({ user }) {
     setRelLabel(''); setShowRelModal(null);
   };
 
-  const selectedCharObj = characters.find(c => c.id === selectedChar?.id);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+
+  const handleRenameProject = async () => {
+    if (titleInput.trim() && titleInput !== project?.name) {
+      await updateDoc(doc(db, 'projects', projectId), { name: titleInput.trim() });
+      setProject(p => ({ ...p, name: titleInput.trim() }));
+    }
+    setEditingTitle(false);
+  };
 
   // 모바일/태블릿 하단 여백
   const bottomPad = (isMobile || isTablet) ? 'var(--bottombar-h)' : 0;
@@ -67,9 +76,24 @@ export default function Project({ user }) {
         )}
         <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 8px' }} onClick={() => navigate('/')}>← 홈</button>
         <div style={{ width: 1, height: 16, background: 'var(--border)' }} />
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {project?.name || '...'}
-        </span>
+        {editingTitle ? (
+          <input
+            value={titleInput}
+            onChange={e => setTitleInput(e.target.value)}
+            onBlur={handleRenameProject}
+            onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(); if (e.key === 'Escape') setEditingTitle(false); }}
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, flex: 1, background: 'var(--bg3)', border: '1px solid var(--accent)', borderRadius: 6, padding: '2px 8px', color: 'var(--text)', outline: 'none' }}
+            autoFocus
+          />
+        ) : (
+          <span
+            onClick={() => { setTitleInput(project?.name || ''); setEditingTitle(true); }}
+            title="클릭해서 제목 수정"
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text', borderBottom: '1px dashed var(--border2)' }}
+          >
+            {project?.name || '...'}
+          </span>
+        )}
         {/* 액션 버튼들 - 탭에 따라 다르게 */}
         {activeTab === 'relation' && (
           <button
