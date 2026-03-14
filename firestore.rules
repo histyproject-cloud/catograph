@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /projects/{projectId} {
+      allow read: if (request.auth != null && request.auth.uid == resource.data.ownerId)
+                  || resource.data.shareEnabled == true;
+      allow write: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+    }
+
+    function isOwner(projectId) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
+    }
+
+    function isShared(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)).data.shareEnabled == true;
+    }
+
+    match /characters/{id} {
+      allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
+      allow write: if isOwner(resource.data.projectId);
+      allow create: if isOwner(request.resource.data.projectId);
+    }
+    match /relations/{id} {
+      allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
+      allow write: if isOwner(resource.data.projectId);
+      allow create: if isOwner(request.resource.data.projectId);
+    }
+    match /foreshadows/{id} {
+      allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
+      allow write: if isOwner(resource.data.projectId);
+      allow create: if isOwner(request.resource.data.projectId);
+    }
+    match /worldDocs/{id} {
+      allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
+      allow write: if isOwner(resource.data.projectId);
+      allow create: if isOwner(request.resource.data.projectId);
+    }
+    match /timelineEvents/{id} {
+      allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
+      allow write: if isOwner(resource.data.projectId);
+      allow create: if isOwner(request.resource.data.projectId);
+    }
+  }
+}
