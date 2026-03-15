@@ -8,6 +8,8 @@ import Navigation from '../components/Navigation';
 import DetailPanel, { getAvatarColor } from '../components/DetailPanel';
 import RelationCanvas from '../components/RelationCanvas';
 import TimelineView from '../components/TimelineView';
+import UpgradeModal from '../components/UpgradeModal';
+import { FREE_LIMITS, LIMIT_MESSAGES, isPro } from '../config/plans';
 
 export default function Project({ user }) {
   const { id: projectId } = useParams();
@@ -24,6 +26,14 @@ export default function Project({ user }) {
   const [relLabel, setRelLabel] = useState('');
   const [showAddChar, setShowAddChar] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [upgradeMsg, setUpgradeMsg] = useState(null);
+
+  // 제한 체크 헬퍼
+  const checkLimit = (current, type) => {
+    if (isPro(user)) return true;
+    if (current >= FREE_LIMITS[type]) { setUpgradeMsg(LIMIT_MESSAGES[type]); return false; }
+    return true;
+  };
 
   const { characters, addCharacter, updateCharacter, deleteCharacter } = useCharacters(projectId);
   const { relations, addRelation, updateRelation, deleteRelation } = useRelations(projectId);
@@ -105,7 +115,8 @@ export default function Project({ user }) {
           </button>
         )}
         {(activeTab === 'relation' || activeTab === 'characters') && (
-          <button className="btn btn-primary" style={{ fontSize: 12, padding: '0 10px', height: 34 }} onClick={() => setShowAddChar(true)}>
+          <button className="btn btn-primary" style={{ fontSize: 12, padding: '0 10px', height: 34 }}
+            onClick={() => { if (checkLimit(characters.length, 'characters')) setShowAddChar(true); }}>
             {isMobile ? '+ 캐릭터' : '+ 캐릭터'}
           </button>
         )}
@@ -140,15 +151,19 @@ export default function Project({ user }) {
             <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} />
           )}
           {activeTab === 'world' && (
-            <WorldView docs={worldDocs} onAdd={addWorldDoc} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} />
+            <WorldView docs={worldDocs} onAdd={(title) => { if (checkLimit(worldDocs.length, 'worldDocs')) return addWorldDoc(title); }} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} />
           )}
           {activeTab === 'foreshadow' && (
-            <ForeshadowView foreshadows={foreshadows} characters={characters} onAdd={addForeshadow} onUpdate={updateForeshadow} onDelete={deleteForeshadow} />
+            <ForeshadowView foreshadows={foreshadows} characters={characters}
+              onAdd={(data) => { if (checkLimit(foreshadows.length, 'foreshadows')) return addForeshadow(data); }}
+              onUpdate={updateForeshadow} onDelete={deleteForeshadow} />
           )}
           {activeTab === 'timeline' && (
             <TimelineView
               events={events} characters={characters} foreshadows={foreshadows}
-              onAdd={addEvent} onUpdate={updateEvent} onDelete={deleteEvent}
+              onAdd={(data) => { if (checkLimit(events.length, 'timelineEvents')) return addEvent(data); }}
+              onUpdate={updateEvent} onDelete={deleteEvent}
+              limit={FREE_LIMITS.timelineEvents} isPro={isPro(user)}
             />
           )}
         </main>
@@ -206,6 +221,9 @@ export default function Project({ user }) {
           onUpdate={(data) => setProject(p => ({ ...p, ...data }))}
         />
       )}
+
+      {/* 업그레이드 모달 */}
+      <UpgradeModal message={upgradeMsg} onClose={() => setUpgradeMsg(null)} />
     </div>
   );
 }

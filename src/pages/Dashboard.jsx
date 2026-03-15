@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useProjects } from '../hooks/useProject';
+import { FREE_LIMITS, LIMIT_MESSAGES, isPro } from '../config/plans';
+import UpgradeModal from '../components/UpgradeModal';
 
 export default function Dashboard({ user }) {
   const navigate = useNavigate();
@@ -10,6 +12,15 @@ export default function Dashboard({ user }) {
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [upgradeMsg, setUpgradeMsg] = useState(null);
+
+  const handleNewClick = () => {
+    if (!isPro(user) && projects.length >= FREE_LIMITS.projects) {
+      setUpgradeMsg(LIMIT_MESSAGES.projects);
+      return;
+    }
+    setShowNew(true);
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -37,7 +48,7 @@ export default function Dashboard({ user }) {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, letterSpacing: '-0.02em' }}>내 작품</h1>
             <p style={{ color: 'var(--text2)', fontSize: 13, marginTop: 4 }}>세계관을 그려나가세요</p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ 새 작품</button>
+          <button className="btn btn-primary" onClick={handleNewClick}>+ 새 작품</button>
         </div>
 
         {loading ? (
@@ -46,7 +57,7 @@ export default function Dashboard({ user }) {
           <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
             <p style={{ color: 'var(--text2)', marginBottom: 20, fontSize: 14 }}>아직 작품이 없어요</p>
-            <button className="btn btn-primary" onClick={() => setShowNew(true)}>첫 작품 만들기</button>
+            <button className="btn btn-primary" onClick={handleNewClick}>첫 작품 만들기</button>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
@@ -72,6 +83,8 @@ export default function Dashboard({ user }) {
           </div>
         </div>
       )}
+
+      <UpgradeModal message={upgradeMsg} onClose={() => setUpgradeMsg(null)} />
     </div>
   );
 }
