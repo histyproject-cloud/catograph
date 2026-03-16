@@ -7,6 +7,7 @@ import Project from './pages/Project';
 import Login from './pages/Login';
 import SharedView from './pages/SharedView';
 import Legal from './pages/Legal';
+import Pricing from './pages/Pricing';
 import './styles/global.css';
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         {/* 공유 링크 - 로그인 없이 접근 가능 */}
         <Route path="/shared/:id" element={<SharedView />} />
         <Route path="/legal" element={<Legal />} />
+        <Route path="/pricing" element={<Pricing />} />
       </Routes>
     </BrowserRouter>
   );

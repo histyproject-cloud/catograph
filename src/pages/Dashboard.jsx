@@ -125,6 +125,25 @@ export default function Dashboard({ user }) {
       )}
 
       <UpgradeModal message={upgradeMsg} onClose={() => setUpgradeMsg(null)} />
+
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid var(--border)', padding: '24px 20px', background: 'var(--bg2)', marginTop: 40 }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/pricing')}>요금제</span>
+              <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/legal')}>이용약관</span>
+              <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/legal')}>개인정보처리방침</span>
+              <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/legal?tab=refund')}>환불 정책</span>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text3)' }}>© 2026 Histy</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.9 }}>
+            <p>상호명: 히스티 · 사업자등록번호: 162-18-02499 · 대표자: (대표자명) · 전화: 010-5629-4236</p>
+            <p>주소: 서울특별시 광진구 구의강변로 11 · 이메일: cartograph.help@gmail.com</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
