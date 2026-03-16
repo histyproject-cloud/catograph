@@ -130,3 +130,18 @@ export function useTimelineEvents(projectId) {
 
   return { events, addEvent, updateEvent, deleteEvent };
 }
+
+export function useFanworks(projectId) {
+  const [fanworks, setFanworks] = useState([]);
+  useEffect(() => {
+    if (!projectId) return;
+    const q = query(collection(db, 'fanworks'), where('projectId', '==', projectId));
+    return onSnapshot(q, snap => setFanworks(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  }, [projectId]);
+
+  const addFanwork = (data) => addDoc(collection(db, 'fanworks'), { ...data, projectId, createdAt: serverTimestamp() });
+  const updateFanwork = (id, data) => updateDoc(doc(db, 'fanworks', id), data);
+  const deleteFanwork = (id) => deleteDoc(doc(db, 'fanworks', id));
+
+  return { fanworks, addFanwork, updateFanwork, deleteFanwork };
+}

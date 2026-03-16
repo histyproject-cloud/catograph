@@ -1,0 +1,161 @@
+import React, { useState } from 'react';
+
+export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: '', url: '', author: '', type: '팬픽' });
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  const TYPES = ['팬픽', '팬아트', '2차소설', '번역', '영상', '기타'];
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.url.trim()) return;
+    let url = form.url.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+    await onAdd({ ...form, url });
+    setForm({ title: '', url: '', author: '', type: '팬픽' });
+    setShowAdd(false);
+  };
+
+  const startEdit = (fw) => {
+    setEditId(fw.id);
+    setEditForm({ title: fw.title, url: fw.url, author: fw.author || '', type: fw.type || '팬픽' });
+  };
+
+  const saveEdit = async () => {
+    await onUpdate(editId, editForm);
+    setEditId(null);
+  };
+
+  const handleOpen = (url) => {
+    let u = url;
+    if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'https://' + u;
+    window.open(u, '_blank', 'noopener,noreferrer');
+  };
+
+  const TYPE_COLORS = {
+    '팬픽': { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
+    '팬아트': { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf' },
+    '2차소설': { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
+    '번역': { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b' },
+    '영상': { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
+    '기타': { bg: 'rgba(88,88,100,0.2)', color: '#9d9caa' },
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22 }}>2차창작 모음</h2>
+          <p style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>팬픽, 팬아트, 번역 등 링크를 저장해두세요</p>
+        </div>
+        <button className="btn btn-primary" style={{ fontSize: 13, height: 38 }} onClick={() => setShowAdd(true)}>+ 추가</button>
+      </div>
+
+      {fanworks.length === 0 && !showAdd && (
+        <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 저장된 2차창작물이 없어요</p>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>첫 작품 추가하기</button>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        {fanworks.map(fw => {
+          const tc = TYPE_COLORS[fw.type] || TYPE_COLORS['기타'];
+          if (editId === fw.id) return (
+            <div key={fw.id} style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
+              <div className="form-group">
+                <label className="form-label">제목</label>
+                <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} autoFocus />
+              </div>
+              <div className="form-group">
+                <label className="form-label">링크</label>
+                <input value={editForm.url} onChange={e => setEditForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." style={{ width: '100%' }} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">작가/출처</label>
+                  <input value={editForm.author} onChange={e => setEditForm(f => ({ ...f, author: e.target.value }))} placeholder="닉네임" style={{ width: '100%' }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">유형</label>
+                  <select value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
+                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
+                    {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn" style={{ fontSize: 12 }} onClick={() => setEditId(null)}>취소</button>
+                <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={saveEdit}>저장</button>
+              </div>
+            </div>
+          );
+
+          return (
+            <div key={fw.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, transition: 'border-color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              {/* 클릭 영역 */}
+              <div style={{ flex: 1, cursor: 'pointer', minWidth: 0 }} onClick={() => handleOpen(fw.url)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span className="tag" style={{ background: tc.bg, color: tc.color, fontSize: 10, flexShrink: 0 }}>{fw.type || '기타'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fw.title}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {fw.author && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{fw.author}</span>}
+                  {fw.author && <span style={{ color: 'var(--text3)', fontSize: 10 }}>·</span>}
+                  <span style={{ fontSize: 11, color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fw.url}</span>
+                </div>
+              </div>
+              {/* 버튼 */}
+              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                <button className="btn btn-ghost" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => startEdit(fw)}>수정</button>
+                <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => { if (window.confirm('삭제할까요?')) onDelete(fw.id); }}>삭제</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 추가 모달 */}
+      {showAdd && (
+        <div className="modal-backdrop" onClick={() => setShowAdd(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">2차창작물 추가</div>
+            <form onSubmit={handleAdd}>
+              <div className="form-group">
+                <label className="form-label">제목 *</label>
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="예: 솔음이 커피숍 AU" style={{ width: '100%' }} autoFocus />
+              </div>
+              <div className="form-group">
+                <label className="form-label">링크를 입력하세요 *</label>
+                <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." style={{ width: '100%' }} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">작가/출처</label>
+                  <input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="닉네임 (선택)" style={{ width: '100%' }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">유형</label>
+                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
+                    {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+                <button type="button" className="btn" onClick={() => setShowAdd(false)}>취소</button>
+                <button type="submit" className="btn btn-primary" disabled={!form.title.trim() || !form.url.trim()}>추가</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

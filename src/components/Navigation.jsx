@@ -8,6 +8,7 @@ const TABS = [
   { id: 'world', label: '세계관', icon: WorldIcon },
   { id: 'foreshadow', label: '복선', icon: FSIcon },
   { id: 'timeline', label: '타임라인', icon: TimelineIcon },
+  { id: 'fanworks', label: '2차창작', icon: FanIcon },
 ];
 
 // ── 아이콘 컴포넌트들 ──
@@ -25,6 +26,9 @@ function FSIcon() {
 }
 function TimelineIcon() {
   return <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="6" cy="9" r="2" fill="currentColor" opacity="0.6"/><circle cx="9" cy="9" r="2" fill="currentColor"/><circle cx="12" cy="9" r="2" fill="currentColor" opacity="0.6"/><line x1="6" y1="5" x2="6" y2="7" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/><line x1="12" y1="11" x2="12" y2="13" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg>;
+}
+function FanIcon() {
+  return <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3.5L10.5 7h3.5l-2.8 2.1 1 3.4L9 10.5l-3.2 2 1-3.4L4 7h3.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>;
 }
 
 // ── 데스크톱 사이드바 ──
