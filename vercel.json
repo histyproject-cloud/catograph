@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx react-scripts build",
+  "buildCommand": "node node_modules/react-scripts/bin/react-scripts.js build",
   "installCommand": "npm install",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
