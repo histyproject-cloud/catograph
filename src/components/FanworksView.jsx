@@ -27,6 +27,12 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
   const [editCustomType, setEditCustomType] = useState('');
 
   const TYPES = ['팬픽', '팬아트', '2차소설', '번역', '영상', '기타'];
+
+  React.useEffect(() => {
+    const handler = () => setShowAdd(true);
+    document.addEventListener('fanworks:add', handler);
+    return () => document.removeEventListener('fanworks:add', handler);
+  }, []);
   const [orderedFanworks, setOrderedFanworks] = React.useState(null);
   const displayFanworks = orderedFanworks || fanworks;
   const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(displayFanworks, setOrderedFanworks);
@@ -68,13 +74,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22 }}>2차창작 모음</h2>
-          <p style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>팬픽, 팬아트, 번역 등 링크를 저장해두세요</p>
-        </div>
-        <button className="btn btn-primary" style={{ fontSize: 13, height: 38 }} onClick={() => setShowAdd(true)}>+ 추가</button>
-      </div>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>팬픽, 팬아트, 번역 등 링크를 저장해두세요</p>
 
       {fanworks.length === 0 && !showAdd && (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>

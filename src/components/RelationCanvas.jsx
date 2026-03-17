@@ -195,25 +195,50 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
             if (!from || !to) return null;
 
             const fp = getPos(from), tp = getPos(to);
-            const fx = fp.x + CARD_W / 2, fy = fp.y + CARD_H / 2;
-            const tx = tp.x + CARD_W / 2, ty = tp.y + CARD_H / 2;
+            const fcx = fp.x + CARD_W / 2, fcy = fp.y + CARD_H / 2;
+            const tcx = tp.x + CARD_W / 2, tcy = tp.y + CARD_H / 2;
+
+            // 화살표가 카드 엣지에서 시작/끝나도록 — 카드 경계 교차점 계산
+            const clipToRect = (ox, oy, tx, ty, rw, rh) => {
+              const dx = tx - ox, dy = ty - oy;
+              const absDx = Math.abs(dx), absDy = Math.abs(dy);
+              let t;
+              if (absDx === 0 && absDy === 0) return { x: ox, y: oy };
+              const tX = absDx > 0 ? (rw / 2) / absDx : Infinity;
+              const tY = absDy > 0 ? (rh / 2) / absDy : Infinity;
+              t = Math.min(tX, tY);
+              return { x: ox + dx * t, y: oy + dy * t };
+            };
+
+            const startPt = clipToRect(fcx, fcy, tcx, tcy, CARD_W, CARD_H);
+            const endPt   = clipToRect(tcx, tcy, fcx, fcy, CARD_W, CARD_H);
 
             // 같은 쌍이면 평행 오프셋 적용
             const offsetDist = getPairOffset(rel);
-            const { ox, oy } = getOffset(fx, fy, tx, ty, offsetDist);
+            const { ox, oy } = getOffset(startPt.x, startPt.y, endPt.x, endPt.y, offsetDist);
 
-            const x1 = fx + ox, y1 = fy + oy;
-            const x2 = tx + ox, y2 = ty + oy;
-            const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+            const x1 = startPt.x + ox, y1 = startPt.y + oy;
+            const x2 = endPt.x + ox,   y2 = endPt.y + oy;
+            const mx = (x1 + x2) / 2,  my = (y1 + y2) / 2;
 
             const isHovered = hoveredRel === rel.id;
             const isSelected = relMenu?.relId === rel.id;
 
-            // 라벨 위치: 선의 수직 방향으로 살짝 띄움
-            const dx = x2 - x1, dy = y2 - y1;
-            const len = Math.sqrt(dx * dx + dy * dy) || 1;
-            const lx = mx + (-dy / len) * 14;
-            const ly = my + (dx / len) * 14;
+            // 라벨 위치: 선의 수직 방향으로 띄움 (양방향이면 바깥쪽으로)
+            const ddx = x2 - x1, ddy = y2 - y1;
+            const len = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+            const perpX = (-ddy / len), perpY = (ddx / len);
+            const lx = mx + perpX * 14;
+            const ly = my + perpY * 14;
+
+            // 양방향 쌍 여부 — 중간 공유 라벨 표시용
+            const pairRel = relations.find(r => r.id !== rel.id && isPair(r, rel));
+            const isFirstOfPair = pairRel && rel.id < pairRel.id;
+
+            const relColor = rel.color || 'rgba(255,255,255,0.3)';
+            const lineColor = isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.8)' : relColor;
+            const markerColor = isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.9)' : relColor;
+            const markerId = `arr-${rel.id}`;
 
             return (
               <g key={rel.id}
@@ -223,55 +248,69 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                 onTouchEnd={e => handleRelTouch(e, rel)}
                 style={{ cursor: 'pointer' }}
               >
+                <defs>
+                  <marker id={markerId} markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                    <path d="M0,0 L9,4.5 L0,9 Z" fill={markerColor} />
+                  </marker>
+                </defs>
                 {/* 히트 영역 */}
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="18" />
-                {/* 화살표 선 */}
-                {(() => {
-                  const relColor = rel.color || 'rgba(255,255,255,0.25)';
-                  const lineColor = isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.8)' : relColor;
-                  const markerId = `arr-${rel.id}`;
-                  const markerColor = isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.9)' : relColor;
-                  return (
-                    <>
-                      <defs>
-                        <marker id={markerId} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-                          <path d="M0,0 L7,3 L0,6 Z" fill={markerColor} />
-                        </marker>
-                      </defs>
-                      <line
-                        x1={x1} y1={y1} x2={x2} y2={y2}
-                        stroke={lineColor}
-                        strokeWidth={isHovered || isSelected ? 2 : 1.5}
-                        markerEnd={isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`}
-                      />
-                    </>
-                  );
-                })()}
-                {/* 라벨 배경 + 텍스트 — 양방향 선 쌍이면 중간 사이에 표시 */}
+                {/* 화살표 선 — 끝부분 마커 크기만큼 줄여서 화살표가 잘리지 않게 */}
+                <line
+                  x1={x1} y1={y1}
+                  x2={x2 - (ddx / len) * 6} y2={y2 - (ddy / len) * 6}
+                  stroke={lineColor}
+                  strokeWidth={isHovered || isSelected ? 2.5 : 1.8}
+                  markerEnd={isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`}
+                />
+                {/* 개별 라벨 — 선 옆에 */}
                 {rel.label && (
                   <>
                     <rect
-                      x={lx - rel.label.length * 3.5 - 5} y={ly - 9}
-                      width={rel.label.length * 7 + 10} height={16}
+                      x={lx - rel.label.length * 3.5 - 6} y={ly - 9}
+                      width={rel.label.length * 7 + 12} height={17}
                       rx="4"
-                      fill={isSelected ? 'rgba(139,124,248,0.15)' : 'rgba(14,14,16,0.85)'}
-                      stroke={rel.color ? rel.color + '40' : 'transparent'} strokeWidth="1"
+                      fill="rgba(12,12,16,0.88)"
+                      stroke={rel.color ? rel.color + '55' : 'rgba(255,255,255,0.08)'} strokeWidth="1"
                       style={{ pointerEvents: 'none' }}
                     />
                     <text x={lx} y={ly + 4} textAnchor="middle" fontSize="10"
-                      fill={isSelected ? '#a89cf8' : isHovered ? 'rgba(248,113,113,0.95)' : rel.color || 'rgba(255,255,255,0.6)'}
+                      fill={isSelected ? '#a89cf8' : isHovered ? 'rgba(248,113,113,0.95)' : rel.color || 'rgba(255,255,255,0.65)'}
                       style={{ userSelect: 'none', pointerEvents: 'none' }}
                     >{rel.label}</text>
                   </>
                 )}
+                {/* 양방향 선 쌍 중앙 — 두 이름 사이 관계 라벨 표시 */}
+                {isFirstOfPair && (pairRel.label || rel.label) && (() => {
+                  const cmx = (fcx + tcx) / 2, cmy = (fcy + tcy) / 2;
+                  const bothLabel = rel.label && pairRel.label
+                    ? `${rel.label} ↔ ${pairRel.label}`
+                    : rel.label || pairRel.label;
+                  return (
+                    <>
+                      <rect
+                        x={cmx - bothLabel.length * 3.8 - 8} y={cmy - 11}
+                        width={bothLabel.length * 7.6 + 16} height={20}
+                        rx="6"
+                        fill="rgba(139,124,248,0.12)"
+                        stroke="rgba(139,124,248,0.3)" strokeWidth="1"
+                        style={{ pointerEvents: 'none' }}
+                      />
+                      <text x={cmx} y={cmy + 5} textAnchor="middle" fontSize="11"
+                        fill="rgba(168,156,248,0.9)" fontWeight="500"
+                        style={{ userSelect: 'none', pointerEvents: 'none' }}
+                      >{bothLabel}</text>
+                    </>
+                  );
+                })()}
                 {/* 호버/선택 시 편집 아이콘 */}
                 {(isHovered || isSelected) && (
                   <g style={{ pointerEvents: 'none' }}>
-                    <circle cx={mx} cy={my} r="9"
+                    <circle cx={mx} cy={my} r="10"
                       fill={isSelected ? 'rgba(139,124,248,0.2)' : 'rgba(248,113,113,0.12)'}
                       stroke={isSelected ? '#8b7cf8' : 'rgba(248,113,113,0.5)'} strokeWidth="1"
                     />
-                    <text x={mx} y={my + 4} textAnchor="middle" fontSize="10"
+                    <text x={mx} y={my + 4} textAnchor="middle" fontSize="11"
                       fill={isSelected ? '#a89cf8' : 'rgba(248,113,113,0.9)'}
                     >✎</text>
                   </g>

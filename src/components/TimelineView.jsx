@@ -30,6 +30,12 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   const [customType, setCustomType] = useState('');
 
   const openAdd = () => { setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' }); setEditTarget(null); setShowAdd(true); };
+
+  React.useEffect(() => {
+    const handler = () => openAdd();
+    document.addEventListener('timeline:add', handler);
+    return () => document.removeEventListener('timeline:add', handler);
+  }, []);
   const openEdit = (ev) => { setForm({ episode: String(ev.episode), title: ev.title, description: ev.description || '', charIds: ev.charIds || [], foreshadowIds: ev.foreshadowIds || [], type: ev.type || 'event' }); setEditTarget(ev); setShowAdd(true); };
 
   const handleSubmit = async (e) => {
@@ -61,11 +67,6 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22 }}>타임라인</h2>
-        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={openAdd}>+ 이벤트 추가</button>
-      </div>
-
       {sorted.length === 0 && !showAdd ? (
         <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>
           화수별 이벤트를 추가해보세요

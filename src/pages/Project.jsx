@@ -25,9 +25,16 @@ export default function Project({ user }) {
   const [connectFrom, setConnectFrom] = useState(null);
   const [showRelModal, setShowRelModal] = useState(null);
   const [relLabel, setRelLabel] = useState('');
+  const [relColor, setRelColor] = useState('');
   const [showAddChar, setShowAddChar] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState(null);
+  const [showDragToast, setShowDragToast] = useState(false);
+
+  const triggerDragToast = () => {
+    setShowDragToast(true);
+    setTimeout(() => setShowDragToast(false), 2500);
+  };
 
   // 제한 체크 헬퍼
   const checkLimit = (current, type) => {
@@ -59,8 +66,8 @@ export default function Project({ user }) {
 
   const handleAddRelation = async () => {
     if (!showRelModal) return;
-    await addRelation(showRelModal.fromId, showRelModal.toId, relLabel);
-    setRelLabel(''); setShowRelModal(null);
+    await addRelation(showRelModal.fromId, showRelModal.toId, relLabel, relColor);
+    setRelLabel(''); setRelColor(''); setShowRelModal(null);
   };
 
   const [editingTitle, setEditingTitle] = useState(false);
@@ -133,6 +140,23 @@ export default function Project({ user }) {
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => document.dispatchEvent(new CustomEvent('foreshadow:add'))}>
             + 복선 추가
+          </button>
+        )}
+        {activeTab === 'timeline' && (
+          <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
+            onClick={() => document.dispatchEvent(new CustomEvent('timeline:add'))}>
+            + 이벤트 추가
+          </button>
+        )}
+        {activeTab === 'fanworks' && (
+          <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
+            onClick={() => document.dispatchEvent(new CustomEvent('fanworks:add'))}>
+            + 추가
+          </button>
+        )}
+        {['characters', 'world', 'foreshadow', 'timeline', 'fanworks'].includes(activeTab) && (
+          <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={triggerDragToast}>
+            ⠿ 위치 수정
           </button>
         )}
         <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
@@ -220,9 +244,48 @@ export default function Project({ user }) {
         <div className="modal-backdrop" onClick={() => setShowRelModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 340 }}>
             <div className="modal-title">관계 설정</div>
+            {/* 방향 표시 */}
+            {(() => {
+              const fromChar = characters.find(c => c.id === showRelModal.fromId);
+              const toChar = characters.find(c => c.id === showRelModal.toId);
+              if (!fromChar || !toChar) return null;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, padding: '8px 10px', background: 'var(--bg3)', borderRadius: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent)' }}>{fromChar.name}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text3)' }}>→</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text2)' }}>{toChar.name}</span>
+                </div>
+              );
+            })()}
             <div className="form-group">
               <label className="form-label">관계 설명</label>
               <input value={relLabel} onChange={e => setRelLabel(e.target.value)} placeholder="예: 동료, 적대, 연인" style={{ width: '100%' }} autoFocus onKeyDown={e => e.key === 'Enter' && handleAddRelation()} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">선 색상</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                {[
+                  { value: '', color: 'rgba(255,255,255,0.25)', label: '기본' },
+                  { value: '#a89cf8', color: '#a89cf8', label: '보라' },
+                  { value: '#2dd4bf', color: '#2dd4bf', label: '청록' },
+                  { value: '#f87171', color: '#f87171', label: '빨강' },
+                  { value: '#f59e0b', color: '#f59e0b', label: '주황' },
+                  { value: '#4ade80', color: '#4ade80', label: '초록' },
+                  { value: '#60a5fa', color: '#60a5fa', label: '파랑' },
+                  { value: '#f472b6', color: '#f472b6', label: '분홍' },
+                ].map(rc => (
+                  <div key={rc.value} title={rc.label}
+                    onClick={() => setRelColor(rc.value)}
+                    style={{
+                      width: 24, height: 24, borderRadius: '50%', cursor: 'pointer',
+                      background: rc.color,
+                      border: relColor === rc.value ? '2px solid #fff' : '2px solid transparent',
+                      boxShadow: relColor === rc.value ? '0 0 0 1px rgba(255,255,255,0.4)' : 'none',
+                      transition: 'border 0.1s, box-shadow 0.1s',
+                    }}
+                  />
+                ))}
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
               <button className="btn" onClick={() => setShowRelModal(null)}>취소</button>
@@ -243,6 +306,21 @@ export default function Project({ user }) {
           onClose={() => setShowShareModal(false)}
           onUpdate={(data) => setProject(p => ({ ...p, ...data }))}
         />
+      )}
+
+      {/* 드래그 안내 토스트 */}
+      {showDragToast && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(20,20,24,0.88)', backdropFilter: 'blur(8px)',
+          border: '1px solid var(--border2)', borderRadius: 99,
+          padding: '10px 20px', fontSize: 13, color: 'var(--text2)',
+          zIndex: 999, whiteSpace: 'nowrap',
+          animation: 'fadeInUp 0.2s ease',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        }}>
+          ⠿ 드래그하여 각 항목의 위치를 수정하세요
+        </div>
       )}
 
       {/* 업그레이드 모달 */}

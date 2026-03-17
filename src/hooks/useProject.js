@@ -79,7 +79,7 @@ export function useRelations(projectId) {
     return onSnapshot(q, snap => setRelations(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, [projectId]);
 
-  const addRelation = (fromId, toId, label = '') => addDoc(collection(db, 'relations'), { projectId, fromId, toId, label, createdAt: serverTimestamp() });
+  const addRelation = (fromId, toId, label = '', color = '') => addDoc(collection(db, 'relations'), { projectId, fromId, toId, label, color, createdAt: serverTimestamp() });
   const updateRelation = (id, data) => updateDoc(doc(db, 'relations', id), data);
   const deleteRelation = (id) => deleteDoc(doc(db, 'relations', id));
 
