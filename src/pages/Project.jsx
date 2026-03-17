@@ -163,7 +163,7 @@ export default function Project({ user }) {
             />
           )}
           {activeTab === 'characters' && (
-            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} onUpdate={updateCharacter} events={events} />
+            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} />
           )}
           {activeTab === 'world' && (
             <WorldView docs={worldDocs} onAdd={(title) => { if (checkLimit(worldDocs.length, 'worldDocs')) return addWorldDoc(title); }} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} />
@@ -252,17 +252,208 @@ export default function Project({ user }) {
 }
 
 // ── 캐릭터 목록 ──
-function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events }) {
+function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events, relations, foreshadows }) {
+  const [detailChar, setDetailChar] = useState(null);
+  const [visible, setVisible] = useState(false);
+
+  const openDetail = (c) => {
+    setDetailChar(c);
+    requestAnimationFrame(() => setVisible(true));
+  };
+
+  const closeDetail = () => {
+    setVisible(false);
+    setTimeout(() => setDetailChar(null), 300);
+  };
+
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      {characters.length === 0 ? (
-        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>캐릭터가 없어요</div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-          {characters.map(c => (
-            <CharacterCard key={c.id} character={c} events={events} isSelected={selected?.id === c.id} onSelect={onSelect} onDelete={onDelete} onUpdate={onUpdate} />
+    <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
+        {characters.length === 0 ? (
+          <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>캐릭터가 없어요</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+            {characters.map(c => (
+              <CharacterCard key={c.id} character={c} events={events} isSelected={selected?.id === c.id}
+                onSelect={openDetail} onDelete={onDelete} onUpdate={onUpdate} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {detailChar && (
+        <div style={{
+          position: 'absolute', inset: 0, background: 'var(--bg)', zIndex: 20,
+          transform: visible ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+          overflowY: 'auto',
+        }}>
+          <CharacterDetailPage
+            character={detailChar}
+            characters={characters}
+            events={events}
+            relations={relations}
+            foreshadows={foreshadows}
+            onUpdate={(id, data) => { onUpdate(id, data); setDetailChar(prev => ({ ...prev, ...data })); }}
+            onDelete={(id) => { onDelete(id); closeDetail(); }}
+            onClose={closeDetail}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 캐릭터 상세 전체화면 ──
+function CharacterDetailPage({ character: c, characters, events, relations, foreshadows, onUpdate, onDelete, onClose }) {
+  const ac = getAvatarColor(c.name || '?');
+  const [form, setForm] = useState({
+    name: c.name || '', role: c.role || '', age: c.age || '',
+    affiliation: c.affiliation || '', ability: c.ability || '',
+    description: c.description || '', tags: c.tags || [], episodes: c.episodes || '',
+  });
+  const [newTag, setNewTag] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const save = () => {
+    onUpdate(c.id, form);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const addTag = (e) => {
+    e.preventDefault();
+    if (!newTag.trim()) return;
+    setForm(f => ({ ...f, tags: [...f.tags, newTag.trim()] }));
+    setNewTag('');
+  };
+
+  const myRelations = (relations || []).filter(r => r.fromId === c.id || r.toId === c.id).map(r => {
+    const otherId = r.fromId === c.id ? r.toId : r.fromId;
+    const other = characters.find(ch => ch.id === otherId);
+    return { ...r, other };
+  }).filter(r => r.other);
+
+  const myForeshadows = (foreshadows || []).filter(f => f.charIds?.includes(c.id));
+  const timelineEpisodes = (events || []).filter(ev => ev.charIds?.includes(c.id)).map(ev => ev.episode).sort((a, b) => a - b);
+
+  const inputStyle = { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+
+  const Field = ({ label, children }) => (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+      {children}
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 60px' }}>
+      {/* 상단 바 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+        <button className="btn btn-ghost" style={{ fontSize: 13, padding: '0 12px', height: 36 }} onClick={onClose}>← 목록</button>
+        <div style={{ flex: 1 }} />
+        <button className="btn btn-danger" style={{ fontSize: 13, height: 36, padding: '0 14px' }}
+          onClick={() => { if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
+        <button className="btn btn-primary" style={{ fontSize: 13, height: 36, padding: '0 18px' }} onClick={save}>
+          {saved ? '✓ 저장됨' : '저장'}
+        </button>
+      </div>
+
+      {/* 아바타 + 이름 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 28, flexShrink: 0 }}>
+          {form.name?.[0] || '?'}
+        </div>
+        <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+          style={{ ...inputStyle, fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 600, border: 'none', background: 'transparent', padding: '4px 0', borderBottom: '1px dashed var(--border2)', borderRadius: 0, width: 'auto', flex: 1 }}
+          placeholder="이름" />
+      </div>
+
+      {/* 기본 정보 2열 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 4 }}>
+        <Field label="역할"><input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={inputStyle} placeholder="주인공, 악역..." /></Field>
+        <Field label="나이"><input value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} style={inputStyle} placeholder="예: 23세" /></Field>
+        <Field label="소속"><input value={form.affiliation} onChange={e => setForm(f => ({ ...f, affiliation: e.target.value }))} style={inputStyle} placeholder="조직, 학교..." /></Field>
+        <Field label="능력/특기"><input value={form.ability} onChange={e => setForm(f => ({ ...f, ability: e.target.value }))} style={inputStyle} placeholder="마법, 전투..." /></Field>
+      </div>
+
+      {/* 인물 소개 */}
+      <Field label="인물 소개">
+        <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          rows={5} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }} placeholder="인물을 자유롭게 소개해주세요..." />
+      </Field>
+
+      {/* 성격 태그 */}
+      <Field label="성격 태그">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {form.tags.map((t, i) => (
+            <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12 }}
+              onClick={() => setForm(f => ({ ...f, tags: f.tags.filter((_, j) => j !== i) }))}>
+              {t} ×
+            </span>
           ))}
         </div>
+        <form onSubmit={addTag} style={{ display: 'flex', gap: 8 }}>
+          <input value={newTag} onChange={e => setNewTag(e.target.value)} placeholder="태그 입력 후 엔터" style={{ ...inputStyle, flex: 1 }} />
+          <button type="submit" className="btn" style={{ height: 38, padding: '0 14px' }}>+</button>
+        </form>
+      </Field>
+
+      {/* 등장 화수 */}
+      <Field label="등장 화수">
+        {timelineEpisodes.length > 0 && (
+          <div style={{ marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {timelineEpisodes.map(ep => (
+              <span key={ep} style={{ fontSize: 11, background: 'var(--accent-glow)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 99 }}>📅 {ep}화</span>
+            ))}
+            <span style={{ fontSize: 11, color: 'var(--text3)', alignSelf: 'center' }}>타임라인 자동</span>
+          </div>
+        )}
+        <input value={form.episodes} onChange={e => setForm(f => ({ ...f, episodes: e.target.value }))}
+          style={inputStyle} placeholder="직접 입력: 예) 1, 3, 7화" />
+      </Field>
+
+      {/* 관련 복선 */}
+      {myForeshadows.length > 0 && (
+        <Field label={`관련 복선 (${myForeshadows.length})`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {myForeshadows.map(fs => (
+              <div key={fs.id} style={{ background: 'var(--bg3)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{fs.title}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+                    {fs.plantedEp && `${fs.plantedEp} 심음`}{fs.plantedEp && fs.resolvedEp && ' → '}{fs.resolvedEp ? `${fs.resolvedEp} 회수` : '미회수'}
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: fs.resolvedEp ? 'var(--bg4)' : 'var(--accent-glow)', color: fs.resolvedEp ? 'var(--text3)' : 'var(--accent)' }}>
+                  {fs.resolvedEp ? '회수' : '미회수'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Field>
+      )}
+
+      {/* 관계 목록 */}
+      {myRelations.length > 0 && (
+        <Field label={`관계 (${myRelations.length})`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {myRelations.map(r => {
+              const oac = getAvatarColor(r.other.name || '?');
+              return (
+                <div key={r.id} style={{ background: 'var(--bg3)', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: oac.bg, color: oac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontFamily: 'var(--font-serif)', flexShrink: 0 }}>
+                    {r.other.name?.[0] || '?'}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{r.other.name}</div>
+                    {r.label && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>{r.label}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Field>
       )}
     </div>
   );
