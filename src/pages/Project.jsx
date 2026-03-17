@@ -42,7 +42,8 @@ export default function Project({ user }) {
   const { docs: worldDocs, addWorldDoc, updateWorldDoc, deleteWorldDoc } = useWorldDocs(projectId);
   const { events, addEvent, updateEvent, deleteEvent } = useTimelineEvents(projectId);
   const { fanworks, addFanwork, updateFanwork, deleteFanwork } = useFanworks(projectId);
-
+  const selectedCharObj = characters.find(c => c.id === selectedChar?.id) ?? selectedChar;
+  
   useEffect(() => {
     getDoc(doc(db, 'projects', projectId)).then(d => { if (d.exists()) setProject(d.data()); });
   }, [projectId]);
