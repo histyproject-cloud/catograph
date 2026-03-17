@@ -405,8 +405,8 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
                   transition: 'transform 0.15s, opacity 0.15s, outline 0.1s',
                 }}
               >
-                <CharacterCard character={c} events={events} isSelected={selected?.id === c.id}
-                  onSelect={openDetail} onDelete={onDelete} onUpdate={onUpdate} />
+                <CharacterCard character={c} isSelected={selected?.id === c.id}
+                  onSelect={openDetail} onDelete={onDelete} />
               </div>
             ))}
           </div>
@@ -442,7 +442,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
   const [form, setForm] = useState({
     name: c.name || '', role: c.role || '', age: c.age || '',
     affiliation: c.affiliation || '', ability: c.ability || '',
-    description: c.description || '', tags: c.tags || [], episodes: c.episodes || '',
+    description: c.description || '', tags: c.tags || [],
   });
   const [newTag, setNewTag] = useState('');
   const [saved, setSaved] = useState(false);
@@ -531,18 +531,25 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
         </form>
       </Field>
 
-      {/* 등장 화수 */}
+      {/* 등장 화수 — 타임라인 연동 */}
       <Field label="등장 화수">
-        {timelineEpisodes.length > 0 && (
-          <div style={{ marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {timelineEpisodes.map(ep => (
-              <span key={ep} style={{ fontSize: 11, background: 'var(--accent-glow)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 99 }}>📅 {ep}화</span>
-            ))}
-            <span style={{ fontSize: 11, color: 'var(--text3)', alignSelf: 'center' }}>타임라인 자동</span>
+        {timelineEpisodes.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {timelineEpisodes.map(ep => {
+              const ev = (events || []).find(e => e.charIds?.includes(c.id) && e.episode === ep);
+              return (
+                <div key={ep} style={{ background: 'var(--bg3)', borderRadius: 8, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{ep}화</span>
+                  {ev?.title && <span style={{ fontSize: 11, color: 'var(--text2)' }}>{ev.title}</span>}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--text3)', padding: '8px 0' }}>
+            타임라인에서 이 캐릭터를 등장인물로 추가하면 여기에 자동으로 표시돼요
           </div>
         )}
-        <input value={form.episodes} onChange={e => setForm(f => ({ ...f, episodes: e.target.value }))}
-          style={inputStyle} placeholder="직접 입력: 예) 1, 3, 7화" />
       </Field>
 
       {/* 관련 복선 */}
@@ -591,65 +598,20 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
   );
 }
 
-function CharacterCard({ character: c, events, isSelected, onSelect, onDelete, onUpdate }) {
+function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
   const ac = getAvatarColor(c.name || '?');
-  const [editingEpisodes, setEditingEpisodes] = useState(false);
-  const [episodeInput, setEpisodeInput] = useState(c.episodes || '');
-
-  // 타임라인에서 이 캐릭터가 등장하는 화수 자동 추출
-  const timelineEpisodes = events
-    .filter(ev => ev.charIds?.includes(c.id))
-    .map(ev => ev.episode)
-    .sort((a, b) => a - b);
-
-  // 직접 입력한 화수 (없으면 타임라인 기반)
-  const displayEpisodes = c.episodes || (timelineEpisodes.length > 0 ? timelineEpisodes.join(', ') + '화' : null);
-
-  const saveEpisodes = () => {
-    onUpdate(c.id, { episodes: episodeInput });
-    setEditingEpisodes(false);
-  };
 
   return (
-    <div onClick={() => !editingEpisodes && onSelect(c)}
-      style={{ background: 'var(--bg2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 14, cursor: editingEpisodes ? 'default' : 'pointer', position: 'relative' }}>
+    <div onClick={() => onSelect(c)}
+      style={{ background: 'var(--bg2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 14, cursor: 'pointer', position: 'relative' }}>
       <div style={{ width: 38, height: 38, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, marginBottom: 8 }}>{c.name?.[0] || '?'}</div>
       <div style={{ fontWeight: 500, fontSize: 13, paddingRight: 32 }}>{c.name}</div>
       <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{c.role}</div>
-
-      {/* 등장 화수 */}
-      <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-        {editingEpisodes ? (
-          <div style={{ display: 'flex', gap: 4 }}>
-            <input
-              value={episodeInput}
-              onChange={e => setEpisodeInput(e.target.value)}
-              placeholder="예: 1, 3, 5화"
-              style={{ flex: 1, fontSize: 11, padding: '3px 6px', height: 26 }}
-              autoFocus
-              onKeyDown={e => { if (e.key === 'Enter') saveEpisodes(); if (e.key === 'Escape') setEditingEpisodes(false); }}
-            />
-            <button className="btn btn-primary" style={{ fontSize: 10, height: 26, padding: '0 8px' }} onClick={saveEpisodes}>저장</button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => { setEpisodeInput(c.episodes || ''); setEditingEpisodes(true); }}>
-            {displayEpisodes ? (
-              <span style={{ fontSize: 10, color: 'var(--accent)', background: 'var(--accent-glow)', padding: '2px 7px', borderRadius: 99 }}>
-                {timelineEpisodes.length > 0 && !c.episodes ? `📅 ${displayEpisodes}` : `📅 ${displayEpisodes}`}
-              </span>
-            ) : (
-              <span style={{ fontSize: 10, color: 'var(--text3)', borderBottom: '1px dashed var(--border2)' }}>등장 화수 입력</span>
-            )}
-          </div>
-        )}
-      </div>
-
       {c.tags?.length > 0 && (
-        <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {c.tags.slice(0, 3).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
         </div>
       )}
-
       <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px' }}
         onClick={e => { e.stopPropagation(); if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
     </div>
