@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npx react-scripts build",
+  "installCommand": "npm install",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
