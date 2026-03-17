@@ -18,7 +18,7 @@ function useDragOrder(items, onReorder) {
   return { onDragStart, onDragEnter, onDragEnd };
 }
 
-export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
+export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', url: '', author: '', type: '팬픽' });
   const [editId, setEditId] = useState(null);
@@ -35,7 +35,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
   }, []);
   const [orderedFanworks, setOrderedFanworks] = React.useState(null);
   const displayFanworks = orderedFanworks || fanworks;
-  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(displayFanworks, setOrderedFanworks);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayFanworks, setOrderedFanworks);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -128,14 +128,21 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
 
           return (
             <div key={fw.id}
-              draggable
-              onDragStart={() => onDragStart(fwIdx)}
-              onDragEnter={() => onDragEnter(fwIdx)}
-              onDragEnd={onDragEnd}
-              onDragOver={e => e.preventDefault()}
-              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, transition: 'border-color 0.15s', cursor: 'grab' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              draggable={reorderMode}
+              onDragStart={() => reorderMode && onDragStart(fwIdx)}
+              onDragEnter={() => reorderMode && onDragEnter(fwIdx)}
+              onDragEnd={reorderMode ? onDragEnd : undefined}
+              onDragOver={e => reorderMode && e.preventDefault()}
+              style={{
+                background: 'var(--bg2)',
+                border: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? '1px solid var(--accent)' : '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)', padding: '14px 16px',
+                display: 'flex', alignItems: 'center', gap: 12,
+                cursor: reorderMode ? 'grab' : 'default',
+                opacity: reorderMode && draggingIdx === fwIdx ? 0.35 : 1,
+                transform: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? 'translateX(8px)' : 'translateX(0)',
+                transition: 'border-color 0.12s, opacity 0.15s, transform 0.15s',
+              }}
             >
               {/* 클릭 영역 */}
               <div style={{ flex: 1, cursor: 'pointer', minWidth: 0 }} onClick={() => handleOpen(fw.url)}>

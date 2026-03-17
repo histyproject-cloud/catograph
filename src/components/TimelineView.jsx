@@ -22,7 +22,7 @@ function useDragOrder(items, onReorder) {
   return { onDragStart, onDragEnter, onDragEnd };
 }
 
-export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete }) {
+export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete, reorderMode }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm] = useState({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
@@ -55,7 +55,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   const displayEvents = orderedEvents || [...events].sort((a, b) => (a.episode || 0) - (b.episode || 0));
   const sorted = displayEvents;
 
-  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(sorted, setOrderedEvents);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(sorted, setOrderedEvents);
 
   const TYPE_COLORS = {
     event: { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8', label: '사건' },
@@ -93,19 +93,21 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                 }} />
 
                 <div
-                  draggable
-                  onDragStart={() => onDragStart(idx)}
-                  onDragEnter={() => onDragEnter(idx)}
-                  onDragEnd={onDragEnd}
-                  onDragOver={e => e.preventDefault()}
+                  draggable={reorderMode}
+                  onDragStart={() => reorderMode && onDragStart(idx)}
+                  onDragEnter={() => reorderMode && onDragEnter(idx)}
+                  onDragEnd={reorderMode ? onDragEnd : undefined}
+                  onDragOver={e => reorderMode && e.preventDefault()}
                   style={{
-                    background: 'var(--bg2)', border: '1px solid var(--border)',
+                    background: 'var(--bg2)',
+                    border: reorderMode && dragOverIdx === idx && draggingIdx !== idx ? '1px solid var(--accent)' : '1px solid var(--border)',
                     borderRadius: 'var(--radius)', padding: '12px 14px',
-                    cursor: 'grab', transition: 'border-color 0.15s, opacity 0.15s',
+                    cursor: reorderMode ? 'grab' : 'pointer',
+                    opacity: reorderMode && draggingIdx === idx ? 0.35 : 1,
+                    transform: reorderMode && dragOverIdx === idx && draggingIdx !== idx ? 'translateX(8px)' : 'translateX(0)',
+                    transition: 'border-color 0.12s, opacity 0.15s, transform 0.15s',
                   }}
                   onClick={() => setExpandedId(isExpanded ? null : ev.id)}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, minWidth: 36 }}>{ev.episode}화</span>

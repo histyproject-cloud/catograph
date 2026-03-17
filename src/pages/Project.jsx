@@ -19,6 +19,7 @@ export default function Project({ user }) {
 
   const [project, setProject] = useState(null);
   const [activeTab, setActiveTab] = useState('relation');
+  const handleSetActiveTab = (tab) => { setActiveTab(tab); setReorderMode(false); };
   const [selectedChar, setSelectedChar] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [connectMode, setConnectMode] = useState(false);
@@ -29,11 +30,18 @@ export default function Project({ user }) {
   const [showAddChar, setShowAddChar] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState(null);
+  const [reorderMode, setReorderMode] = useState(false);
   const [showDragToast, setShowDragToast] = useState(false);
 
-  const triggerDragToast = () => {
-    setShowDragToast(true);
-    setTimeout(() => setShowDragToast(false), 2500);
+  const toggleReorderMode = () => {
+    setReorderMode(v => {
+      const next = !v;
+      if (next) {
+        setShowDragToast(true);
+        setTimeout(() => setShowDragToast(false), 2000);
+      }
+      return next;
+    });
   };
 
   // 제한 체크 헬퍼
@@ -155,8 +163,12 @@ export default function Project({ user }) {
           </button>
         )}
         {['characters', 'world', 'foreshadow', 'timeline', 'fanworks'].includes(activeTab) && (
-          <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={triggerDragToast}>
-            ⠿ 위치 수정
+          <button
+            className={`btn${reorderMode ? ' btn-primary' : ''}`}
+            style={{ fontSize: 13, padding: '0 14px', height: 36, background: reorderMode ? 'rgba(139,124,248,0.25)' : undefined, borderColor: reorderMode ? 'var(--accent)' : undefined }}
+            onClick={toggleReorderMode}
+          >
+            {reorderMode ? '✓ 수정 종료' : '⠿ 위치 수정'}
           </button>
         )}
         <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
@@ -168,7 +180,7 @@ export default function Project({ user }) {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', paddingBottom: bottomPad }}>
         {/* 사이드바 / 탭바 네비게이션 */}
         <Navigation
-          activeTab={activeTab} setActiveTab={setActiveTab}
+          activeTab={activeTab} setActiveTab={handleSetActiveTab}
           characters={characters} selectedChar={selectedChar} onSelectChar={handleCharClick}
           projectName={project?.name || ''}
           sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}
@@ -187,18 +199,19 @@ export default function Project({ user }) {
             />
           )}
           {activeTab === 'characters' && (
-            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} />
+            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} reorderMode={reorderMode} />
           )}
           {activeTab === 'world' && (
-            <WorldView docs={worldDocs} onAdd={(title) => { if (checkLimit(worldDocs.length, 'worldDocs')) return addWorldDoc(title); }} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} />
+            <WorldView docs={worldDocs} onAdd={(title) => { if (checkLimit(worldDocs.length, 'worldDocs')) return addWorldDoc(title); }} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} reorderMode={reorderMode} />
           )}
           {activeTab === 'foreshadow' && (
-            <ForeshadowView foreshadows={foreshadows} characters={characters}
+            <ForeshadowView foreshadows={foreshadows} characters={characters} reorderMode={reorderMode}
               onAdd={(data) => { if (checkLimit(foreshadows.length, 'foreshadows')) return addForeshadow(data); }}
               onUpdate={updateForeshadow} onDelete={deleteForeshadow} />
           )}
           {activeTab === 'timeline' && (
             <TimelineView
+              reorderMode={reorderMode}
               events={events} characters={characters} foreshadows={foreshadows}
               onAdd={(data) => { if (checkLimit(events.length, 'timelineEvents')) return addEvent(data); }}
               onUpdate={updateEvent} onDelete={deleteEvent}
@@ -207,6 +220,7 @@ export default function Project({ user }) {
           )}
           {activeTab === 'fanworks' && (
             <FanworksView
+              reorderMode={reorderMode}
               fanworks={fanworks}
               onAdd={addFanwork}
               onUpdate={updateFanwork}
@@ -232,7 +246,7 @@ export default function Project({ user }) {
       {/* 바텀 탭바 (모바일/태블릿) */}
       {(isMobile || isTablet) && (
         <Navigation
-          activeTab={activeTab} setActiveTab={setActiveTab}
+          activeTab={activeTab} setActiveTab={handleSetActiveTab}
           characters={characters} selectedChar={selectedChar} onSelectChar={handleCharClick}
           projectName={project?.name || ''}
           sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}
@@ -332,29 +346,32 @@ export default function Project({ user }) {
 // ── 드래그 순서 훅 ──
 function useDragOrder(items, onReorder) {
   const dragItem = React.useRef(null);
-  const dragOver = React.useRef(null);
-  const onDragStart = (idx) => { dragItem.current = idx; };
-  const onDragEnter = (idx) => { dragOver.current = idx; };
+  const [dragOverIdx, setDragOverIdx] = React.useState(null);
+  const [draggingIdx, setDraggingIdx] = React.useState(null);
+
+  const onDragStart = (idx) => { dragItem.current = idx; setDraggingIdx(idx); };
+  const onDragEnter = (idx) => { setDragOverIdx(idx); };
   const onDragEnd = () => {
-    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
-      dragItem.current = null; dragOver.current = null; return;
+    if (dragItem.current !== null && dragOverIdx !== null && dragItem.current !== dragOverIdx) {
+      const next = [...items];
+      const dragged = next.splice(dragItem.current, 1)[0];
+      next.splice(dragOverIdx, 0, dragged);
+      onReorder(next);
     }
-    const next = [...items];
-    const dragged = next.splice(dragItem.current, 1)[0];
-    next.splice(dragOver.current, 0, dragged);
-    onReorder(next);
-    dragItem.current = null; dragOver.current = null;
+    dragItem.current = null;
+    setDraggingIdx(null);
+    setDragOverIdx(null);
   };
-  return { onDragStart, onDragEnter, onDragEnd };
+  return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx };
 }
 
 // ── 캐릭터 목록 ──
-function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events, relations, foreshadows }) {
+function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events, relations, foreshadows, reorderMode }) {
   const [detailChar, setDetailChar] = useState(null);
   const [visible, setVisible] = useState(false);
   const [orderedChars, setOrderedChars] = useState(null);
   const displayChars = orderedChars || characters;
-  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(displayChars, setOrderedChars);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayChars, setOrderedChars);
 
   const openDetail = (c) => {
     setDetailChar(c);
@@ -374,12 +391,19 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             {displayChars.map((c, cIdx) => (
-              <div key={c.id} draggable
-                onDragStart={() => onDragStart(cIdx)}
-                onDragEnter={() => onDragEnter(cIdx)}
-                onDragEnd={onDragEnd}
-                onDragOver={e => e.preventDefault()}
-                style={{ cursor: 'grab' }}
+              <div key={c.id} draggable={reorderMode}
+                onDragStart={() => reorderMode && onDragStart(cIdx)}
+                onDragEnter={() => reorderMode && onDragEnter(cIdx)}
+                onDragEnd={reorderMode ? onDragEnd : undefined}
+                onDragOver={e => reorderMode && e.preventDefault()}
+                style={{
+                  cursor: reorderMode ? 'grab' : 'default',
+                  opacity: reorderMode && draggingIdx === cIdx ? 0.35 : 1,
+                  transform: reorderMode && dragOverIdx === cIdx && draggingIdx !== cIdx ? 'scale(1.03)' : 'scale(1)',
+                  outline: reorderMode && dragOverIdx === cIdx && draggingIdx !== cIdx ? '2px solid var(--accent)' : 'none',
+                  borderRadius: 'var(--radius-lg)',
+                  transition: 'transform 0.15s, opacity 0.15s, outline 0.1s',
+                }}
               >
                 <CharacterCard character={c} events={events} isSelected={selected?.id === c.id}
                   onSelect={openDetail} onDelete={onDelete} onUpdate={onUpdate} />
@@ -633,7 +657,7 @@ function CharacterCard({ character: c, events, isSelected, onSelect, onDelete, o
 }
 
 // ── 세계관 ──
-function WorldView({ docs, onAdd, onUpdate, onDelete }) {
+function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
   const [selected, setSelected] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -641,7 +665,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
   const [showDocList, setShowDocList] = useState(true);
   const [orderedDocs, setOrderedDocs] = useState(null);
   const displayDocs = orderedDocs || docs;
-  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(displayDocs, setOrderedDocs);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayDocs, setOrderedDocs);
 
   const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); if (isMobile) setShowDocList(false); };
   const save = () => { if (selected) onUpdate(selected.id, { title, content }); };
@@ -658,12 +682,20 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
     <div style={{ width: isMobile ? '100%' : 190, borderRight: isMobile ? 'none' : '1px solid var(--border)', background: 'var(--bg2)', overflowY: 'auto', padding: 8, flexShrink: 0 }}>
       <button className="btn btn-ghost" style={{ width: '100%', fontSize: 12, marginBottom: 8, justifyContent: 'flex-start' }} onClick={addNew}>+ 새 문서</button>
       {displayDocs.map((d, dIdx) => (
-        <div key={d.id} draggable
-          onDragStart={() => onDragStart(dIdx)}
-          onDragEnter={() => onDragEnter(dIdx)}
-          onDragEnd={onDragEnd}
-          onDragOver={e => e.preventDefault()}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2, cursor: 'grab' }}>
+        <div key={d.id} draggable={reorderMode}
+          onDragStart={() => reorderMode && onDragStart(dIdx)}
+          onDragEnter={() => reorderMode && onDragEnter(dIdx)}
+          onDragEnd={reorderMode ? onDragEnd : undefined}
+          onDragOver={e => reorderMode && e.preventDefault()}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2,
+            cursor: reorderMode ? 'grab' : 'default',
+            opacity: reorderMode && draggingIdx === dIdx ? 0.35 : 1,
+            background: reorderMode && dragOverIdx === dIdx && draggingIdx !== dIdx ? 'var(--bg3)' : 'transparent',
+            borderRadius: 8,
+            borderLeft: reorderMode && dragOverIdx === dIdx && draggingIdx !== dIdx ? '2px solid var(--accent)' : '2px solid transparent',
+            transition: 'background 0.12s, border 0.1s, opacity 0.15s',
+          }}>
           <button onClick={() => selectDoc(d)} style={{ flex: 1, textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, background: selected?.id === d.id ? 'var(--bg3)' : 'transparent', color: selected?.id === d.id ? 'var(--text)' : 'var(--text2)', border: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</button>
           <button onClick={e => handleDelete(e, d)} style={{ flexShrink: 0, padding: '4px 6px', border: 'none', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 14, borderRadius: 6 }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--coral)'}
@@ -698,7 +730,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
 }
 
 // ── 복선 관리 ──
-function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) {
+function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, reorderMode }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', plantedEp: '', resolvedEp: '', charIds: [] });
   const [orderedOpen, setOrderedOpen] = useState(null);
@@ -733,12 +765,19 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) 
         <div style={{ marginBottom: 24 }}>
           <div className="section-label" style={{ marginBottom: 10 }}>미회수 ({open.length})</div>
           {open.map((fs, fsIdx) => (
-            <div key={fs.id} draggable
-              onDragStart={() => dragOpen.onDragStart(fsIdx)}
-              onDragEnter={() => dragOpen.onDragEnter(fsIdx)}
-              onDragEnd={dragOpen.onDragEnd}
-              onDragOver={e => e.preventDefault()}
-              style={{ cursor: 'grab' }}
+            <div key={fs.id} draggable={reorderMode}
+              onDragStart={() => reorderMode && dragOpen.onDragStart(fsIdx)}
+              onDragEnter={() => reorderMode && dragOpen.onDragEnter(fsIdx)}
+              onDragEnd={reorderMode ? dragOpen.onDragEnd : undefined}
+              onDragOver={e => reorderMode && e.preventDefault()}
+              style={{
+                cursor: reorderMode ? 'grab' : 'default',
+                opacity: reorderMode && dragOpen.draggingIdx === fsIdx ? 0.35 : 1,
+                transform: reorderMode && dragOpen.dragOverIdx === fsIdx && dragOpen.draggingIdx !== fsIdx ? 'translateX(6px)' : 'translateX(0)',
+                borderLeft: reorderMode && dragOpen.dragOverIdx === fsIdx && dragOpen.draggingIdx !== fsIdx ? '2px solid var(--accent)' : '2px solid transparent',
+                borderRadius: 'var(--radius)',
+                transition: 'transform 0.15s, opacity 0.15s, border 0.1s',
+              }}
             >
               <FSCard fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />
             </div>
@@ -749,12 +788,19 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) 
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>회수 완료 ({closed.length})</div>
           {closed.map((fs, fsIdx) => (
-            <div key={fs.id} draggable
-              onDragStart={() => dragClosed.onDragStart(fsIdx)}
-              onDragEnter={() => dragClosed.onDragEnter(fsIdx)}
-              onDragEnd={dragClosed.onDragEnd}
-              onDragOver={e => e.preventDefault()}
-              style={{ cursor: 'grab' }}
+            <div key={fs.id} draggable={reorderMode}
+              onDragStart={() => reorderMode && dragClosed.onDragStart(fsIdx)}
+              onDragEnter={() => reorderMode && dragClosed.onDragEnter(fsIdx)}
+              onDragEnd={reorderMode ? dragClosed.onDragEnd : undefined}
+              onDragOver={e => reorderMode && e.preventDefault()}
+              style={{
+                cursor: reorderMode ? 'grab' : 'default',
+                opacity: reorderMode && dragClosed.draggingIdx === fsIdx ? 0.35 : 1,
+                transform: reorderMode && dragClosed.dragOverIdx === fsIdx && dragClosed.draggingIdx !== fsIdx ? 'translateX(6px)' : 'translateX(0)',
+                borderLeft: reorderMode && dragClosed.dragOverIdx === fsIdx && dragClosed.draggingIdx !== fsIdx ? '2px solid var(--accent)' : '2px solid transparent',
+                borderRadius: 'var(--radius)',
+                transition: 'transform 0.15s, opacity 0.15s, border 0.1s',
+              }}
             >
               <FSCard fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />
             </div>

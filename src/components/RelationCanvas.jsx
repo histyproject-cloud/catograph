@@ -178,14 +178,14 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       <div style={{ position: 'absolute', inset: 0, transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: '0 0' }}>
         <svg style={{ position: 'absolute', top: 0, left: 0, width: '9999px', height: '9999px', overflow: 'visible' }}>
           <defs>
-            <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-              <path d="M0,0 L7,3 L0,6 Z" fill="rgba(255,255,255,0.25)" />
+            <marker id="arr" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <path d="M0,0 L5,2.5 L0,5 Z" fill="rgba(255,255,255,0.25)" />
             </marker>
-            <marker id="arr-hover" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-              <path d="M0,0 L7,3 L0,6 Z" fill="rgba(248,113,113,0.9)" />
+            <marker id="arr-hover" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <path d="M0,0 L5,2.5 L0,5 Z" fill="rgba(248,113,113,0.9)" />
             </marker>
-            <marker id="arr-selected" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-              <path d="M0,0 L7,3 L0,6 Z" fill="#8b7cf8" />
+            <marker id="arr-selected" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <path d="M0,0 L5,2.5 L0,5 Z" fill="#8b7cf8" />
             </marker>
           </defs>
 
@@ -232,8 +232,6 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
             const ly = my + perpY * 14;
 
             // 양방향 쌍 여부 — 중간 공유 라벨 표시용
-            const pairRel = relations.find(r => r.id !== rel.id && isPair(r, rel));
-            const isFirstOfPair = pairRel && rel.id < pairRel.id;
 
             const relColor = rel.color || 'rgba(255,255,255,0.3)';
             const lineColor = isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.8)' : relColor;
@@ -249,18 +247,18 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                 style={{ cursor: 'pointer' }}
               >
                 <defs>
-                  <marker id={markerId} markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
-                    <path d="M0,0 L9,4.5 L0,9 Z" fill={markerColor} />
+                  <marker id={markerId} markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+                    <path d="M0,0 L5,2.5 L0,5 Z" fill={markerColor} />
                   </marker>
                 </defs>
                 {/* 히트 영역 */}
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="18" />
-                {/* 화살표 선 — 끝부분 마커 크기만큼 줄여서 화살표가 잘리지 않게 */}
+                {/* 화살표 선 */}
                 <line
                   x1={x1} y1={y1}
-                  x2={x2 - (ddx / len) * 6} y2={y2 - (ddy / len) * 6}
+                  x2={x2 - (ddx / len) * 3} y2={y2 - (ddy / len) * 3}
                   stroke={lineColor}
-                  strokeWidth={isHovered || isSelected ? 2.5 : 1.8}
+                  strokeWidth={isHovered || isSelected ? 2 : 1.5}
                   markerEnd={isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`}
                 />
                 {/* 개별 라벨 — 선 옆에 */}
@@ -280,29 +278,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                     >{rel.label}</text>
                   </>
                 )}
-                {/* 양방향 선 쌍 중앙 — 두 이름 사이 관계 라벨 표시 */}
-                {isFirstOfPair && (pairRel.label || rel.label) && (() => {
-                  const cmx = (fcx + tcx) / 2, cmy = (fcy + tcy) / 2;
-                  const bothLabel = rel.label && pairRel.label
-                    ? `${rel.label} ↔ ${pairRel.label}`
-                    : rel.label || pairRel.label;
-                  return (
-                    <>
-                      <rect
-                        x={cmx - bothLabel.length * 3.8 - 8} y={cmy - 11}
-                        width={bothLabel.length * 7.6 + 16} height={20}
-                        rx="6"
-                        fill="rgba(139,124,248,0.12)"
-                        stroke="rgba(139,124,248,0.3)" strokeWidth="1"
-                        style={{ pointerEvents: 'none' }}
-                      />
-                      <text x={cmx} y={cmy + 5} textAnchor="middle" fontSize="11"
-                        fill="rgba(168,156,248,0.9)" fontWeight="500"
-                        style={{ userSelect: 'none', pointerEvents: 'none' }}
-                      >{bothLabel}</text>
-                    </>
-                  );
-                })()}
+
                 {/* 호버/선택 시 편집 아이콘 */}
                 {(isHovered || isSelected) && (
                   <g style={{ pointerEvents: 'none' }}>
