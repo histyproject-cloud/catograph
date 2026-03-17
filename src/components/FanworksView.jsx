@@ -20,13 +20,13 @@ function useDragOrder(items, onReorder) {
 
 export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: '', url: '', author: '', type: '팬픽' });
+  const [form, setForm] = useState({ title: '', url: '', author: '', type: '그림' });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [customType, setCustomType] = useState('');
   const [editCustomType, setEditCustomType] = useState('');
 
-  const TYPES = ['팬픽', '팬아트', '2차소설', '번역', '영상', '기타'];
+  const TYPES = ['그림', '소설', '영상'];
 
   React.useEffect(() => {
     const handler = () => setShowAdd(true);
@@ -49,7 +49,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
 
   const startEdit = (fw) => {
     setEditId(fw.id);
-    setEditForm({ title: fw.title, url: fw.url, author: fw.author || '', type: fw.type || '팬픽' });
+    setEditForm({ title: fw.title, url: fw.url, author: fw.author || '', type: fw.type || '그림' });
   };
 
   const saveEdit = async () => {
@@ -64,10 +64,8 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   };
 
   const TYPE_COLORS = {
-    '팬픽': { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
-    '팬아트': { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf' },
-    '2차소설': { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
-    '번역': { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b' },
+    '그림': { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf' },
+    '소설': { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
     '영상': { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
     '기타': { bg: 'rgba(88,88,100,0.2)', color: '#9d9caa' },
   };
@@ -168,8 +166,9 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
 
       {/* 추가 모달 */}
       {showAdd && (
-        <div className="modal-backdrop" onClick={() => setShowAdd(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-backdrop">
+          <div style={{ position: 'absolute', inset: 0 }} onClick={() => setShowAdd(false)} />
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ position: 'relative', zIndex: 1 }}>
             <div className="modal-title">2차창작물 추가</div>
             <form onSubmit={handleAdd}>
               <div className="form-group">

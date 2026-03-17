@@ -614,7 +614,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{fs.title}</div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
-                    {fs.plantedEp && `${fs.plantedEp} 심음`}{fs.plantedEp && fs.resolvedEp && ' → '}{fs.resolvedEp ? `${fs.resolvedEp} 회수` : '미회수'}
+                    {fs.plantedEp && `${fs.plantedEp}화 언급`}{fs.plantedEp && fs.resolvedEp && ' → '}{fs.resolvedEp ? `${fs.resolvedEp}화 회수` : '미회수'}
                   </div>
                 </div>
                 <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: fs.resolvedEp ? 'var(--bg4)' : 'var(--accent-glow)', color: fs.resolvedEp ? 'var(--text3)' : 'var(--accent)' }}>
@@ -847,8 +847,8 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
             <form onSubmit={handleAdd}>
               <div className="form-group"><label className="form-label">복선 내용</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} placeholder="예: 바이올린 소리 언급" autoFocus /></div>
               <div className="form-row">
-                <div className="form-group"><label className="form-label">심은 화수</label><input value={form.plantedEp} onChange={e => setForm(f => ({ ...f, plantedEp: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3화" /></div>
-                <div className="form-group"><label className="form-label">회수 화수</label><input value={form.resolvedEp} onChange={e => setForm(f => ({ ...f, resolvedEp: e.target.value }))} style={{ width: '100%' }} placeholder="미회수면 비워두기" /></div>
+                <div className="form-group"><label className="form-label">복선 언급 회차</label><input value={form.plantedEp} onChange={e => setForm(f => ({ ...f, plantedEp: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3화" /></div>
+                <div className="form-group"><label className="form-label">복선 회수 회차</label><input value={form.resolvedEp} onChange={e => setForm(f => ({ ...f, resolvedEp: e.target.value }))} style={{ width: '100%' }} placeholder="미회수면 비워두기" /></div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
                 <button type="button" className="btn" onClick={() => setShowAdd(false)}>취소</button>
@@ -873,8 +873,8 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
     <div style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius)', padding: '14px', marginBottom: 8 }}>
       <div className="form-group"><label className="form-label">복선 내용</label><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} autoFocus /></div>
       <div className="form-row">
-        <div className="form-group"><label className="form-label">심은 화수</label><input value={form.plantedEp} onChange={e => setForm(f => ({ ...f, plantedEp: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3화" /></div>
-        <div className="form-group"><label className="form-label">회수 화수</label><input value={form.resolvedEp} onChange={e => setForm(f => ({ ...f, resolvedEp: e.target.value }))} style={{ width: '100%' }} placeholder="미회수면 비워두기" /></div>
+        <div className="form-group"><label className="form-label">복선 언급 회차</label><input value={form.plantedEp} onChange={e => setForm(f => ({ ...f, plantedEp: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3화" /></div>
+        <div className="form-group"><label className="form-label">복선 회수 회차</label><input value={form.resolvedEp} onChange={e => setForm(f => ({ ...f, resolvedEp: e.target.value }))} style={{ width: '100%' }} placeholder="미회수면 비워두기" /></div>
       </div>
       <div className="form-group">
         <label className="form-label">연결 캐릭터</label>
@@ -898,7 +898,7 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
     <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 13, fontWeight: 500 }}>{fs.title}</div>
-        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{fs.plantedEp && `${fs.plantedEp} 심음`}{fs.plantedEp && ' → '}{fs.resolvedEp ? `${fs.resolvedEp} 회수` : '미회수'}</div>
+        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{fs.plantedEp && `${fs.plantedEp}화 언급`}{fs.plantedEp && ' → '}{fs.resolvedEp ? `${fs.resolvedEp}화 회수` : '미회수'}</div>
         {linked.length > 0 && (
           <div style={{ marginTop: 6, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {linked.map(c => { const ac = getAvatarColor(c.name); return <span key={c.id} className="tag" style={{ background: ac.bg, color: ac.color, fontSize: 10 }}>{c.name}</span>; })}

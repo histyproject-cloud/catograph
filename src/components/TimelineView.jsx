@@ -61,8 +61,6 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     event: { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8', label: '사건' },
     foreshadow_plant: { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b', label: '복선 심기' },
     foreshadow_resolve: { bg: 'rgba(74,222,128,0.15)', color: '#4ade80', label: '복선 회수' },
-    character: { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf', label: '캐릭터 등장' },
-    twist: { bg: 'rgba(248,113,113,0.15)', color: '#f87171', label: '반전' },
   };
 
   return (
@@ -157,7 +155,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
       {showAdd && (
         <div className="modal-backdrop" onClick={() => { setShowAdd(false); setEditTarget(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">{editTarget ? '이벤트 수정' : '이벤트 추가'}</div>
+            <div className="modal-title">{editTarget ? '타임라인 수정' : '타임라인 추가'}</div>
             <form onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group" style={{ maxWidth: 100 }}>

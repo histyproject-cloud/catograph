@@ -29,7 +29,7 @@ export default function Login() {
             Google로 시작하기
           </button>
         </div>
-        <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 20 }}>AI 없음 · 창작자 전용</p>
+        <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 20, letterSpacing: '0.04em' }}>작가와 독자가 함께 만드는 이야기 공간</p>
         <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 8 }}>
           <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/legal')}>개인정보처리방침</span>
           {' · '}
