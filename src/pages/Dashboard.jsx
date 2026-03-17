@@ -92,10 +92,36 @@ export default function Dashboard({ user }) {
         {loading ? (
           <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60 }}>불러오는 중...</div>
         ) : projects.length === 0 ? (
-          <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-            <p style={{ color: 'var(--text2)', marginBottom: 20, fontSize: 14 }}>아직 작품이 없어요</p>
-            <button className="btn btn-primary" onClick={handleNewClick}>첫 작품 만들기</button>
+          <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+            {/* 메인 CTA */}
+            <div style={{ marginBottom: 48 }}>
+              <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.5 }}>✦</div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, marginBottom: 8 }}>첫 작품을 시작해보세요</h2>
+              <p style={{ color: 'var(--text3)', fontSize: 13, marginBottom: 24, lineHeight: 1.7 }}>
+                캐릭터 관계도부터 복선 관리까지<br />창작의 모든 것을 한 곳에서
+              </p>
+              <button className="btn btn-primary" style={{ height: 44, padding: '0 28px', fontSize: 14 }} onClick={handleNewClick}>
+                + 첫 작품 만들기
+              </button>
+            </div>
+
+            {/* 기능 소개 */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14, maxWidth: 700, margin: '0 auto' }}>
+              {[
+                { icon: '🕸️', title: '캐릭터 관계도', desc: '인물 카드를 자유롭게 배치하고 관계선으로 연결해요' },
+                { icon: '✦', title: '복선 관리', desc: '심은 복선과 회수 회차를 한눈에 추적해요' },
+                { icon: '📅', title: '타임라인', desc: '화수별 사건을 정리하고 등장인물을 연결해요' },
+                { icon: '🌍', title: '세계관 문서', desc: '설정집을 자유롭게 작성하고 보관해요' },
+                { icon: '☆', title: '2차창작 모음', desc: '팬아트, 팬픽 링크를 작품별로 저장해요' },
+                { icon: '🔗', title: '공유 기능', desc: '읽기 전용 링크로 협업자와 설정을 공유해요' },
+              ].map((f, i) => (
+                <div key={i} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '18px 16px', textAlign: 'left' }}>
+                  <div style={{ fontSize: 22, marginBottom: 8 }}>{f.icon}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>{f.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>{f.desc}</div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>

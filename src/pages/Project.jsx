@@ -767,6 +767,7 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
   const [form, setForm] = useState({ title: '', plantedEp: '', resolvedEp: '', charIds: [] });
   const [orderedOpen, setOrderedOpen] = useState(null);
   const [orderedClosed, setOrderedClosed] = useState(null);
+  const [filter, setFilter] = useState('all'); // 'all' | 'open' | 'closed'
 
   useEffect(() => {
     const handler = () => setShowAdd(true);
@@ -791,9 +792,26 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+      {/* 필터 버튼 */}
+      {foreshadows.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+          {[
+            { key: 'all', label: `전체 (${foreshadows.length})` },
+            { key: 'open', label: `미회수 (${openRaw.length})` },
+            { key: 'closed', label: `회수 완료 (${closedRaw.length})` },
+          ].map(f => (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              className={`btn${filter === f.key ? ' btn-primary' : ''}`}
+              style={{ fontSize: 12, height: 30, padding: '0 12px' }}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {foreshadows.length === 0 && <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>복선을 추가해보세요</div>}
 
-      {open.length > 0 && (
+      {(filter === 'all' || filter === 'open') && open.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div className="section-label" style={{ marginBottom: 10 }}>미회수 ({open.length})</div>
           {open.map((fs, fsIdx) => (
@@ -816,7 +834,7 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
           ))}
         </div>
       )}
-      {closed.length > 0 && (
+      {(filter === 'all' || filter === 'closed') && closed.length > 0 && (
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>회수 완료 ({closed.length})</div>
           {closed.map((fs, fsIdx) => (

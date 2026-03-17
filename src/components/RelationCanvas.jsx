@@ -325,9 +325,14 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                   {isConnFrom ? '1' : '+'}
                 </div>
               )}
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 14, margin: '0 auto 6px' }}>
-                {char.name?.[0] || '?'}
-              </div>
+              {char.photoURL ? (
+                <img src={char.photoURL} alt={char.name}
+                  style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', margin: '0 auto 6px', display: 'block', border: `1px solid ${ac.color}40` }} />
+              ) : (
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 14, margin: '0 auto 6px' }}>
+                  {char.name?.[0] || '?'}
+                </div>
+              )}
               <div style={{ fontSize: 11, fontWeight: 500, textAlign: 'center', color: 'var(--text)', lineHeight: 1.3 }}>{char.name}</div>
               <div style={{ fontSize: 10, textAlign: 'center', color: 'var(--text3)', marginTop: 2 }}>{char.role}</div>
             </div>

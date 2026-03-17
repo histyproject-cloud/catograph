@@ -52,8 +52,16 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   };
 
   const [orderedEvents, setOrderedEvents] = React.useState(null);
-  const displayEvents = orderedEvents || [...events].sort((a, b) => (a.episode || 0) - (b.episode || 0));
+  // reorderMode 아닐 때는 화수 기준 정렬, reorderMode일 때만 드래그 순서 유지
+  const sortedByEpisode = [...events].sort((a, b) => (a.episode || 0) - (b.episode || 0));
+  const displayEvents = reorderMode ? (orderedEvents || sortedByEpisode) : sortedByEpisode;
   const sorted = displayEvents;
+
+  // reorderMode 진입 시 현재 정렬 순서로 초기화
+  React.useEffect(() => {
+    if (reorderMode) setOrderedEvents(sortedByEpisode);
+    else setOrderedEvents(null);
+  }, [reorderMode]);
 
   const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(sorted, setOrderedEvents);
 
@@ -61,6 +69,8 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     event: { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8', label: '사건' },
     foreshadow_plant: { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b', label: '복선 심기' },
     foreshadow_resolve: { bg: 'rgba(74,222,128,0.15)', color: '#4ade80', label: '복선 회수' },
+    character: { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf', label: '캐릭터 등장' },
+    twist: { bg: 'rgba(248,113,113,0.15)', color: '#f87171', label: '반전' },
   };
 
   return (
@@ -155,7 +165,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
       {showAdd && (
         <div className="modal-backdrop" onClick={() => { setShowAdd(false); setEditTarget(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">{editTarget ? '타임라인 수정' : '타임라인 추가'}</div>
+            <div className="modal-title">{editTarget ? '이벤트 수정' : '이벤트 추가'}</div>
             <form onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group" style={{ maxWidth: 100 }}>
