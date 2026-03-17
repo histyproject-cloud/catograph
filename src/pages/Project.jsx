@@ -154,7 +154,7 @@ export default function Project({ user }) {
         {activeTab === 'timeline' && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => document.dispatchEvent(new CustomEvent('timeline:add'))}>
-            + 이벤트 추가
+            + 타임라인 추가
           </button>
         )}
         {activeTab === 'fanworks' && (
