@@ -1,12 +1,35 @@
 import React, { useState } from 'react';
 
+function useDragOrder(items, onReorder) {
+  const dragItem = React.useRef(null);
+  const dragOver = React.useRef(null);
+  const onDragStart = (idx) => { dragItem.current = idx; };
+  const onDragEnter = (idx) => { dragOver.current = idx; };
+  const onDragEnd = () => {
+    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
+      dragItem.current = null; dragOver.current = null; return;
+    }
+    const next = [...items];
+    const dragged = next.splice(dragItem.current, 1)[0];
+    next.splice(dragOver.current, 0, dragged);
+    onReorder(next);
+    dragItem.current = null; dragOver.current = null;
+  };
+  return { onDragStart, onDragEnter, onDragEnd };
+}
+
 export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', url: '', author: '', type: '팬픽' });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [customType, setCustomType] = useState('');
+  const [editCustomType, setEditCustomType] = useState('');
 
   const TYPES = ['팬픽', '팬아트', '2차소설', '번역', '영상', '기타'];
+  const [orderedFanworks, setOrderedFanworks] = React.useState(null);
+  const displayFanworks = orderedFanworks || fanworks;
+  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(displayFanworks, setOrderedFanworks);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -62,7 +85,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
       )}
 
       <div style={{ display: 'grid', gap: 10 }}>
-        {fanworks.map(fw => {
+        {displayFanworks.map((fw, fwIdx) => {
           const tc = TYPE_COLORS[fw.type] || TYPE_COLORS['기타'];
           if (editId === fw.id) return (
             <div key={fw.id} style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
@@ -81,10 +104,19 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <select value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
+                  <select value={TYPES.includes(editForm.type) ? editForm.type : 'custom'}
+                    onChange={e => {
+                      if (e.target.value === 'custom') { setEditForm(f => ({ ...f, type: editCustomType || '' })); }
+                      else { setEditForm(f => ({ ...f, type: e.target.value })); setEditCustomType(''); }
+                    }}
                     style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
                     {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    <option value="custom">✏️ 직접 입력</option>
                   </select>
+                  {(!TYPES.includes(editForm.type)) && (
+                    <input value={editCustomType} onChange={e => { setEditCustomType(e.target.value); setEditForm(f => ({ ...f, type: e.target.value })); }}
+                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -95,7 +127,13 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
           );
 
           return (
-            <div key={fw.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, transition: 'border-color 0.15s' }}
+            <div key={fw.id}
+              draggable
+              onDragStart={() => onDragStart(fwIdx)}
+              onDragEnter={() => onDragEnter(fwIdx)}
+              onDragEnd={onDragEnd}
+              onDragOver={e => e.preventDefault()}
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, transition: 'border-color 0.15s', cursor: 'grab' }}
               onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
               onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             >
@@ -142,10 +180,19 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                  <select value={TYPES.includes(form.type) ? form.type : 'custom'}
+                    onChange={e => {
+                      if (e.target.value === 'custom') { setForm(f => ({ ...f, type: customType || '' })); }
+                      else { setForm(f => ({ ...f, type: e.target.value })); setCustomType(''); }
+                    }}
                     style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
                     {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    <option value="custom">✏️ 직접 입력</option>
                   </select>
+                  {(!TYPES.includes(form.type)) && (
+                    <input value={customType} onChange={e => { setCustomType(e.target.value); setForm(f => ({ ...f, type: e.target.value })); }}
+                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>

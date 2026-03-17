@@ -251,10 +251,32 @@ export default function Project({ user }) {
   );
 }
 
+// ── 드래그 순서 훅 ──
+function useDragOrder(items, onReorder) {
+  const dragItem = React.useRef(null);
+  const dragOver = React.useRef(null);
+  const onDragStart = (idx) => { dragItem.current = idx; };
+  const onDragEnter = (idx) => { dragOver.current = idx; };
+  const onDragEnd = () => {
+    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
+      dragItem.current = null; dragOver.current = null; return;
+    }
+    const next = [...items];
+    const dragged = next.splice(dragItem.current, 1)[0];
+    next.splice(dragOver.current, 0, dragged);
+    onReorder(next);
+    dragItem.current = null; dragOver.current = null;
+  };
+  return { onDragStart, onDragEnter, onDragEnd };
+}
+
 // ── 캐릭터 목록 ──
 function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events, relations, foreshadows }) {
   const [detailChar, setDetailChar] = useState(null);
   const [visible, setVisible] = useState(false);
+  const [orderedChars, setOrderedChars] = useState(null);
+  const displayChars = orderedChars || characters;
+  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(displayChars, setOrderedChars);
 
   const openDetail = (c) => {
     setDetailChar(c);
@@ -273,9 +295,17 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
           <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>캐릭터가 없어요</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-            {characters.map(c => (
-              <CharacterCard key={c.id} character={c} events={events} isSelected={selected?.id === c.id}
-                onSelect={openDetail} onDelete={onDelete} onUpdate={onUpdate} />
+            {displayChars.map((c, cIdx) => (
+              <div key={c.id} draggable
+                onDragStart={() => onDragStart(cIdx)}
+                onDragEnter={() => onDragEnter(cIdx)}
+                onDragEnd={onDragEnd}
+                onDragOver={e => e.preventDefault()}
+                style={{ cursor: 'grab' }}
+              >
+                <CharacterCard character={c} events={events} isSelected={selected?.id === c.id}
+                  onSelect={openDetail} onDelete={onDelete} onUpdate={onUpdate} />
+              </div>
             ))}
           </div>
         )}
@@ -531,6 +561,9 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
   const [content, setContent] = useState('');
   const { isMobile } = useBreakpoint();
   const [showDocList, setShowDocList] = useState(true);
+  const [orderedDocs, setOrderedDocs] = useState(null);
+  const displayDocs = orderedDocs || docs;
+  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(displayDocs, setOrderedDocs);
 
   const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); if (isMobile) setShowDocList(false); };
   const save = () => { if (selected) onUpdate(selected.id, { title, content }); };
@@ -546,8 +579,13 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
   const docList = (
     <div style={{ width: isMobile ? '100%' : 190, borderRight: isMobile ? 'none' : '1px solid var(--border)', background: 'var(--bg2)', overflowY: 'auto', padding: 8, flexShrink: 0 }}>
       <button className="btn btn-ghost" style={{ width: '100%', fontSize: 12, marginBottom: 8, justifyContent: 'flex-start' }} onClick={addNew}>+ 새 문서</button>
-      {docs.map(d => (
-        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+      {displayDocs.map((d, dIdx) => (
+        <div key={d.id} draggable
+          onDragStart={() => onDragStart(dIdx)}
+          onDragEnter={() => onDragEnter(dIdx)}
+          onDragEnd={onDragEnd}
+          onDragOver={e => e.preventDefault()}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2, cursor: 'grab' }}>
           <button onClick={() => selectDoc(d)} style={{ flex: 1, textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, background: selected?.id === d.id ? 'var(--bg3)' : 'transparent', color: selected?.id === d.id ? 'var(--text)' : 'var(--text2)', border: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</button>
           <button onClick={e => handleDelete(e, d)} style={{ flexShrink: 0, padding: '4px 6px', border: 'none', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 14, borderRadius: 6 }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--coral)'}
@@ -585,6 +623,8 @@ function WorldView({ docs, onAdd, onUpdate, onDelete }) {
 function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', plantedEp: '', resolvedEp: '', charIds: [] });
+  const [orderedOpen, setOrderedOpen] = useState(null);
+  const [orderedClosed, setOrderedClosed] = useState(null);
 
   useEffect(() => {
     const handler = () => setShowAdd(true);
@@ -600,8 +640,12 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) 
     setShowAdd(false);
   };
 
-  const open = foreshadows.filter(f => !f.resolvedEp);
-  const closed = foreshadows.filter(f => f.resolvedEp);
+  const openRaw = foreshadows.filter(f => !f.resolvedEp);
+  const closedRaw = foreshadows.filter(f => f.resolvedEp);
+  const open = orderedOpen || openRaw;
+  const closed = orderedClosed || closedRaw;
+  const dragOpen = useDragOrder(open, setOrderedOpen);
+  const dragClosed = useDragOrder(closed, setOrderedClosed);
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
@@ -610,13 +654,33 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) 
       {open.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div className="section-label" style={{ marginBottom: 10 }}>미회수 ({open.length})</div>
-          {open.map(fs => <FSCard key={fs.id} fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />)}
+          {open.map((fs, fsIdx) => (
+            <div key={fs.id} draggable
+              onDragStart={() => dragOpen.onDragStart(fsIdx)}
+              onDragEnter={() => dragOpen.onDragEnter(fsIdx)}
+              onDragEnd={dragOpen.onDragEnd}
+              onDragOver={e => e.preventDefault()}
+              style={{ cursor: 'grab' }}
+            >
+              <FSCard fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />
+            </div>
+          ))}
         </div>
       )}
       {closed.length > 0 && (
         <div>
           <div className="section-label" style={{ marginBottom: 10 }}>회수 완료 ({closed.length})</div>
-          {closed.map(fs => <FSCard key={fs.id} fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />)}
+          {closed.map((fs, fsIdx) => (
+            <div key={fs.id} draggable
+              onDragStart={() => dragClosed.onDragStart(fsIdx)}
+              onDragEnter={() => dragClosed.onDragEnter(fsIdx)}
+              onDragEnd={dragClosed.onDragEnd}
+              onDragOver={e => e.preventDefault()}
+              style={{ cursor: 'grab' }}
+            >
+              <FSCard fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />
+            </div>
+          ))}
         </div>
       )}
 

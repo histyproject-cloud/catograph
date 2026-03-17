@@ -1,11 +1,33 @@
 import React, { useState } from 'react';
 import { getAvatarColor } from './DetailPanel';
 
+// 드래그 순서 이동 훅
+function useDragOrder(items, onReorder) {
+  const dragItem = React.useRef(null);
+  const dragOver = React.useRef(null);
+
+  const onDragStart = (idx) => { dragItem.current = idx; };
+  const onDragEnter = (idx) => { dragOver.current = idx; };
+  const onDragEnd = () => {
+    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
+      dragItem.current = null; dragOver.current = null; return;
+    }
+    const next = [...items];
+    const dragged = next.splice(dragItem.current, 1)[0];
+    next.splice(dragOver.current, 0, dragged);
+    onReorder(next);
+    dragItem.current = null; dragOver.current = null;
+  };
+
+  return { onDragStart, onDragEnter, onDragEnd };
+}
+
 export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm] = useState({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
   const [expandedId, setExpandedId] = useState(null);
+  const [customType, setCustomType] = useState('');
 
   const openAdd = () => { setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' }); setEditTarget(null); setShowAdd(true); };
   const openEdit = (ev) => { setForm({ episode: String(ev.episode), title: ev.title, description: ev.description || '', charIds: ev.charIds || [], foreshadowIds: ev.foreshadowIds || [], type: ev.type || 'event' }); setEditTarget(ev); setShowAdd(true); };
@@ -23,7 +45,11 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     setEditTarget(null);
   };
 
-  const sorted = [...events].sort((a, b) => (a.episode || 0) - (b.episode || 0));
+  const [orderedEvents, setOrderedEvents] = React.useState(null);
+  const displayEvents = orderedEvents || [...events].sort((a, b) => (a.episode || 0) - (b.episode || 0));
+  const sorted = displayEvents;
+
+  const { onDragStart, onDragEnter, onDragEnd } = useDragOrder(sorted, setOrderedEvents);
 
   const TYPE_COLORS = {
     event: { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8', label: '사건' },
@@ -66,10 +92,15 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                 }} />
 
                 <div
+                  draggable
+                  onDragStart={() => onDragStart(idx)}
+                  onDragEnter={() => onDragEnter(idx)}
+                  onDragEnd={onDragEnd}
+                  onDragOver={e => e.preventDefault()}
                   style={{
                     background: 'var(--bg2)', border: '1px solid var(--border)',
                     borderRadius: 'var(--radius)', padding: '12px 14px',
-                    cursor: 'pointer', transition: 'border-color 0.15s'
+                    cursor: 'grab', transition: 'border-color 0.15s, opacity 0.15s',
                   }}
                   onClick={() => setExpandedId(isExpanded ? null : ev.id)}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
@@ -132,10 +163,19 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                  <select value={Object.keys(TYPE_COLORS).includes(form.type) ? form.type : 'custom'}
+                    onChange={e => {
+                      if (e.target.value === 'custom') { setForm(f => ({ ...f, type: customType || '' })); }
+                      else { setForm(f => ({ ...f, type: e.target.value })); setCustomType(''); }
+                    }}
                     style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none' }}>
                     {Object.entries(TYPE_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    <option value="custom">✏️ 직접 입력</option>
                   </select>
+                  {(!Object.keys(TYPE_COLORS).includes(form.type) || form.type === customType) && (
+                    <input value={customType} onChange={e => { setCustomType(e.target.value); setForm(f => ({ ...f, type: e.target.value })); }}
+                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
+                  )}
                 </div>
               </div>
               <div className="form-group">

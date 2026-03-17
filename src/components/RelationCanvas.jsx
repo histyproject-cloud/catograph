@@ -27,6 +27,18 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
   const [hoveredRel, setHoveredRel] = useState(null);
   const [relMenu, setRelMenu] = useState(null);
   const [editingRelLabel, setEditingRelLabel] = useState('');
+  const [editingRelColor, setEditingRelColor] = useState('');
+
+  const REL_COLORS = [
+    { value: '', label: '기본', color: 'rgba(255,255,255,0.25)' },
+    { value: '#a89cf8', label: '보라' },
+    { value: '#2dd4bf', label: '청록' },
+    { value: '#f87171', label: '빨강' },
+    { value: '#f59e0b', label: '주황' },
+    { value: '#4ade80', label: '초록' },
+    { value: '#60a5fa', label: '파랑' },
+    { value: '#f472b6', label: '분홍' },
+  ];
 
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
@@ -125,6 +137,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
     const rect = canvasRef.current.getBoundingClientRect();
     setRelMenu({ relId: rel.id, label: rel.label || '', x: e.clientX - rect.left, y: e.clientY - rect.top, fromId: rel.fromId, toId: rel.toId });
     setEditingRelLabel(rel.label || '');
+    setEditingRelColor(rel.color || '');
   };
 
   const handleRelTouch = (e, rel) => {
@@ -134,6 +147,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
     const rect = canvasRef.current.getBoundingClientRect();
     setRelMenu({ relId: rel.id, label: rel.label || '', x: t.clientX - rect.left, y: t.clientY - rect.top, fromId: rel.fromId, toId: rel.toId });
     setEditingRelLabel(rel.label || '');
+    setEditingRelColor(rel.color || '');
   };
 
   // 같은 쌍 관계 찾기 (양방향 감지)
@@ -212,24 +226,40 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                 {/* 히트 영역 */}
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="18" />
                 {/* 화살표 선 */}
-                <line
-                  x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke={isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.8)' : 'rgba(255,255,255,0.18)'}
-                  strokeWidth={isHovered || isSelected ? 2 : 1.5}
-                  markerEnd={isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : 'url(#arr)'}
-                />
-                {/* 라벨 배경 + 텍스트 */}
+                {(() => {
+                  const relColor = rel.color || 'rgba(255,255,255,0.25)';
+                  const lineColor = isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.8)' : relColor;
+                  const markerId = `arr-${rel.id}`;
+                  const markerColor = isSelected ? '#8b7cf8' : isHovered ? 'rgba(248,113,113,0.9)' : relColor;
+                  return (
+                    <>
+                      <defs>
+                        <marker id={markerId} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+                          <path d="M0,0 L7,3 L0,6 Z" fill={markerColor} />
+                        </marker>
+                      </defs>
+                      <line
+                        x1={x1} y1={y1} x2={x2} y2={y2}
+                        stroke={lineColor}
+                        strokeWidth={isHovered || isSelected ? 2 : 1.5}
+                        markerEnd={isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`}
+                      />
+                    </>
+                  );
+                })()}
+                {/* 라벨 배경 + 텍스트 — 양방향 선 쌍이면 중간 사이에 표시 */}
                 {rel.label && (
                   <>
                     <rect
                       x={lx - rel.label.length * 3.5 - 5} y={ly - 9}
                       width={rel.label.length * 7 + 10} height={16}
                       rx="4"
-                      fill={isSelected ? 'rgba(139,124,248,0.15)' : 'rgba(14,14,16,0.75)'}
+                      fill={isSelected ? 'rgba(139,124,248,0.15)' : 'rgba(14,14,16,0.85)'}
+                      stroke={rel.color ? rel.color + '40' : 'transparent'} strokeWidth="1"
                       style={{ pointerEvents: 'none' }}
                     />
                     <text x={lx} y={ly + 4} textAnchor="middle" fontSize="10"
-                      fill={isSelected ? '#a89cf8' : isHovered ? 'rgba(248,113,113,0.95)' : 'rgba(255,255,255,0.55)'}
+                      fill={isSelected ? '#a89cf8' : isHovered ? 'rgba(248,113,113,0.95)' : rel.color || 'rgba(255,255,255,0.6)'}
                       style={{ userSelect: 'none', pointerEvents: 'none' }}
                     >{rel.label}</text>
                   </>
@@ -334,21 +364,37 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
             <input
               value={editingRelLabel}
               onChange={e => setEditingRelLabel(e.target.value)}
-              placeholder="예: 동경, 의심, 연인..."
+              placeholder="예: 직장동료, 연인, 적대..."
               style={{ width: '100%', marginBottom: 10 }}
               autoFocus
               onKeyDown={e => {
-                if (e.key === 'Enter') { onUpdateRelation(relMenu.relId, { label: editingRelLabel }); setRelMenu(null); }
+                if (e.key === 'Enter') { onUpdateRelation(relMenu.relId, { label: editingRelLabel, color: editingRelColor }); setRelMenu(null); }
                 if (e.key === 'Escape') setRelMenu(null);
               }}
             />
+            <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>선 색상</div>
+            <div style={{ display: 'flex', gap: 5, marginBottom: 12, flexWrap: 'wrap' }}>
+              {REL_COLORS.map(rc => (
+                <div key={rc.value}
+                  onClick={() => setEditingRelColor(rc.value)}
+                  title={rc.label}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%', cursor: 'pointer',
+                    background: rc.color || rc.value,
+                    border: editingRelColor === rc.value ? '2px solid #fff' : '2px solid transparent',
+                    boxShadow: editingRelColor === rc.value ? '0 0 0 1px rgba(255,255,255,0.4)' : 'none',
+                    transition: 'border 0.1s',
+                  }}
+                />
+              ))}
+            </div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="btn btn-danger" style={{ fontSize: 11, flex: 1, height: 30 }}
                 onClick={() => { if (window.confirm('이 관계선을 삭제할까요?')) { onDeleteRelation(relMenu.relId); setRelMenu(null); } }}>
                 삭제
               </button>
               <button className="btn btn-primary" style={{ fontSize: 11, flex: 1, height: 30 }}
-                onClick={() => { onUpdateRelation(relMenu.relId, { label: editingRelLabel }); setRelMenu(null); }}>
+                onClick={() => { onUpdateRelation(relMenu.relId, { label: editingRelLabel, color: editingRelColor }); setRelMenu(null); }}>
                 저장
               </button>
             </div>
