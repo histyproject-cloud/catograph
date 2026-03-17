@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useCharacters, useRelations, useForeshadows, useWorldDocs, useTimelineEvents, useFanworks } from '../hooks/useProject';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import Navigation from '../components/Navigation';
@@ -446,6 +447,32 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
   });
   const [newTag, setNewTag] = useState('');
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `characters/${c.id}/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      onUpdate(c.id, { photoURL: url });
+      setUploading(false);
+    } catch (err) {
+      console.error(err);
+      setUploading(false);
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    if (!c.photoURL) return;
+    try {
+      const storageRef = ref(storage, c.photoURL);
+      await deleteObject(storageRef).catch(() => {});
+    } catch {}
+    onUpdate(c.id, { photoURL: '' });
+  };
 
   const save = () => {
     onUpdate(c.id, form);
@@ -493,12 +520,38 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
 
       {/* 아바타 + 이름 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 28, flexShrink: 0 }}>
-          {form.name?.[0] || '?'}
+        {/* 사진 업로드 */}
+        <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
+          {c.photoURL ? (
+            <img src={c.photoURL} alt={form.name}
+              style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', border: '2px solid var(--border2)' }} />
+          ) : (
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 28, border: '2px dashed var(--border2)' }}>
+              {uploading ? '…' : form.name?.[0] || '?'}
+            </div>
+          )}
+          {/* 호버 오버레이 */}
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, color: '#fff', opacity: 0, transition: 'opacity 0.15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.opacity = 1}
+            onMouseLeave={e => e.currentTarget.style.opacity = 0}
+          >{uploading ? '업로드 중' : '사진 변경'}</div>
+        </label>
+        <div style={{ flex: 1 }}>
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            style={{ ...inputStyle, fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 600, border: 'none', background: 'transparent', padding: '4px 0', borderBottom: '1px dashed var(--border2)', borderRadius: 0, width: '100%' }}
+            placeholder="이름" />
+          {c.photoURL && (
+            <button onClick={handlePhotoDelete}
+              style={{ marginTop: 6, fontSize: 11, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+              사진 삭제
+            </button>
+          )}
         </div>
-        <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          style={{ ...inputStyle, fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 600, border: 'none', background: 'transparent', padding: '4px 0', borderBottom: '1px dashed var(--border2)', borderRadius: 0, width: 'auto', flex: 1 }}
-          placeholder="이름" />
       </div>
 
       {/* 기본 정보 2열 */}
@@ -603,16 +656,33 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
 
   return (
     <div onClick={() => onSelect(c)}
-      style={{ background: 'var(--bg2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 14, cursor: 'pointer', position: 'relative' }}>
-      <div style={{ width: 38, height: 38, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, marginBottom: 8 }}>{c.name?.[0] || '?'}</div>
-      <div style={{ fontWeight: 500, fontSize: 13, paddingRight: 32 }}>{c.name}</div>
-      <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{c.role}</div>
-      {c.tags?.length > 0 && (
-        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-          {c.tags.slice(0, 3).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
-        </div>
+      style={{ background: 'var(--bg2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 14, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+      {/* 배경 이미지 (사진 있을 때) */}
+      {c.photoURL && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 0,
+          backgroundImage: `url(${c.photoURL})`,
+          backgroundSize: 'cover', backgroundPosition: 'center top',
+          opacity: 0.18, borderRadius: 'var(--radius-lg)',
+        }} />
       )}
-      <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px' }}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* 아바타 or 사진 */}
+        {c.photoURL ? (
+          <img src={c.photoURL} alt={c.name}
+            style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', marginBottom: 8, border: '2px solid var(--border2)' }} />
+        ) : (
+          <div style={{ width: 38, height: 38, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, marginBottom: 8 }}>{c.name?.[0] || '?'}</div>
+        )}
+        <div style={{ fontWeight: 500, fontSize: 13, paddingRight: 32 }}>{c.name}</div>
+        <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{c.role}</div>
+        {c.tags?.length > 0 && (
+          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            {c.tags.slice(0, 3).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
+          </div>
+        )}
+      </div>
+      <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px', zIndex: 2 }}
         onClick={e => { e.stopPropagation(); if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
     </div>
   );
