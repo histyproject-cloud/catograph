@@ -111,19 +111,31 @@ export default function Project({ user }) {
         {activeTab === 'relation' && (
           <button
             className={`btn ${connectMode ? 'btn-primary' : ''}`}
-            style={{ fontSize: 12, padding: '0 10px', height: 34 }}
+            style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => { setConnectMode(v => !v); setConnectFrom(null); }}
           >
             {isMobile ? '연결' : connectMode ? (connectFrom ? '대상 선택' : '시작 선택') : '관계 연결'}
           </button>
         )}
         {(activeTab === 'relation' || activeTab === 'characters') && (
-          <button className="btn btn-primary" style={{ fontSize: 12, padding: '0 10px', height: 34 }}
+          <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => { if (checkLimit(characters.length, 'characters')) setShowAddChar(true); }}>
-            {isMobile ? '+ 캐릭터' : '+ 캐릭터'}
+            + 캐릭터
           </button>
         )}
-        <button className="btn" style={{ fontSize: 12, padding: '0 10px', height: 34 }} onClick={() => setShowShareModal(true)}>
+        {activeTab === 'world' && (
+          <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
+            onClick={() => { if (checkLimit(worldDocs.length, 'worldDocs')) addWorldDoc('새 문서'); }}>
+            + 새 문서
+          </button>
+        )}
+        {activeTab === 'foreshadow' && (
+          <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
+            onClick={() => document.dispatchEvent(new CustomEvent('foreshadow:add'))}>
+            + 복선 추가
+          </button>
+        )}
+        <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
           {isMobile ? '공유' : '🔗 공유'}
         </button>
       </header>
@@ -383,6 +395,12 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) 
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', plantedEp: '', resolvedEp: '', charIds: [] });
 
+  useEffect(() => {
+    const handler = () => setShowAdd(true);
+    document.addEventListener('foreshadow:add', handler);
+    return () => document.removeEventListener('foreshadow:add', handler);
+  }, []);
+
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return;
@@ -396,11 +414,6 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete }) 
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22 }}>복선 관리</h2>
-        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => setShowAdd(true)}>+ 복선 추가</button>
-      </div>
-
       {foreshadows.length === 0 && <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>복선을 추가해보세요</div>}
 
       {open.length > 0 && (
