@@ -879,30 +879,37 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
               {/* 언급 회차 목록 */}
               <div className="form-group">
                 <label className="form-label">언급 회차</label>
-                {form.mentions.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                    <input value={m.ep} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: e.target.value } : x) }))}
-                      placeholder="화수" style={{ width: 70 }} />
-                    <input value={m.note} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, note: e.target.value } : x) }))}
-                      placeholder="어떻게 언급되었나요?" style={{ flex: 1 }} />
-                    <button type="button" className="btn btn-ghost" style={{ padding: '0 8px', height: 40, fontSize: 16 }}
-                      onClick={() => setForm(f => ({ ...f, mentions: f.mentions.filter((_, j) => j !== i) }))}>×</button>
-                  </div>
-                ))}
-                <button type="button" className="btn btn-ghost" style={{ fontSize: 12, marginTop: 4 }}
-                  onClick={() => setForm(f => ({ ...f, mentions: [...f.mentions, { ep: '', note: '' }] }))}>
-                  + 언급 추가
-                </button>
+                <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
+                  {form.mentions.map((m, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                      <input value={m.ep} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: e.target.value } : x) }))}
+                        placeholder="화수" style={{ width: 70 }} />
+                      <input value={m.note} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, note: e.target.value } : x) }))}
+                        placeholder="어떻게 언급되었나요?" style={{ flex: 1 }} />
+                      <button type="button" className="btn btn-ghost" style={{ padding: '0 8px', height: 40, fontSize: 16 }}
+                        onClick={() => setForm(f => ({ ...f, mentions: f.mentions.filter((_, j) => j !== i) }))}>×</button>
+                    </div>
+                  ))}
+                  <button type="button" className="btn" style={{ fontSize: 12, width: '100%', marginTop: form.mentions.length > 0 ? 4 : 0 }}
+                    onClick={() => setForm(f => ({ ...f, mentions: [...f.mentions, { ep: '', note: '' }] }))}>
+                    + 언급 추가
+                  </button>
+                </div>
               </div>
               {/* 회수 여부 토글 */}
-              <div className="form-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label className="form-label" style={{ margin: 0 }}>복선 회수 완료</label>
-                <button type="button" onClick={() => setForm(f => ({ ...f, resolved: !f.resolved }))}
-                  style={{ width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer',
-                    background: form.resolved ? 'var(--accent)' : 'var(--bg4)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                    position: 'absolute', top: 3, left: form.resolved ? 23 : 3, transition: 'left 0.2s' }} />
-                </button>
+              <div className="form-group">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <label className="form-label" style={{ margin: 0 }}>복선 회수</label>
+                  <button type="button" onClick={() => setForm(f => ({ ...f, resolved: !f.resolved }))}
+                    style={{ width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer',
+                      background: form.resolved ? 'var(--accent)' : 'var(--bg4)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                      position: 'absolute', top: 3, left: form.resolved ? 23 : 3, transition: 'left 0.2s' }} />
+                  </button>
+                  <span style={{ fontSize: 12, color: form.resolved ? 'var(--accent)' : 'var(--text3)' }}>
+                    {form.resolved ? '완료' : '미회수'}
+                  </span>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
                 <button type="button" className="btn" onClick={() => setShowAdd(false)}>취소</button>
@@ -937,20 +944,22 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
       {/* 언급 회차 */}
       <div className="form-group">
         <label className="form-label">언급 회차</label>
-        {form.mentions.map((m, i) => (
-          <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-            <input value={m.ep} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: e.target.value } : x) }))}
-              placeholder="화수" style={{ width: 70 }} />
-            <input value={m.note} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, note: e.target.value } : x) }))}
-              placeholder="어떻게 언급되었나요?" style={{ flex: 1 }} />
-            <button type="button" className="btn btn-ghost" style={{ padding: '0 8px', height: 40, fontSize: 16 }}
-              onClick={() => setForm(f => ({ ...f, mentions: f.mentions.filter((_, j) => j !== i) }))}>×</button>
-          </div>
-        ))}
-        <button type="button" className="btn btn-ghost" style={{ fontSize: 12, marginTop: 4 }}
-          onClick={() => setForm(f => ({ ...f, mentions: [...f.mentions, { ep: '', note: '' }] }))}>
-          + 언급 추가
-        </button>
+        <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
+          {form.mentions.map((m, i) => (
+            <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+              <input value={m.ep} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: e.target.value } : x) }))}
+                placeholder="화수" style={{ width: 70 }} />
+              <input value={m.note} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, note: e.target.value } : x) }))}
+                placeholder="어떻게 언급되었나요?" style={{ flex: 1 }} />
+              <button type="button" className="btn btn-ghost" style={{ padding: '0 8px', height: 40, fontSize: 16 }}
+                onClick={() => setForm(f => ({ ...f, mentions: f.mentions.filter((_, j) => j !== i) }))}>×</button>
+            </div>
+          ))}
+          <button type="button" className="btn" style={{ fontSize: 12, width: '100%', marginTop: form.mentions.length > 0 ? 4 : 0 }}
+            onClick={() => setForm(f => ({ ...f, mentions: [...f.mentions, { ep: '', note: '' }] }))}>
+            + 언급 추가
+          </button>
+        </div>
       </div>
       {/* 연결 캐릭터 */}
       <div className="form-group">
@@ -965,14 +974,17 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
         </div>
       </div>
       {/* 회수 토글 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>복선 회수 완료</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <span style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>복선 회수</span>
         <button type="button" onClick={() => setForm(f => ({ ...f, resolved: !f.resolved }))}
           style={{ width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer',
             background: form.resolved ? 'var(--accent)' : 'var(--bg4)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
           <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff',
             position: 'absolute', top: 3, left: form.resolved ? 23 : 3, transition: 'left 0.2s' }} />
         </button>
+        <span style={{ fontSize: 12, color: form.resolved ? 'var(--accent)' : 'var(--text3)' }}>
+          {form.resolved ? '완료' : '미회수'}
+        </span>
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button className="btn" style={{ fontSize: 12 }} onClick={() => setEditing(false)}>취소</button>
