@@ -173,7 +173,7 @@ export default function Project({ user }) {
           </button>
         )}
         <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
-          {isMobile ? '공유' : '🔗 공유'}
+          {isMobile ? '공유' : '공유'}
         </button>
       </header>
 
@@ -592,6 +592,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
               const ev = (events || []).find(e => e.charIds?.includes(c.id) && e.episode === ep);
               return (
                 <div key={ep} style={{ background: 'var(--bg3)', borderRadius: 8, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Calendar size={11} color="var(--accent)" />
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{ep}화</span>
                   {ev?.title && <span style={{ fontSize: 11, color: 'var(--text2)' }}>{ev.title}</span>}
                 </div>

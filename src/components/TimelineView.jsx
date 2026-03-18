@@ -191,7 +191,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
               </div>
               <div className="form-group">
                 <label className="form-label">제목 *</label>
-                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} placeholder="예: 솔음, 괴담 속으로 빙의" />
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} placeholder="예: 주인공, 책 속으로 빙의" />
               </div>
               <div className="form-group">
                 <label className="form-label">설명</label>

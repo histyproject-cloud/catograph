@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Share2, Network, Sparkles, Globe, Clock, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -108,15 +109,15 @@ export default function Dashboard({ user }) {
             {/* 기능 소개 */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14, maxWidth: 700, margin: '0 auto' }}>
               {[
-                { icon: '🕸️', title: '캐릭터 관계도', desc: '인물 카드를 자유롭게 배치하고 관계선으로 연결해요' },
-                { icon: '✦', title: '복선 관리', desc: '심은 복선과 회수 회차를 한눈에 추적해요' },
-                { icon: '📅', title: '타임라인', desc: '화수별 사건을 정리하고 등장인물을 연결해요' },
-                { icon: '🌍', title: '세계관 문서', desc: '설정집을 자유롭게 작성하고 보관해요' },
-                { icon: '☆', title: '2차창작 모음', desc: '팬아트, 팬픽 링크를 작품별로 저장해요' },
-                { icon: '🔗', title: '공유 기능', desc: '읽기 전용 링크로 협업자와 설정을 공유해요' },
+                { icon: <Network size={18} />, title: '캐릭터 관계도', desc: '인물 카드를 자유롭게 배치하고 관계선으로 연결해요' },
+                { icon: <Sparkles size={18} />, title: '복선 관리', desc: '심은 복선과 회수 회차를 한눈에 추적해요' },
+                { icon: <Clock size={18} />, title: '타임라인', desc: '화수별 사건을 정리하고 등장인물을 연결해요' },
+                { icon: <Globe size={18} />, title: '세계관 문서', desc: '설정집을 자유롭게 작성하고 보관해요' },
+                { icon: <Star size={18} />, title: '2차창작 모음', desc: '팬아트, 팬픽 링크를 작품별로 저장해요' },
+                { icon: <Share2 size={18} />, title: '공유 기능', desc: '읽기 전용 링크로 협업자와 설정을 공유해요' },
               ].map((f, i) => (
                 <div key={i} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '18px 16px', textAlign: 'left' }}>
-                  <div style={{ fontSize: 22, marginBottom: 8 }}>{f.icon}</div>
+                  <div style={{ color: 'var(--accent)', marginBottom: 10 }}>{f.icon}</div>
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>{f.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>{f.desc}</div>
                 </div>
@@ -139,7 +140,7 @@ export default function Dashboard({ user }) {
             <form onSubmit={handleCreate}>
               <div className="form-group">
                 <label className="form-label">작품 제목</label>
-                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="예: 어둠의 궤적" style={{ width: '100%' }} autoFocus />
+                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="예: 해리포터" style={{ width: '100%' }} autoFocus />
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
                 <button type="button" className="btn" onClick={() => setShowNew(false)}>취소</button>

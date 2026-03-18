@@ -384,7 +384,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
             <input
               value={editingRelLabel}
               onChange={e => setEditingRelLabel(e.target.value)}
-              placeholder="예: 직장동료, 연인, 적대..."
+              placeholder="예: 사랑, 의심, 적대"
               style={{ width: '100%', marginBottom: 10 }}
               autoFocus
               onKeyDown={e => {

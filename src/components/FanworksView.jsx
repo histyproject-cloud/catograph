@@ -173,7 +173,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
             <form onSubmit={handleAdd}>
               <div className="form-group">
                 <label className="form-label">제목 *</label>
-                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="예: 솔음이 커피숍 AU" style={{ width: '100%' }} autoFocus />
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="예: 현대 AU" style={{ width: '100%' }} autoFocus />
               </div>
               <div className="form-group">
                 <label className="form-label">링크를 입력하세요 *</label>
