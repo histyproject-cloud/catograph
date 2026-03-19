@@ -1,25 +1,42 @@
 import React, { useState } from 'react';
 import { getAvatarColor } from './DetailPanel';
 
-// 드래그 순서 이동 훅
+// ── 드래그 순서 훅 (모션 포함) ──
 function useDragOrder(items, onReorder) {
   const dragItem = React.useRef(null);
-  const dragOver = React.useRef(null);
+  const [draggingIdx, setDraggingIdx] = React.useState(null);
+  const [dragOverIdx, setDragOverIdx] = React.useState(null);
 
-  const onDragStart = (idx) => { dragItem.current = idx; };
-  const onDragEnter = (idx) => { dragOver.current = idx; };
+  const onDragStart = (idx) => { dragItem.current = idx; setDraggingIdx(idx); };
+  const onDragEnter = (idx) => { setDragOverIdx(idx); };
   const onDragEnd = () => {
-    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
-      dragItem.current = null; dragOver.current = null; return;
+    const from = dragItem.current;
+    const to = dragOverIdx;
+    if (from !== null && to !== null && from !== to) {
+      const next = [...items];
+      const dragged = next.splice(from, 1)[0];
+      next.splice(to, 0, dragged);
+      onReorder(next);
     }
-    const next = [...items];
-    const dragged = next.splice(dragItem.current, 1)[0];
-    next.splice(dragOver.current, 0, dragged);
-    onReorder(next);
-    dragItem.current = null; dragOver.current = null;
+    dragItem.current = null;
+    setDraggingIdx(null);
+    setDragOverIdx(null);
   };
 
-  return { onDragStart, onDragEnter, onDragEnd };
+  const getItemStyle = (idx) => {
+    if (draggingIdx === null || dragOverIdx === null || draggingIdx === dragOverIdx) {
+      return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    }
+    if (idx === draggingIdx) return { opacity: 0.25, transition: 'opacity 0.15s' };
+    const from = draggingIdx, to = dragOverIdx;
+    if (from < to && idx > from && idx <= to)
+      return { transform: 'translateY(-44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    if (from > to && idx >= to && idx < from)
+      return { transform: 'translateY(44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+  };
+
+  return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle };
 }
 
 export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete, reorderMode }) {
@@ -57,13 +74,16 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   const displayEvents = reorderMode ? (orderedEvents || sortedByEpisode) : sortedByEpisode;
   const sorted = displayEvents;
 
-  // reorderMode 진입 시 현재 정렬 순서로 초기화
+  // reorderMode 진입 시만 초기화, 종료 시 유지
+  const prevReorderMode = React.useRef(false);
   React.useEffect(() => {
-    if (reorderMode) setOrderedEvents(sortedByEpisode);
-    else setOrderedEvents(null);
+    if (reorderMode && !prevReorderMode.current) {
+      setOrderedEvents([...sortedByEpisode]);
+    }
+    prevReorderMode.current = reorderMode;
   }, [reorderMode]);
 
-  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(sorted, setOrderedEvents);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(sorted, setOrderedEvents);
 
   const TYPE_COLORS = {
     event: { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8', label: '사건' },
@@ -108,14 +128,12 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                   onDragOver={e => reorderMode && e.preventDefault()}
                   style={{
                     background: 'var(--bg2)',
-                    border: reorderMode && dragOverIdx === idx && draggingIdx !== idx ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    border: reorderMode && dragOverIdx === idx && draggingIdx !== idx ? '2px solid var(--accent)' : '1px solid var(--border)',
                     borderRadius: 'var(--radius)', padding: '12px 14px',
                     cursor: reorderMode ? 'grab' : 'pointer',
-                    opacity: reorderMode && draggingIdx === idx ? 0.35 : 1,
-                    transform: reorderMode && dragOverIdx === idx && draggingIdx !== idx ? 'translateX(8px)' : 'translateX(0)',
-                    transition: 'border-color 0.12s, opacity 0.15s, transform 0.15s',
+                    ...(reorderMode ? getItemStyle(idx) : {}),
                   }}
-                  onClick={() => setExpandedId(isExpanded ? null : ev.id)}
+                  onClick={() => !reorderMode && setExpandedId(isExpanded ? null : ev.id)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, minWidth: 36 }}>{ev.episode}화</span>

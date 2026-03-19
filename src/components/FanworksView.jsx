@@ -1,21 +1,41 @@
 import React, { useState } from 'react';
 
+// ── 드래그 순서 훅 (모션 포함) ──
 function useDragOrder(items, onReorder) {
   const dragItem = React.useRef(null);
-  const dragOver = React.useRef(null);
-  const onDragStart = (idx) => { dragItem.current = idx; };
-  const onDragEnter = (idx) => { dragOver.current = idx; };
+  const [draggingIdx, setDraggingIdx] = React.useState(null);
+  const [dragOverIdx, setDragOverIdx] = React.useState(null);
+
+  const onDragStart = (idx) => { dragItem.current = idx; setDraggingIdx(idx); };
+  const onDragEnter = (idx) => { setDragOverIdx(idx); };
   const onDragEnd = () => {
-    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
-      dragItem.current = null; dragOver.current = null; return;
+    const from = dragItem.current;
+    const to = dragOverIdx;
+    if (from !== null && to !== null && from !== to) {
+      const next = [...items];
+      const dragged = next.splice(from, 1)[0];
+      next.splice(to, 0, dragged);
+      onReorder(next);
     }
-    const next = [...items];
-    const dragged = next.splice(dragItem.current, 1)[0];
-    next.splice(dragOver.current, 0, dragged);
-    onReorder(next);
-    dragItem.current = null; dragOver.current = null;
+    dragItem.current = null;
+    setDraggingIdx(null);
+    setDragOverIdx(null);
   };
-  return { onDragStart, onDragEnter, onDragEnd };
+
+  const getItemStyle = (idx) => {
+    if (draggingIdx === null || dragOverIdx === null || draggingIdx === dragOverIdx) {
+      return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    }
+    if (idx === draggingIdx) return { opacity: 0.25, transition: 'opacity 0.15s' };
+    const from = draggingIdx, to = dragOverIdx;
+    if (from < to && idx > from && idx <= to)
+      return { transform: 'translateY(-44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    if (from > to && idx >= to && idx < from)
+      return { transform: 'translateY(44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+  };
+
+  return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle };
 }
 
 export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode }) {
@@ -35,7 +55,12 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   }, []);
   const [orderedFanworks, setOrderedFanworks] = React.useState(null);
   const displayFanworks = orderedFanworks || fanworks;
-  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayFanworks, setOrderedFanworks);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayFanworks, setOrderedFanworks);
+  const prevReorderMode = React.useRef(false);
+  React.useEffect(() => {
+    if (reorderMode && !prevReorderMode.current) setOrderedFanworks([...fanworks]);
+    prevReorderMode.current = reorderMode;
+  }, [reorderMode]);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -133,13 +158,11 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
               onDragOver={e => reorderMode && e.preventDefault()}
               style={{
                 background: 'var(--bg2)',
-                border: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? '1px solid var(--accent)' : '1px solid var(--border)',
+                border: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? '2px solid var(--accent)' : '1px solid var(--border)',
                 borderRadius: 'var(--radius-lg)', padding: '14px 16px',
                 display: 'flex', alignItems: 'center', gap: 12,
                 cursor: reorderMode ? 'grab' : 'default',
-                opacity: reorderMode && draggingIdx === fwIdx ? 0.35 : 1,
-                transform: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? 'translateX(8px)' : 'translateX(0)',
-                transition: 'border-color 0.12s, opacity 0.15s, transform 0.15s',
+                ...(reorderMode ? getItemStyle(fwIdx) : {}),
               }}
             >
               {/* 클릭 영역 */}

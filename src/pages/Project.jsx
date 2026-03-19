@@ -344,26 +344,42 @@ export default function Project({ user }) {
   );
 }
 
-// ── 드래그 순서 훅 ──
+// ── 드래그 순서 훅 (모션 포함) ──
 function useDragOrder(items, onReorder) {
   const dragItem = React.useRef(null);
-  const [dragOverIdx, setDragOverIdx] = React.useState(null);
   const [draggingIdx, setDraggingIdx] = React.useState(null);
+  const [dragOverIdx, setDragOverIdx] = React.useState(null);
 
   const onDragStart = (idx) => { dragItem.current = idx; setDraggingIdx(idx); };
   const onDragEnter = (idx) => { setDragOverIdx(idx); };
   const onDragEnd = () => {
-    if (dragItem.current !== null && dragOverIdx !== null && dragItem.current !== dragOverIdx) {
+    const from = dragItem.current;
+    const to = dragOverIdx;
+    if (from !== null && to !== null && from !== to) {
       const next = [...items];
-      const dragged = next.splice(dragItem.current, 1)[0];
-      next.splice(dragOverIdx, 0, dragged);
+      const dragged = next.splice(from, 1)[0];
+      next.splice(to, 0, dragged);
       onReorder(next);
     }
     dragItem.current = null;
     setDraggingIdx(null);
     setDragOverIdx(null);
   };
-  return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx };
+
+  const getItemStyle = (idx) => {
+    if (draggingIdx === null || dragOverIdx === null || draggingIdx === dragOverIdx) {
+      return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    }
+    if (idx === draggingIdx) return { opacity: 0.25, transition: 'opacity 0.15s' };
+    const from = draggingIdx, to = dragOverIdx;
+    if (from < to && idx > from && idx <= to)
+      return { transform: 'translateY(-44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    if (from > to && idx >= to && idx < from)
+      return { transform: 'translateY(44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+    return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
+  };
+
+  return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle };
 }
 
 // ── 캐릭터 목록 ──
@@ -372,7 +388,12 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
   const [visible, setVisible] = useState(false);
   const [orderedChars, setOrderedChars] = useState(null);
   const displayChars = orderedChars || characters;
-  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayChars, setOrderedChars);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayChars, setOrderedChars);
+  const prevReorderMode = React.useRef(false);
+  React.useEffect(() => {
+    if (reorderMode && !prevReorderMode.current) setOrderedChars([...characters]);
+    prevReorderMode.current = reorderMode;
+  }, [reorderMode]);
 
   const openDetail = (c) => {
     setDetailChar(c);
@@ -399,11 +420,9 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
                 onDragOver={e => reorderMode && e.preventDefault()}
                 style={{
                   cursor: reorderMode ? 'grab' : 'default',
-                  opacity: reorderMode && draggingIdx === cIdx ? 0.35 : 1,
-                  transform: reorderMode && dragOverIdx === cIdx && draggingIdx !== cIdx ? 'scale(1.03)' : 'scale(1)',
-                  outline: reorderMode && dragOverIdx === cIdx && draggingIdx !== cIdx ? '2px solid var(--accent)' : 'none',
                   borderRadius: 'var(--radius-lg)',
-                  transition: 'transform 0.15s, opacity 0.15s, outline 0.1s',
+                  outline: reorderMode && dragOverIdx === cIdx && draggingIdx !== cIdx ? '2px solid var(--accent)' : 'none',
+                  ...(reorderMode ? getItemStyle(cIdx) : {}),
                 }}
               >
                 <CharacterCard character={c} isSelected={selected?.id === c.id}
@@ -706,7 +725,12 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
   const [showDocList, setShowDocList] = useState(true);
   const [orderedDocs, setOrderedDocs] = useState(null);
   const displayDocs = orderedDocs || docs;
-  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayDocs, setOrderedDocs);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayDocs, setOrderedDocs);
+  const prevReorderModeW = React.useRef(false);
+  React.useEffect(() => {
+    if (reorderMode && !prevReorderModeW.current) setOrderedDocs([...docs]);
+    prevReorderModeW.current = reorderMode;
+  }, [reorderMode]);
 
   const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); if (isMobile) setShowDocList(false); };
   const save = () => { if (selected) onUpdate(selected.id, { title, content }); };
@@ -731,11 +755,9 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
           style={{
             display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2,
             cursor: reorderMode ? 'grab' : 'default',
-            opacity: reorderMode && draggingIdx === dIdx ? 0.35 : 1,
-            background: reorderMode && dragOverIdx === dIdx && draggingIdx !== dIdx ? 'var(--bg3)' : 'transparent',
             borderRadius: 8,
             borderLeft: reorderMode && dragOverIdx === dIdx && draggingIdx !== dIdx ? '2px solid var(--accent)' : '2px solid transparent',
-            transition: 'background 0.12s, border 0.1s, opacity 0.15s',
+            ...(reorderMode ? getItemStyle(dIdx) : {}),
           }}>
           <button onClick={() => selectDoc(d)} style={{ flex: 1, textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, background: selected?.id === d.id ? 'var(--bg3)' : 'transparent', color: selected?.id === d.id ? 'var(--text)' : 'var(--text2)', border: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</button>
           <button onClick={e => handleDelete(e, d)} style={{ flexShrink: 0, padding: '4px 6px', border: 'none', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 14, borderRadius: 6 }}
@@ -798,6 +820,14 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
   const closed = orderedClosed || closedRaw;
   const dragOpen = useDragOrder(open, setOrderedOpen);
   const dragClosed = useDragOrder(closed, setOrderedClosed);
+  const prevReorderModeF = React.useRef(false);
+  React.useEffect(() => {
+    if (reorderMode && !prevReorderModeF.current) {
+      setOrderedOpen([...openRaw]);
+      setOrderedClosed([...closedRaw]);
+    }
+    prevReorderModeF.current = reorderMode;
+  }, [reorderMode]);
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
@@ -831,11 +861,9 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
               onDragOver={e => reorderMode && e.preventDefault()}
               style={{
                 cursor: reorderMode ? 'grab' : 'default',
-                opacity: reorderMode && dragOpen.draggingIdx === fsIdx ? 0.35 : 1,
-                transform: reorderMode && dragOpen.dragOverIdx === fsIdx && dragOpen.draggingIdx !== fsIdx ? 'translateX(6px)' : 'translateX(0)',
-                borderLeft: reorderMode && dragOpen.dragOverIdx === fsIdx && dragOpen.draggingIdx !== fsIdx ? '2px solid var(--accent)' : '2px solid transparent',
                 borderRadius: 'var(--radius)',
-                transition: 'transform 0.15s, opacity 0.15s, border 0.1s',
+                borderLeft: reorderMode && dragOpen.dragOverIdx === fsIdx && dragOpen.draggingIdx !== fsIdx ? '2px solid var(--accent)' : '2px solid transparent',
+                ...(reorderMode ? dragOpen.getItemStyle(fsIdx) : {}),
               }}
             >
               <FSCard fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />
@@ -854,11 +882,9 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
               onDragOver={e => reorderMode && e.preventDefault()}
               style={{
                 cursor: reorderMode ? 'grab' : 'default',
-                opacity: reorderMode && dragClosed.draggingIdx === fsIdx ? 0.35 : 1,
-                transform: reorderMode && dragClosed.dragOverIdx === fsIdx && dragClosed.draggingIdx !== fsIdx ? 'translateX(6px)' : 'translateX(0)',
-                borderLeft: reorderMode && dragClosed.dragOverIdx === fsIdx && dragClosed.draggingIdx !== fsIdx ? '2px solid var(--accent)' : '2px solid transparent',
                 borderRadius: 'var(--radius)',
-                transition: 'transform 0.15s, opacity 0.15s, border 0.1s',
+                borderLeft: reorderMode && dragClosed.dragOverIdx === fsIdx && dragClosed.draggingIdx !== fsIdx ? '2px solid var(--accent)' : '2px solid transparent',
+                ...(reorderMode ? dragClosed.getItemStyle(fsIdx) : {}),
               }}
             >
               <FSCard fs={fs} characters={characters} onUpdate={onUpdate} onDelete={onDelete} />
