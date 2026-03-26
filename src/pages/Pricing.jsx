@@ -43,7 +43,7 @@ export default function Pricing() {
             <button onClick={() => setYearly(false)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: !yearly ? 'var(--accent)' : 'transparent', color: !yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}>월간</button>
             <button onClick={() => setYearly(true)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: yearly ? 'var(--accent)' : 'transparent', color: yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}>
               연간
-              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>2개월 무료</span>
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>25% 할인</span>
             </button>
           </div>
         </div>
@@ -81,12 +81,12 @@ export default function Pricing() {
               <div style={{ fontSize: 13, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Pro</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40 }}>
-                  {yearly ? '35,000' : '3,500'}원
+                  {yearly ? '29,900' : '3,300'}원
                 </span>
                 <span style={{ color: 'var(--text3)', fontSize: 13 }}>{yearly ? '/년' : '/월'}</span>
               </div>
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>
-                {yearly ? '월 2,917원 · 2개월 무료' : '연간 결제 시 2개월 무료'}
+                {yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}
               </div>
             </div>
             <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24 }} onClick={() => navigate('/')}>
