@@ -106,7 +106,7 @@ export default function Pricing() {
         {/* 환불 안내 */}
         <div style={{ textAlign: 'center', marginTop: 40, padding: '20px', background: 'var(--bg2)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
           <p style={{ fontSize: 13, color: 'var(--text2)' }}>결제 후 24시간 이내 전액 환불 보장 · 언제든지 해지 가능</p>
-          <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>문의: cartograph.help@gmail.com · 010-5629-4236</p>
+          <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>문의: histy.project@gmail.com · 010-5629-4236</p>
         </div>
       </main>
 
@@ -114,7 +114,7 @@ export default function Pricing() {
       <footer style={{ borderTop: '1px solid var(--border)', padding: '24px 20px', background: 'var(--bg2)' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', fontSize: 11, color: 'var(--text3)', lineHeight: 2, textAlign: 'center' }}>
           <p>상호명: 히스티 · 사업자등록번호: 162-18-02499 · 전화: 010-5629-4236</p>
-          <p>주소: 서울특별시 광진구 구의강변로 11 · 이메일: cartograph.help@gmail.com</p>
+          <p>주소: 서울특별시 광진구 구의강변로 11 · 이메일: histy.project@gmail.com</p>
         </div>
       </footer>
     </div>
