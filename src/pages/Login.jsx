@@ -16,7 +16,7 @@ export default function Login() {
       <div style={{ textAlign: 'center', width: '100%', maxWidth: 380 }}>
         <div style={{ marginBottom: 32 }}>
           <Logo size={52} />
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 38, letterSpacing: '-0.02em', marginTop: 12 }}>Cartograph</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 38, letterSpacing: '-0.02em', marginTop: 12 }}>Cartographic</div>
           <div style={{ color: 'var(--text2)', fontSize: 14, marginTop: 8 }}>세계관을 그리는 창작 허브</div>
         </div>
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '28px 24px' }}>

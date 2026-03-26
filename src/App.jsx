@@ -1,21 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from './firebase';
 import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import Login from './pages/Login';
 import SharedView from './pages/SharedView';
 import Legal from './pages/Legal';
 import Pricing from './pages/Pricing';
+import OnboardingModal from './components/OnboardingModal';
 import './styles/global.css';
 
 export default function App() {
   const [user, setUser] = useState(undefined);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, u => setUser(u));
+    return onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        // 첫 로그인 여부 확인
+        const userDoc = await getDoc(doc(db, 'users', u.uid));
+        if (!userDoc.exists() || !userDoc.data()?.onboardingDone) {
+          setShowOnboarding(true);
+        }
+      }
+    });
   }, []);
+
+  const handleOnboardingComplete = async () => {
+    if (!user) return;
+    await setDoc(doc(db, 'users', user.uid), {
+      onboardingDone: true,
+      onboardingDoneAt: serverTimestamp(),
+    }, { merge: true });
+    setShowOnboarding(false);
+  };
 
   if (user === undefined) return (
     <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
@@ -26,6 +47,13 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      {/* 온보딩: 로그인한 유저에게만 표시 */}
+      {user && showOnboarding && (
+        <OnboardingModal
+          onClose={handleOnboardingComplete}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} />

@@ -6,10 +6,10 @@ const SECTIONS = {
     title: '개인정보처리방침',
     updated: '2026년 3월 16일',
     content: [
-      { heading: '1. 수집하는 개인정보', body: `Cartograph(이하 "서비스")는 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다.\n\n• 수집 항목: Google 계정 이메일 주소, 이름, 프로필 사진\n• 수집 방법: Google OAuth 로그인을 통한 자동 수집\n• 수집 목적: 회원 식별 및 서비스 제공` },
+      { heading: '1. 수집하는 개인정보', body: `Cartographic(이하 "서비스")는 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다.\n\n• 수집 항목: Google 계정 이메일 주소, 이름, 프로필 사진\n• 수집 방법: Google OAuth 로그인을 통한 자동 수집\n• 수집 목적: 회원 식별 및 서비스 제공` },
       { heading: '2. 개인정보의 이용 목적', body: `수집한 개인정보는 다음의 목적을 위해 활용합니다.\n\n• 서비스 제공 및 계정 관리\n• 작품 데이터(캐릭터, 세계관, 복선 등) 저장 및 관리\n• 공유 기능 제공\n• 서비스 개선 및 새로운 기능 개발` },
       { heading: '3. 개인정보의 보유 및 이용 기간', body: `서비스 이용 기간 동안 개인정보를 보유합니다. 회원 탈퇴 시 개인정보 및 작품 데이터는 즉시 삭제됩니다. 단, 관련 법령에 의해 보존할 필요가 있는 경우 해당 기간 동안 보관합니다.` },
-      { heading: '4. 개인정보의 제3자 제공', body: `Cartograph는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 이용자가 사전에 동의한 경우 또는 법령의 규정에 의거한 경우에는 예외로 합니다.\n\n서비스는 Firebase(Google LLC)를 통해 데이터를 저장하며, Firebase의 개인정보처리방침이 적용됩니다.` },
+      { heading: '4. 개인정보의 제3자 제공', body: `Cartographic는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 이용자가 사전에 동의한 경우 또는 법령의 규정에 의거한 경우에는 예외로 합니다.\n\n서비스는 Firebase(Google LLC)를 통해 데이터를 저장하며, Firebase의 개인정보처리방침이 적용됩니다.` },
       { heading: '5. 이용자의 권리', body: `이용자는 언제든지 다음의 권리를 행사할 수 있습니다.\n\n• 개인정보 열람 요청\n• 개인정보 수정 요청\n• 개인정보 삭제 요청 (회원 탈퇴)\n• 개인정보 처리 정지 요청\n\n문의 이메일: cartograph.help@gmail.com` },
       { heading: '6. 쿠키 및 유사 기술', body: `서비스는 로그인 상태 유지를 위해 Firebase Authentication이 제공하는 세션 토큰을 사용합니다. 이는 브라우저 로컬 스토리지에 저장되며, 브라우저 설정을 통해 삭제할 수 있습니다.` },
       { heading: '7. 개인정보 보호책임자', body: `개인정보 관련 문의사항은 아래 연락처로 문의해 주세요.\n\n이메일: cartograph.help@gmail.com\n전화: 010-5629-4236` },
@@ -19,7 +19,7 @@ const SECTIONS = {
     title: '이용약관',
     updated: '2026년 3월 16일',
     content: [
-      { heading: '제1조 (목적)', body: `이 약관은 Cartograph(이하 "서비스")의 이용과 관련하여 서비스와 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.` },
+      { heading: '제1조 (목적)', body: `이 약관은 Cartographic(이하 "서비스")의 이용과 관련하여 서비스와 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.` },
       { heading: '제2조 (서비스 내용)', body: `서비스는 창작자를 위한 세계관 및 캐릭터 관리 도구를 제공합니다.\n\n• 캐릭터 관계도 작성 및 관리\n• 세계관 설정 문서화\n• 복선 및 플롯 관리\n• 타임라인 정리\n• 협업자와의 설정 공유 (읽기 전용)` },
       { heading: '제3조 (회원가입)', body: `서비스는 Google 계정을 통한 소셜 로그인 방식으로 회원가입이 이루어집니다. 회원가입 시 이 약관에 동의한 것으로 간주합니다.` },
       { heading: '제4조 (서비스 이용)', body: `① 서비스는 연중무휴 24시간 제공을 원칙으로 하나, 시스템 점검 등의 사유로 일시 중단될 수 있습니다.\n\n② 이용자는 다음 행위를 해서는 안 됩니다.\n\n• 타인의 개인정보를 무단으로 수집, 저장, 공개하는 행위\n• 서비스의 정상적인 운영을 방해하는 행위\n• 저작권 등 타인의 권리를 침해하는 콘텐츠 등록\n• 법령에 위반되는 내용을 게시하는 행위` },
@@ -35,7 +35,7 @@ const SECTIONS = {
     title: '환불 정책',
     updated: '2026년 3월 16일',
     content: [
-      { heading: '환불 기준', body: `Cartograph는 이용자의 편의를 위해 다음과 같은 환불 정책을 운영합니다.\n\n• 결제일로부터 24시간 이내 환불 신청 시 전액 환불\n• 무료 체험(30일) 종료 후 자동 결제된 경우에도 동일하게 적용\n• 24시간 경과 후에는 환불이 불가합니다.` },
+      { heading: '환불 기준', body: `Cartographic는 이용자의 편의를 위해 다음과 같은 환불 정책을 운영합니다.\n\n• 결제일로부터 24시간 이내 환불 신청 시 전액 환불\n• 무료 체험(30일) 종료 후 자동 결제된 경우에도 동일하게 적용\n• 24시간 경과 후에는 환불이 불가합니다.` },
       { heading: '환불 신청 방법', body: `아래 연락처로 환불을 신청하실 수 있습니다.\n\n• 이메일: cartograph.help@gmail.com\n• 전화: 010-5629-4236\n\n환불 신청 시 가입한 이메일 주소와 결제 일시를 함께 알려주세요.` },
       { heading: '환불 처리 기간', body: `환불 신청 접수 후 영업일 기준 3~5일 이내에 처리됩니다. 카드사 정책에 따라 실제 환불 반영까지 추가 시간이 소요될 수 있습니다.` },
       { heading: '구독 해지', body: `Pro 플랜 구독은 언제든지 해지할 수 있습니다. 해지 시 현재 결제 기간이 종료되는 시점까지 서비스를 이용할 수 있으며, 다음 결제는 진행되지 않습니다.` },
@@ -59,7 +59,7 @@ export default function Legal() {
       <header style={{ height: 52, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', position: 'sticky', top: 0, zIndex: 10 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => navigate(-1)}>← 뒤로</button>
         <div style={{ width: 1, height: 16, background: 'var(--border)' }} />
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16 }}>Cartograph</span>
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16 }}>Cartographic</span>
       </header>
 
       <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)', padding: '0 20px', display: 'flex', overflowX: 'auto' }}>

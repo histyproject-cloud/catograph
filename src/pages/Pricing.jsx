@@ -30,7 +30,7 @@ export default function Pricing() {
       <header style={{ height: 52, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', position: 'sticky', top: 0, zIndex: 10 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => navigate(-1)}>← 뒤로</button>
         <div style={{ width: 1, height: 16, background: 'var(--border)' }} />
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16 }}>Cartograph</span>
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16 }}>Cartographic</span>
       </header>
 
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '60px 20px 80px' }}>

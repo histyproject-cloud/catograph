@@ -45,7 +45,7 @@ export default function Dashboard({ user }) {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <header style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', position: 'sticky', top: 0, zIndex: 10 }}>
         <LogoMark />
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 20, letterSpacing: '-0.02em' }}>Cartograph</span>
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 20, letterSpacing: '-0.02em' }}>Cartographic</span>
         <div style={{ flex: 1 }} />
         <div ref={profileRef} style={{ position: 'relative' }}>
           <button
