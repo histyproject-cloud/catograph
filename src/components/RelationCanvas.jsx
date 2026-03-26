@@ -423,8 +423,8 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       )}
 
       {characters.length === 0 && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text3)', fontSize: 13 }}>캐릭터를 추가해서 관계도를 시작하세요</p>
+        <div style={{ position: 'absolute', top: 20, left: 20 }}>
+          <p style={{ color: 'var(--text3)', fontSize: 12, margin: 0 }}>캐릭터를 추가해서 관계도를 시작하세요</p>
         </div>
       )}
     </div>

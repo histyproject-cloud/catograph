@@ -96,7 +96,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
       {sorted.length === 0 && !showAdd ? (
-        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>
+        <div style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>
           화수별 이벤트를 추가해보세요
         </div>
       ) : (

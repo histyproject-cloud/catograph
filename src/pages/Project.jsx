@@ -410,7 +410,7 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
         {characters.length === 0 ? (
-          <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>캐릭터가 없어요</div>
+          <div style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>캐릭터가 없어요</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             {displayChars.map((c, cIdx) => (
@@ -786,7 +786,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
           <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save} style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none' }} placeholder="세계관 설정을 자유롭게 작성하세요..." />
         </>
       ) : (
-        <div style={{ color: 'var(--text3)', textAlign: 'center', marginTop: 60, fontSize: 13 }}>문서를 선택하거나 새로 만드세요</div>
+        <div style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>문서를 선택하거나 새로 만드세요</div>
       )}
     </div>
   );
@@ -851,7 +851,7 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
         </div>
       )}
 
-      {foreshadows.length === 0 && <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>복선을 추가해보세요</div>}
+      {foreshadows.length === 0 && <div style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>복선을 추가해보세요</div>}
 
       {(filter === 'all' || filter === 'open') && open.length > 0 && (
         <div style={{ marginBottom: 24 }}>
