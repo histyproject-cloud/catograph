@@ -8,7 +8,7 @@ const TABS = [
   { id: 'world', label: '세계관', icon: WorldIcon },
   { id: 'foreshadow', label: '복선', icon: FSIcon },
   { id: 'timeline', label: '타임라인', icon: TimelineIcon },
-  { id: 'fanworks', label: '2차창작', icon: FanIcon },
+  { id: 'fanworks', label: '링크', icon: FanIcon },
 ];
 
 // ── 아이콘 컴포넌트들 ──

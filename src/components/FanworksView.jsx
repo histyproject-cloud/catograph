@@ -97,13 +97,13 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>팬픽, 팬아트, 번역 등 링크를 저장해두세요</p>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>2차창작물, 타인의 작품 해석 문서 등 링크를 저장해두세요</p>
 
       {fanworks.length === 0 && !showAdd && (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 저장된 2차창작물이 없어요</p>
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>첫 작품 추가하기</button>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 저장된 링크가 없어요</p>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>첫 링크 추가하기</button>
         </div>
       )}
 
@@ -192,7 +192,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
         <div className="modal-backdrop">
           <div style={{ position: 'absolute', inset: 0 }} onClick={() => setShowAdd(false)} />
           <div className="modal" onClick={e => e.stopPropagation()} style={{ position: 'relative', zIndex: 1 }}>
-            <div className="modal-title">2차창작물 추가</div>
+            <div className="modal-title">링크 추가</div>
             <form onSubmit={handleAdd}>
               <div className="form-group">
                 <label className="form-label">제목 *</label>
