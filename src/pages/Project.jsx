@@ -21,7 +21,7 @@ export default function Project({ user }) {
 
   const [project, setProject] = useState(null);
   const [activeTab, setActiveTab] = useState('relation');
-  const handleSetActiveTab = (tab) => { setActiveTab(tab); setReorderMode(false); };
+  const handleSetActiveTab = (tab) => { setActiveTab(tab); setReorderMode(false); setSelectedChar(null); };
   const [selectedChar, setSelectedChar] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [connectMode, setConnectMode] = useState(false);
@@ -557,7 +557,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
           <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
           {c.photoURL ? (
             <img src={c.photoURL} alt={form.name}
-              style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', border: '2px solid var(--border2)' }} />
+              style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', objectPosition: c.photoPosition || 'center top', border: '2px solid var(--border2)' }} />
           ) : (
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 28, border: '2px dashed var(--border2)' }}>
               {uploading ? '…' : form.name?.[0] || '?'}
@@ -578,10 +578,26 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
             style={{ ...inputStyle, fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 600, border: 'none', background: 'transparent', padding: '4px 0', borderBottom: '1px dashed var(--border2)', borderRadius: 0, width: '100%' }}
             placeholder="이름" />
           {c.photoURL && (
-            <button onClick={handlePhotoDelete}
-              style={{ marginTop: 6, fontSize: 11, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-              사진 삭제
-            </button>
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* 사진 위치 조정 */}
+              <span style={{ fontSize: 11, color: 'var(--text3)' }}>사진 위치:</span>
+              {[
+                { label: '상단', value: 'center top' },
+                { label: '중앙', value: 'center center' },
+                { label: '하단', value: 'center bottom' },
+              ].map(opt => (
+                <button key={opt.value}
+                  onClick={() => onUpdate(c.id, { photoPosition: opt.value })}
+                  className={`btn${(c.photoPosition || 'center top') === opt.value ? ' btn-primary' : ' btn-ghost'}`}
+                  style={{ fontSize: 10, height: 24, padding: '0 8px' }}>
+                  {opt.label}
+                </button>
+              ))}
+              <button onClick={handlePhotoDelete}
+                style={{ fontSize: 11, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                삭제
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -801,13 +817,11 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
           <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save} style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none' }} placeholder="세계관 설정을 자유롭게 작성하세요..." />
         </>
       ) : (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', width: '100%', maxWidth: 400 }}>
+        <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', width: '100%', maxWidth: 400 }}>
             <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
             <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>문서를 선택하거나 새로 만드세요</p>
             <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('worlddoc:add'))}>첫 문서 만들기</button>
           </div>
-        </div>
       )}
     </div>
   );

@@ -327,13 +327,19 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
               )}
               {char.photoURL ? (
                 <img src={char.photoURL} alt={char.name}
-                  style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', margin: '0 auto 6px', display: 'block', border: `1px solid ${ac.color}40` }} />
+                  style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    objectFit: 'cover',
+                    objectPosition: char.photoPosition || 'center top',
+                    margin: '0 auto 8px', display: 'block',
+                    border: `2px solid ${isSelected ? 'var(--accent)' : ac.color}40`,
+                  }} />
               ) : (
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 14, margin: '0 auto 6px' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, margin: '0 auto 8px' }}>
                   {char.name?.[0] || '?'}
                 </div>
               )}
-              <div style={{ fontSize: 11, fontWeight: 500, textAlign: 'center', color: 'var(--text)', lineHeight: 1.3 }}>{char.name}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', color: 'var(--text)', lineHeight: 1.3 }}>{char.name}</div>
               <div style={{ fontSize: 10, textAlign: 'center', color: 'var(--text3)', marginTop: 2 }}>{char.role}</div>
             </div>
           );

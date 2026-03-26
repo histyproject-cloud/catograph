@@ -52,9 +52,14 @@ function PanelContent({ character, onUpdate, onClose, foreshadows, onAddForeshad
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* 헤더 */}
       <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, flexShrink: 0 }}>
-          {character.name?.[0] || '?'}
-        </div>
+        {character.photoURL ? (
+          <img src={character.photoURL} alt={character.name}
+            style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', flexShrink: 0, border: '2px solid var(--border2)' }} />
+        ) : (
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, flexShrink: 0 }}>
+            {character.name?.[0] || '?'}
+          </div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.name}</div>
           <div style={{ color: 'var(--text3)', fontSize: 11 }}>{character.role || '역할 미설정'}</div>
