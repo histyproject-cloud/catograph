@@ -65,6 +65,12 @@ export default function Project({ user }) {
     getDoc(doc(db, 'projects', projectId)).then(d => { if (d.exists()) setProject(d.data()); });
   }, [projectId]);
 
+  useEffect(() => {
+    const handler = () => { if (checkLimit(characters.length, 'characters')) setShowAddChar(true); };
+    document.addEventListener('character:add', handler);
+    return () => document.removeEventListener('character:add', handler);
+  }, [characters.length]);
+
   const handleCharClick = (char) => {
     if (connectMode) {
       if (!connectFrom) { setConnectFrom(char.id); }
@@ -410,7 +416,11 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
         {characters.length === 0 ? (
-          <div style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>캐릭터가 없어요</div>
+          <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
+            <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>캐릭터가 없어요</p>
+            <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('character:add'))}>첫 캐릭터 추가하기</button>
+          </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             {displayChars.map((c, cIdx) => (
@@ -738,6 +748,11 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
   const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); if (isMobile) setShowDocList(false); };
   const save = () => { if (selected) onUpdate(selected.id, { title, content }); };
   const addNew = async () => { const ref = await onAdd('새 문서'); selectDoc({ id: ref.id, title: '새 문서', content: '' }); };
+
+  React.useEffect(() => {
+    document.addEventListener('worlddoc:add', addNew);
+    return () => document.removeEventListener('worlddoc:add', addNew);
+  }, []);
   const handleDelete = (e, d) => {
     e.stopPropagation();
     if (window.confirm(`'${d.title}' 삭제할까요?`)) {
@@ -786,7 +801,13 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
           <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save} style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none' }} placeholder="세계관 설정을 자유롭게 작성하세요..." />
         </>
       ) : (
-        <div style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>문서를 선택하거나 새로 만드세요</div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', width: '100%', maxWidth: 400 }}>
+            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
+            <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>문서를 선택하거나 새로 만드세요</p>
+            <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('worlddoc:add'))}>첫 문서 만들기</button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -851,7 +872,13 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
         </div>
       )}
 
-      {foreshadows.length === 0 && <div style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>복선을 추가해보세요</div>}
+      {foreshadows.length === 0 && (
+        <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>복선을 추가해보세요</p>
+          <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('foreshadow:add'))}>첫 복선 추가하기</button>
+        </div>
+      )}
 
       {(filter === 'all' || filter === 'open') && open.length > 0 && (
         <div style={{ marginBottom: 24 }}>

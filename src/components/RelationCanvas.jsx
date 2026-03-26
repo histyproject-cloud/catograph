@@ -423,8 +423,12 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       )}
 
       {characters.length === 0 && (
-        <div style={{ position: 'absolute', top: 20, left: 20 }}>
-          <p style={{ color: 'var(--text3)', fontSize: 12, margin: 0 }}>캐릭터를 추가해서 관계도를 시작하세요</p>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', pointerEvents: 'auto' }}>
+            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
+            <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>캐릭터를 추가해서 관계도를 시작하세요</p>
+            <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('character:add'))}>첫 캐릭터 추가하기</button>
+          </div>
         </div>
       )}
     </div>
