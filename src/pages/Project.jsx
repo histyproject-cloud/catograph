@@ -12,6 +12,7 @@ import TimelineView from '../components/TimelineView';
 import FanworksView from '../components/FanworksView';
 import UpgradeModal from '../components/UpgradeModal';
 import { FREE_LIMITS, LIMIT_MESSAGES, isPro } from '../config/plans';
+import { Calendar } from 'lucide-react';
 
 export default function Project({ user }) {
   const { id: projectId } = useParams();
@@ -473,7 +474,8 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
     if (!file) return;
     setUploading(true);
     try {
-      const storageRef = ref(storage, `characters/${c.id}/${file.name}`);
+      // 파일명을 'photo'로 고정해서 항상 같은 경로에 덮어쓰기 (삭제도 동일 경로)
+      const storageRef = ref(storage, `characters/${c.id}/photo`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       onUpdate(c.id, { photoURL: url });
@@ -487,7 +489,8 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
   const handlePhotoDelete = async () => {
     if (!c.photoURL) return;
     try {
-      const storageRef = ref(storage, c.photoURL);
+      // URL이 아닌 Storage path로 참조해야 함
+      const storageRef = ref(storage, `characters/${c.id}/photo`);
       await deleteObject(storageRef).catch(() => {});
     } catch {}
     onUpdate(c.id, { photoURL: '' });
