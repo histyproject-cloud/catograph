@@ -127,70 +127,14 @@ export default function Project({ user }) {
           <span
             onClick={() => { setTitleInput(project?.name || ''); setEditingTitle(true); }}
             title="클릭해서 제목 수정"
-            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text', borderBottom: '1px dashed var(--border2)', maxWidth: 120, flexShrink: 0 }}
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text', borderBottom: '1px dashed var(--border2)' }}
           >
             {project?.name || '...'}
           </span>
         )}
-        {/* 통합 검색창 */}
-        <div style={{ flex: 1, position: 'relative', maxWidth: 280 }}>
-          <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text3)', pointerEvents: 'none' }}>🔍</span>
-          <input
-            value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); setShowSearch(e.target.value.length > 0); }}
-            onFocus={() => { if (searchQuery) setShowSearch(true); }}
-            onKeyDown={e => e.key === 'Escape' && setShowSearch(false)}
-            placeholder="검색..."
-            style={{ width: '100%', paddingLeft: 28, paddingRight: searchQuery ? 28 : 10, height: 32, fontSize: 13, boxSizing: 'border-box' }}
-          />
-          {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setShowSearch(false); }}
-              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
-          )}
-          {/* 드롭다운 결과 */}
-          {showSearch && searchQuery.trim().length > 0 && (() => {
-            const q = searchQuery.toLowerCase();
-            const matchedChars = characters.filter(c => c.name?.toLowerCase().includes(q) || c.role?.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q) || c.tags?.some(t => t.toLowerCase().includes(q)));
-            const matchedEvents = events.filter(e => e.title?.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q));
-            const matchedFS = foreshadows.filter(f => f.title?.toLowerCase().includes(q));
-            const matchedDocs = worldDocs.filter(d => d.title?.toLowerCase().includes(q) || d.content?.toLowerCase().includes(q));
-            const matchedFanworks = fanworks.filter(f => f.title?.toLowerCase().includes(q) || f.author?.toLowerCase().includes(q));
-            const total = matchedChars.length + matchedEvents.length + matchedFS.length + matchedDocs.length + matchedFanworks.length;
-
-            const ResultItem = ({ icon, title, sub, onClick }) => (
-              <div onClick={() => { onClick(); setShowSearch(false); setSearchQuery(''); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', cursor: 'pointer' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
-                  {sub && <div style={{ fontSize: 10, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>}
-                </div>
-              </div>
-            );
-
-            const SectionLabel = ({ label, count }) => (
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 12px 4px', background: 'var(--bg3)' }}>{label} ({count})</div>
-            );
-
-            return (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 200, maxHeight: 400, overflowY: 'auto' }}>
-                {total === 0 ? (
-                  <div style={{ padding: '20px 12px', textAlign: 'center', color: 'var(--text3)', fontSize: 12 }}>'{searchQuery}'에 해당하는 결과가 없어요</div>
-                ) : (
-                  <>
-                    {matchedChars.length > 0 && <><SectionLabel label="캐릭터" count={matchedChars.length} />{matchedChars.map(c => <ResultItem key={c.id} icon="👤" title={c.name} sub={c.role} onClick={() => handleSetActiveTab('characters')} />)}</>}
-                    {matchedEvents.length > 0 && <><SectionLabel label="타임라인" count={matchedEvents.length} />{matchedEvents.map(e => <ResultItem key={e.id} icon="◷" title={e.title} sub={e.episode ? `${e.episode}화` : ''} onClick={() => handleSetActiveTab('timeline')} />)}</>}
-                    {matchedFS.length > 0 && <><SectionLabel label="복선" count={matchedFS.length} />{matchedFS.map(f => <ResultItem key={f.id} icon="⟡" title={f.title} sub={f.resolved ? '회수 완료' : '미회수'} onClick={() => handleSetActiveTab('foreshadow')} />)}</>}
-                    {matchedDocs.length > 0 && <><SectionLabel label="세계관" count={matchedDocs.length} />{matchedDocs.map(d => <ResultItem key={d.id} icon="⊞" title={d.title} sub={d.content?.slice(0, 40)} onClick={() => handleSetActiveTab('world')} />)}</>}
-                    {matchedFanworks.length > 0 && <><SectionLabel label="링크" count={matchedFanworks.length} />{matchedFanworks.map(f => <ResultItem key={f.id} icon="✦" title={f.title} sub={f.author} onClick={() => handleSetActiveTab('fanworks')} />)}</>}
-                  </>
-                )}
-              </div>
-            );
-          })()}
-        </div>
+        {/* 검색 아이콘 */}
+        <button className="btn btn-ghost" style={{ fontSize: 16, padding: '0 10px', height: 36, flexShrink: 0 }}
+          onClick={() => { setShowSearch(true); setSearchQuery(''); }}>🔍</button>
         {/* 액션 버튼들 - 탭에 따라 다르게 */}
         {activeTab === 'relation' && (
           <button
@@ -406,6 +350,60 @@ export default function Project({ user }) {
         </div>
       )}
 
+      {/* 통합 검색 모달 */}
+      {showSearch && (
+        <div className="modal-backdrop" onClick={() => setShowSearch(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, padding: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 16, color: 'var(--text3)' }}>🔍</span>
+              <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                placeholder="캐릭터, 타임라인, 복선, 세계관 검색..."
+                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text)' }}
+                onKeyDown={e => e.key === 'Escape' && setShowSearch(false)} />
+              {searchQuery && <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 18 }}>×</button>}
+            </div>
+            <div style={{ maxHeight: 480, overflowY: 'auto' }}>
+              {searchQuery.trim().length < 1 ? (
+                <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>검색어를 입력하세요</div>
+              ) : (() => {
+                const q = searchQuery.toLowerCase();
+                const matchedChars = characters.filter(c => c.name?.toLowerCase().includes(q) || c.role?.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q) || c.tags?.some(t => t.toLowerCase().includes(q)));
+                const matchedEvents = events.filter(e => e.title?.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q));
+                const matchedFS = foreshadows.filter(f => f.title?.toLowerCase().includes(q));
+                const matchedDocs = worldDocs.filter(d => d.title?.toLowerCase().includes(q) || d.content?.toLowerCase().includes(q));
+                const matchedFanworks = fanworks.filter(f => f.title?.toLowerCase().includes(q) || f.author?.toLowerCase().includes(q));
+                const total = matchedChars.length + matchedEvents.length + matchedFS.length + matchedDocs.length + matchedFanworks.length;
+                if (total === 0) return <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>'{searchQuery}'에 해당하는 결과가 없어요</div>;
+                const ResultItem = ({ icon, title, sub, onClick }) => (
+                  <div onClick={() => { onClick(); setShowSearch(false); setSearchQuery(''); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
+                      {sub && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>}
+                    </div>
+                  </div>
+                );
+                const SectionLabel = ({ label, count }) => (
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '10px 16px 4px', background: 'var(--bg3)' }}>{label} ({count})</div>
+                );
+                return (
+                  <>
+                    {matchedChars.length > 0 && <><SectionLabel label="캐릭터" count={matchedChars.length} />{matchedChars.map(c => <ResultItem key={c.id} icon="👤" title={c.name} sub={c.role} onClick={() => handleSetActiveTab('characters')} />)}</>}
+                    {matchedEvents.length > 0 && <><SectionLabel label="타임라인" count={matchedEvents.length} />{matchedEvents.map(e => <ResultItem key={e.id} icon="◷" title={e.title} sub={e.episode ? `${e.episode}화` : ''} onClick={() => handleSetActiveTab('timeline')} />)}</>}
+                    {matchedFS.length > 0 && <><SectionLabel label="복선" count={matchedFS.length} />{matchedFS.map(f => <ResultItem key={f.id} icon="⟡" title={f.title} sub={f.resolved ? '회수 완료' : '미회수'} onClick={() => handleSetActiveTab('foreshadow')} />)}</>}
+                    {matchedDocs.length > 0 && <><SectionLabel label="세계관" count={matchedDocs.length} />{matchedDocs.map(d => <ResultItem key={d.id} icon="⊞" title={d.title} sub={d.content?.slice(0, 40)} onClick={() => handleSetActiveTab('world')} />)}</>}
+                    {matchedFanworks.length > 0 && <><SectionLabel label="링크" count={matchedFanworks.length} />{matchedFanworks.map(f => <ResultItem key={f.id} icon="✦" title={f.title} sub={f.author} onClick={() => handleSetActiveTab('fanworks')} />)}</>}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 업그레이드 모달 */}
       <UpgradeModal message={upgradeMsg} onClose={() => setUpgradeMsg(null)} />
     </div>
@@ -483,32 +481,15 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
-        {/* 검색 */}
-        {characters.length > 0 && (
-          <div style={{ marginBottom: 16, position: 'relative' }}>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="이름, 역할, 태그로 검색..."
-              style={{ width: '100%', paddingLeft: 32, boxSizing: 'border-box', fontSize: 13, height: 36 }}
-            />
-            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--text3)' }}>🔍</span>
-            {search && (
-              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 16 }}>×</button>
-            )}
-          </div>
-        )}
         {characters.length === 0 ? (
           <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
             <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>캐릭터가 없어요</p>
             <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('character:add'))}>첫 캐릭터 추가하기</button>
           </div>
-        ) : filteredChars.length === 0 ? (
-          <div style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: 40 }}>'{search}'에 해당하는 캐릭터가 없어요</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
-            {filteredChars.map((c, cIdx) => (
+            {displayChars.map((c, cIdx) => (
               <div key={c.id} draggable={reorderMode}
                 onDragStart={() => reorderMode && onDragStart(cIdx)}
                 onDragEnter={() => reorderMode && onDragEnter(cIdx)}
