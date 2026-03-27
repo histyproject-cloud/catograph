@@ -412,18 +412,42 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
     setTimeout(() => setDetailChar(null), 300);
   };
 
+  const [search, setSearch] = useState('');
+  const filteredChars = (orderedChars || characters).filter(c =>
+    c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.role?.toLowerCase().includes(search.toLowerCase()) ||
+    c.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
+  );
+
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
+        {/* 검색 */}
+        {characters.length > 0 && (
+          <div style={{ marginBottom: 16, position: 'relative' }}>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="이름, 역할, 태그로 검색..."
+              style={{ width: '100%', paddingLeft: 32, boxSizing: 'border-box', fontSize: 13, height: 36 }}
+            />
+            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--text3)' }}>🔍</span>
+            {search && (
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 16 }}>×</button>
+            )}
+          </div>
+        )}
         {characters.length === 0 ? (
           <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
             <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>캐릭터가 없어요</p>
             <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('character:add'))}>첫 캐릭터 추가하기</button>
           </div>
+        ) : filteredChars.length === 0 ? (
+          <div style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: 40 }}>'{search}'에 해당하는 캐릭터가 없어요</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-            {displayChars.map((c, cIdx) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
+            {filteredChars.map((c, cIdx) => (
               <div key={c.id} draggable={reorderMode}
                 onDragStart={() => reorderMode && onDragStart(cIdx)}
                 onDragEnter={() => reorderMode && onDragEnter(cIdx)}
@@ -723,7 +747,7 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '28px 14px 16px',
+        padding: '16px 8px 10px',
         aspectRatio: '3/4',
         boxShadow: isSelected ? '0 0 0 2px var(--accent)' : 'none',
         transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -752,8 +776,8 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
       </div>
       {/* 하단 이름 + 역할 */}
       <div style={{ textAlign: 'center', marginTop: 12, width: '100%' }}>
-        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-        {c.role && <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 3 }}>{c.role}</div>}
+        <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+        {c.role && <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>{c.role}</div>}
         {c.tags?.length > 0 && (
           <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
             {c.tags.slice(0, 2).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
