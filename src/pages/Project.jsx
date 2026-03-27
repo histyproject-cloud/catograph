@@ -838,8 +838,6 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
   const [selected, setSelected] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const { isMobile } = useBreakpoint();
-  const [showDocList, setShowDocList] = useState(true);
   const [orderedDocs, setOrderedDocs] = useState(null);
   const displayDocs = orderedDocs || docs;
   const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayDocs, setOrderedDocs);
@@ -849,14 +847,18 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
     prevReorderModeW.current = reorderMode;
   }, [reorderMode]);
 
-  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); if (isMobile) setShowDocList(false); };
+  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); };
   const save = () => { if (selected) onUpdate(selected.id, { title, content }); };
-  const addNew = async () => { const ref = await onAdd('새 문서'); selectDoc({ id: ref.id, title: '새 문서', content: '' }); };
+  const addNew = async () => {
+    const ref = await onAdd('새 문서');
+    selectDoc({ id: ref.id, title: '새 문서', content: '' });
+  };
 
   React.useEffect(() => {
     document.addEventListener('worlddoc:add', addNew);
     return () => document.removeEventListener('worlddoc:add', addNew);
   }, []);
+
   const handleDelete = (e, d) => {
     e.stopPropagation();
     if (window.confirm(`'${d.title}' 삭제할까요?`)) {
@@ -865,57 +867,62 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
     }
   };
 
-  const docList = (
-    <div style={{ width: isMobile ? '100%' : 190, borderRight: isMobile ? 'none' : '1px solid var(--border)', background: 'var(--bg2)', overflowY: 'auto', padding: 8, flexShrink: 0 }}>
-      <button className="btn btn-ghost" style={{ width: '100%', fontSize: 12, marginBottom: 8, justifyContent: 'flex-start' }} onClick={addNew}>+ 새 문서</button>
-      {displayDocs.map((d, dIdx) => (
-        <div key={d.id} draggable={reorderMode}
-          onDragStart={() => reorderMode && onDragStart(dIdx)}
-          onDragEnter={() => reorderMode && onDragEnter(dIdx)}
-          onDragEnd={reorderMode ? onDragEnd : undefined}
-          onDragOver={e => reorderMode && e.preventDefault()}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2,
-            cursor: reorderMode ? 'grab' : 'default',
-            borderRadius: 8,
-            borderLeft: reorderMode && dragOverIdx === dIdx && draggingIdx !== dIdx ? '2px solid var(--accent)' : '2px solid transparent',
-            ...(reorderMode ? getItemStyle(dIdx) : {}),
-          }}>
-          <button onClick={() => selectDoc(d)} style={{ flex: 1, textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, background: selected?.id === d.id ? 'var(--bg3)' : 'transparent', color: selected?.id === d.id ? 'var(--text)' : 'var(--text2)', border: 'none', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</button>
-          <button onClick={e => handleDelete(e, d)} style={{ flexShrink: 0, padding: '4px 6px', border: 'none', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 14, borderRadius: 6 }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--coral)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
-          >×</button>
+  // 문서 편집 화면
+  if (selected) return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 10px', height: 32 }} onClick={() => { save(); setSelected(null); }}>← 목록</button>
+        <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save}
+          style={{ flex: 1, fontSize: 16, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none', fontWeight: 600 }} />
+        <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }}
+          onClick={() => { if (window.confirm(`'${title}' 삭제할까요?`)) { onDelete(selected.id); setSelected(null); } }}>삭제</button>
+      </div>
+      <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save}
+        style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none', padding: '20px' }}
+        placeholder="세계관 설정을 자유롭게 작성하세요..." />
+    </div>
+  );
+
+  // 문서 리스트 화면
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+      {docs.length === 0 ? (
+        <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>문서를 선택하거나 새로 만드세요</p>
+          <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('worlddoc:add'))}>첫 문서 만들기</button>
         </div>
-      ))}
-    </div>
-  );
-
-  const editor = (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 20, overflow: 'hidden' }}>
-      {isMobile && (
-        <button className="btn btn-ghost" style={{ alignSelf: 'flex-start', marginBottom: 12, fontSize: 12 }} onClick={() => setShowDocList(true)}>← 목록</button>
-      )}
-      {selected ? (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
-            <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save} style={{ flex: 1, fontSize: 20, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none' }} />
-            <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px', flexShrink: 0 }} onClick={() => { if (window.confirm(`'${title}' 삭제할까요?`)) { onDelete(selected.id); setSelected(null); if (isMobile) setShowDocList(true); } }}>삭제</button>
-          </div>
-          <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save} style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none' }} placeholder="세계관 설정을 자유롭게 작성하세요..." />
-        </>
       ) : (
-        <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center', width: '100%', maxWidth: 400 }}>
-            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-            <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>문서를 선택하거나 새로 만드세요</p>
-            <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('worlddoc:add'))}>첫 문서 만들기</button>
-          </div>
+        <div style={{ display: 'grid', gap: 10 }}>
+          {displayDocs.map((d, dIdx) => (
+            <div key={d.id}
+              draggable={reorderMode}
+              onDragStart={() => reorderMode && onDragStart(dIdx)}
+              onDragEnter={() => reorderMode && onDragEnter(dIdx)}
+              onDragEnd={reorderMode ? onDragEnd : undefined}
+              onDragOver={e => reorderMode && e.preventDefault()}
+              style={{
+                background: 'var(--bg2)',
+                border: reorderMode && dragOverIdx === dIdx && draggingIdx !== dIdx ? '2px solid var(--accent)' : '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)', padding: '14px 16px',
+                display: 'flex', alignItems: 'center', gap: 12,
+                cursor: reorderMode ? 'grab' : 'pointer',
+                ...(reorderMode ? getItemStyle(dIdx) : {}),
+              }}
+              onClick={() => !reorderMode && selectDoc(d)}
+            >
+              <span style={{ fontSize: 18, flexShrink: 0, opacity: 0.5 }}>⊞</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</div>
+                {d.content && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.content.slice(0, 60)}</div>}
+              </div>
+              <button className="btn btn-ghost" style={{ fontSize: 11, height: 30, padding: '0 10px', flexShrink: 0 }} onClick={e => handleDelete(e, d)}>삭제</button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
-
-  if (isMobile) return <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>{showDocList ? docList : editor}</div>;
-  return <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>{docList}{editor}</div>;
 }
 
 // ── 복선 관리 ──
