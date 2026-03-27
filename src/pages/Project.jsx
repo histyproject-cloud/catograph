@@ -713,32 +713,54 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
 
   return (
     <div onClick={() => onSelect(c)}
-      style={{ background: 'var(--bg2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 14, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-      {/* 배경 이미지 (사진 있을 때) */}
-      {c.photoURL && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 0,
-          backgroundImage: `url(${c.photoURL})`,
-          backgroundSize: 'cover', backgroundPosition: 'center top',
-          opacity: 0.18, borderRadius: 'var(--radius-lg)',
-        }} />
-      )}
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* 아바타 or 사진 */}
+      style={{
+        background: 'var(--bg2)',
+        border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+        borderRadius: 'var(--radius-lg)',
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '28px 14px 16px',
+        aspectRatio: '3/4',
+        boxShadow: isSelected ? '0 0 0 2px var(--accent)' : 'none',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+      }}>
+      {/* 원형 사진 or 아바타 */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         {c.photoURL ? (
           <img src={c.photoURL} alt={c.name}
-            style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', marginBottom: 8, border: '2px solid var(--border2)' }} />
+            style={{
+              width: '70%', aspectRatio: '1/1',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              objectPosition: c.photoPosition || 'center top',
+              border: '2px solid var(--border2)',
+            }} />
         ) : (
-          <div style={{ width: 38, height: 38, borderRadius: '50%', background: ac.bg, color: ac.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 16, marginBottom: 8 }}>{c.name?.[0] || '?'}</div>
+          <div style={{
+            width: '70%', aspectRatio: '1/1',
+            borderRadius: '50%',
+            background: ac.bg, color: ac.color,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--font-serif)', fontSize: 32,
+            border: '2px dashed var(--border2)',
+          }}>{c.name?.[0] || '?'}</div>
         )}
-        <div style={{ fontWeight: 500, fontSize: 13, paddingRight: 32 }}>{c.name}</div>
-        <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{c.role}</div>
+      </div>
+      {/* 하단 이름 + 역할 */}
+      <div style={{ textAlign: 'center', marginTop: 12, width: '100%' }}>
+        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+        {c.role && <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 3 }}>{c.role}</div>}
         {c.tags?.length > 0 && (
-          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            {c.tags.slice(0, 3).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
+          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
+            {c.tags.slice(0, 2).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
           </div>
         )}
       </div>
+      {/* 삭제 버튼 */}
       <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px', zIndex: 2 }}
         onClick={e => { e.stopPropagation(); if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
     </div>
