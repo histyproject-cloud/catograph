@@ -3,6 +3,7 @@ import { Share2, Network, Sparkles, Globe, Clock, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useProjects } from '../hooks/useProject';
 import { FREE_LIMITS, LIMIT_MESSAGES, isPro } from '../config/plans';
 import UpgradeModal from '../components/UpgradeModal';
@@ -15,6 +16,7 @@ export default function Dashboard({ user }) {
   const [creating, setCreating] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -29,6 +31,22 @@ export default function Dashboard({ user }) {
       return;
     }
     setShowNew(true);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('정말 탈퇴하시겠어요?\n모든 작품 데이터가 영구 삭제되며 복구할 수 없어요.')) return;
+    if (!window.confirm('마지막 확인입니다. 정말 삭제할까요?')) return;
+    setDeletingAccount(true);
+    try {
+      const functions = getFunctions(undefined, 'asia-northeast3');
+      const deleteAccount = httpsCallable(functions, 'deleteAccount');
+      await deleteAccount();
+      await signOut(auth);
+    } catch (err) {
+      console.error(err);
+      alert('탈퇴 처리 중 오류가 발생했어요. 다시 시도해주세요.');
+      setDeletingAccount(false);
+    }
   };
 
   const handleCreate = async (e) => {
@@ -75,6 +93,10 @@ export default function Dashboard({ user }) {
                 )}
                 <MenuItem onClick={() => { navigate('/legal'); setShowProfile(false); }}>이용약관 · 개인정보처리방침</MenuItem>
                 <MenuItem color="var(--coral)" onClick={() => { signOut(auth); setShowProfile(false); }}>로그아웃</MenuItem>
+                <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+                <MenuItem color="var(--coral)" onClick={() => { setShowProfile(false); handleDeleteAccount(); }}>
+                  {deletingAccount ? '탈퇴 처리 중...' : '회원 탈퇴'}
+                </MenuItem>
               </div>
             </div>
           )}
@@ -166,8 +188,8 @@ export default function Dashboard({ user }) {
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>© 2026 Histy</span>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.9 }}>
-            <p>상호명: 히스티 · 사업자등록번호: 162-18-02499 · 대표자: (대표자명) · 전화: 010-5629-4236</p>
-            <p>주소: 서울특별시 광진구 구의강변로 11 · 이메일: cartograph.help@gmail.com</p>
+            <p>상호명: 히스티 · 사업자등록번호: 162-18-02499 · 대표자: 우연우 · 전화: 010-5629-4236</p>
+            <p>주소: 서울특별시 광진구 구의강변로 11 · 이메일: histy.project@gmail.com</p>
           </div>
         </div>
       </footer>
