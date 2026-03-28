@@ -24,6 +24,15 @@ export default function Pricing() {
     '우선 고객 지원',
   ];
 
+  const ENTERPRISE_FEATURES = [
+    '30명 이상 팀을 위한 플랜',
+    'Pro 기능 전체 포함',
+    '인당 요금 최대 30% 할인',
+    '전용 온보딩 지원',
+    '우선 기술 지원 (SLA)',
+    '맞춤 계약 및 세금계산서',
+  ];
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* 헤더 */}
@@ -49,7 +58,7 @@ export default function Pricing() {
         </div>
 
         {/* 요금제 카드 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
           {/* Free */}
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 28 }}>
             <div style={{ marginBottom: 24 }}>
@@ -97,6 +106,31 @@ export default function Pricing() {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span>
                   <span style={{ fontSize: 13, color: 'var(--text)' }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Enterprise */}
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-xl)', padding: 28, position: 'relative' }}>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, color: 'var(--teal, #2dd4bf)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Enterprise</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--text)' }}>맞춤 견적</span>
+              </div>
+              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>인당 최대 30% 할인 · 30명 이상</div>
+            </div>
+            <a href="mailto:histy.project@gmail.com?subject=Cartographic Enterprise 문의&body=안녕하세요, Cartographic Enterprise 플랜에 대해 문의드립니다.%0A%0A회사명:%0A팀 인원:%0A문의 내용:"
+              style={{ display: 'block', textDecoration: 'none' }}>
+              <button className="btn" style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, border: '1px solid var(--border2)', color: 'var(--text)' }}>
+                문의하기 →
+              </button>
+            </a>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+              {ENTERPRISE_FEATURES.map((f, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ color: '#2dd4bf', fontSize: 14 }}>✦</span>
+                  <span style={{ fontSize: 13, color: 'var(--text2)' }}>{f}</span>
                 </div>
               ))}
             </div>
