@@ -1,27 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PRICE } from '../config/plans';
 
 const FEATURES = [
-  { icon: '👤', text: '캐릭터 무제한 등록' },
-  { icon: '🌍', text: '세계관 문서 무제한' },
-  { icon: '✦', text: '복선 무제한 등록' },
-  { icon: '📅', text: '타임라인 이벤트 무제한' },
-  { icon: '📁', text: '프로젝트 무제한 생성' },
-  { icon: '🖼️', text: '캐릭터 사진 업로드' },
+  { text: '캐릭터 무제한 등록' },
+  { text: '세계관 문서 무제한' },
+  { text: '복선 무제한 등록' },
+  { text: '타임라인 이벤트 무제한' },
+  { text: '프로젝트 무제한 생성' },
+  { text: '캐릭터 사진 업로드' },
 ];
 
-export default function UpgradeModal({ message, onClose, onUpgrade }) {
-  const [loading, setLoading] = useState(false);
+export default function UpgradeModal({ message, onClose }) {
+  const navigate = useNavigate();
 
   if (!message) return null;
 
-  const handleUpgrade = async () => {
-    setLoading(true);
-    try {
-      await onUpgrade?.();
-    } finally {
-      setLoading(false);
-    }
+  const handleUpgrade = () => {
+    onClose?.();
+    navigate('/pricing');
   };
 
   return (
@@ -40,7 +37,7 @@ export default function UpgradeModal({ message, onClose, onUpgrade }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {FEATURES.map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text2)' }}>
-                <span style={{ fontSize: 14 }}>{f.icon}</span>
+                <span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span>
                 <span>{f.text}</span>
               </div>
             ))}
@@ -66,9 +63,8 @@ export default function UpgradeModal({ message, onClose, onUpgrade }) {
             className="btn btn-primary"
             style={{ width: '100%', justifyContent: 'center', height: 44, fontSize: 14 }}
             onClick={handleUpgrade}
-            disabled={loading}
           >
-            {loading ? '처리 중...' : `${PRICE.trialDays}일 무료로 시작하기`}
+            {PRICE.trialDays}일 무료로 시작하기
           </button>
           <button className="btn" style={{ width: '100%', justifyContent: 'center', height: 38, fontSize: 13 }} onClick={onClose}>
             나중에

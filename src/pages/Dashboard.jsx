@@ -89,7 +89,7 @@ export default function Dashboard({ user }) {
               </div>
               <div style={{ padding: '6px 0' }}>
                 {!isPro(user) && (
-                  <MenuItem color="var(--accent)" onClick={() => { setUpgradeMsg('더 많은 기능을 사용하려면 Pro 플랜으로 업그레이드하세요.'); setShowProfile(false); }}>✦ Pro로 업그레이드</MenuItem>
+                  <MenuItem color="var(--accent)" onClick={() => { navigate('/pricing'); setShowProfile(false); }}>✦ Pro로 업그레이드</MenuItem>
                 )}
                 <MenuItem onClick={() => { navigate('/legal'); setShowProfile(false); }}>이용약관 · 개인정보처리방침</MenuItem>
                 <MenuItem color="var(--coral)" onClick={() => { signOut(auth); setShowProfile(false); }}>로그아웃</MenuItem>

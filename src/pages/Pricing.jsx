@@ -118,7 +118,7 @@ export default function Pricing() {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--text)' }}>맞춤 견적</span>
               </div>
-              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>인당 최대 30% 할인 · 30명 이상</div>
+              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>30명 이상 팀을 위한 맞춤 견적</div>
             </div>
             <a href="mailto:histy.cartographic@gmail.com?subject=Cartographic Enterprise 문의&body=안녕하세요, Cartographic Enterprise 플랜에 대해 문의드립니다.%0A%0A회사명:%0A팀 인원:%0A문의 내용:"
               style={{ display: 'block', textDecoration: 'none' }}>
