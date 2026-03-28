@@ -12,7 +12,7 @@ import TimelineView from '../components/TimelineView';
 import FanworksView from '../components/FanworksView';
 import UpgradeModal from '../components/UpgradeModal';
 import { FREE_LIMITS, LIMIT_MESSAGES, isPro } from '../config/plans';
-import { Calendar } from 'lucide-react';
+import { Calendar, Search } from 'lucide-react';
 
 export default function Project({ user }) {
   const { id: projectId } = useParams();
@@ -133,8 +133,8 @@ export default function Project({ user }) {
           </span>
         )}
         {/* 검색 아이콘 */}
-        <button className="btn btn-ghost" style={{ fontSize: 16, padding: '0 10px', height: 36, flexShrink: 0 }}
-          onClick={() => { setShowSearch(true); setSearchQuery(''); }}>🔍</button>
+        <button className="btn btn-ghost" style={{ padding: '0 10px', height: 36, flexShrink: 0, display: 'flex', alignItems: 'center' }}
+          onClick={() => { setShowSearch(true); setSearchQuery(''); }}><Search size={16} /></button>
         {/* 액션 버튼들 - 탭에 따라 다르게 */}
         {activeTab === 'relation' && (
           <button
@@ -172,7 +172,7 @@ export default function Project({ user }) {
         {activeTab === 'fanworks' && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => document.dispatchEvent(new CustomEvent('fanworks:add'))}>
-            + 추가
+            + 링크 추가
           </button>
         )}
         {['characters', 'world', 'foreshadow', 'timeline', 'fanworks'].includes(activeTab) && (
@@ -355,7 +355,7 @@ export default function Project({ user }) {
         <div className="modal-backdrop" onClick={() => setShowSearch(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, padding: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 16, color: 'var(--text3)' }}>🔍</span>
+              <Search size={16} color="var(--text3)" />
               <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 placeholder="캐릭터, 타임라인, 복선, 세계관 검색..."
                 style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text)' }}

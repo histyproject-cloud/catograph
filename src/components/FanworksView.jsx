@@ -88,28 +88,37 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
     window.open(u, '_blank', 'noopener,noreferrer');
   };
 
-  const TYPE_COLORS = {
-    '그림': { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf' },
-    '소설': { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
-    '영상': { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
-    '기타': { bg: 'rgba(88,88,100,0.2)', color: '#9d9caa' },
+  const TYPE_PALETTE = [
+    { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf' },
+    { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
+    { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
+    { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24' },
+    { bg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
+    { bg: 'rgba(244,114,182,0.15)', color: '#f472b6' },
+    { bg: 'rgba(52,211,153,0.15)', color: '#34d399' },
+  ];
+
+  const getTypeColor = (type = '기타') => {
+    let hash = 0;
+    for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
+    return TYPE_PALETTE[Math.abs(hash) % TYPE_PALETTE.length];
   };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>2차창작물, 타인의 작품 해석 문서 등 링크를 저장해두세요</p>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>팬픽, 팬아트, 번역 등 링크를 저장해두세요</p>
 
       {fanworks.length === 0 && !showAdd && (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 저장된 링크가 없어요</p>
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>첫 링크 추가하기</button>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 저장된 2차창작물이 없어요</p>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>첫 작품 추가하기</button>
         </div>
       )}
 
       <div style={{ display: 'grid', gap: 10 }}>
         {displayFanworks.map((fw, fwIdx) => {
-          const tc = TYPE_COLORS[fw.type] || TYPE_COLORS['기타'];
+          const tc = getTypeColor(fw.type);
           if (editId === fw.id) return (
             <div key={fw.id} style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
               <div className="form-group">
@@ -127,19 +136,10 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <select value={TYPES.includes(editForm.type) ? editForm.type : 'custom'}
-                    onChange={e => {
-                      if (e.target.value === 'custom') { setEditForm(f => ({ ...f, type: editCustomType || '' })); }
-                      else { setEditForm(f => ({ ...f, type: e.target.value })); setEditCustomType(''); }
-                    }}
-                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
-                    {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    <option value="custom">✏️ 직접 입력</option>
-                  </select>
-                  {(!TYPES.includes(editForm.type)) && (
-                    <input value={editCustomType} onChange={e => { setEditCustomType(e.target.value); setEditForm(f => ({ ...f, type: e.target.value })); }}
-                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
-                  )}
+                  <input value={editForm.type === '그림' ? '' : editForm.type}
+                    onChange={e => setEditForm(f => ({ ...f, type: e.target.value || '기타' }))}
+                    placeholder="예: 그림, 소설, 영상..."
+                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none' }} />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -192,7 +192,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
         <div className="modal-backdrop">
           <div style={{ position: 'absolute', inset: 0 }} onClick={() => setShowAdd(false)} />
           <div className="modal" onClick={e => e.stopPropagation()} style={{ position: 'relative', zIndex: 1 }}>
-            <div className="modal-title">링크 추가</div>
+            <div className="modal-title">2차창작물 추가</div>
             <form onSubmit={handleAdd}>
               <div className="form-group">
                 <label className="form-label">제목 *</label>
@@ -209,19 +209,10 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <select value={TYPES.includes(form.type) ? form.type : 'custom'}
-                    onChange={e => {
-                      if (e.target.value === 'custom') { setForm(f => ({ ...f, type: customType || '' })); }
-                      else { setForm(f => ({ ...f, type: e.target.value })); setCustomType(''); }
-                    }}
-                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
-                    {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    <option value="custom">✏️ 직접 입력</option>
-                  </select>
-                  {(!TYPES.includes(form.type)) && (
-                    <input value={customType} onChange={e => { setCustomType(e.target.value); setForm(f => ({ ...f, type: e.target.value })); }}
-                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
-                  )}
+                  <input value={form.type === '그림' ? '' : form.type}
+                    onChange={e => setForm(f => ({ ...f, type: e.target.value || '기타' }))}
+                    placeholder="예: 그림, 소설, 영상..."
+                    style={{ width: '100%' }} />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>

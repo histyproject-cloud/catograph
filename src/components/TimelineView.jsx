@@ -93,13 +93,28 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     twist: { bg: 'rgba(248,113,113,0.15)', color: '#f87171', label: '반전' },
   };
 
+  // 커스텀 유형도 같은 텍스트면 같은 색 배정
+  const CUSTOM_PALETTE = [
+    { bg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
+    { bg: 'rgba(244,114,182,0.15)', color: '#f472b6' },
+    { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24' },
+    { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
+    { bg: 'rgba(52,211,153,0.15)', color: '#34d399' },
+    { bg: 'rgba(251,113,133,0.15)', color: '#fb7185' },
+  ];
+
+  const getTypeColor = (type) => {
+    if (TYPE_COLORS[type]) return TYPE_COLORS[type];
+    let hash = 0;
+    for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
+    return CUSTOM_PALETTE[Math.abs(hash) % CUSTOM_PALETTE.length];
+  };
+
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
       {sorted.length === 0 && !showAdd ? (
-        <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>화수별 이벤트를 추가해보세요</p>
-          <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('timeline:add'))}>첫 이벤트 추가하기</button>
+        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>
+          화수별 이벤트를 추가해보세요
         </div>
       ) : (
         <div style={{ position: 'relative', paddingLeft: 32 }}>
@@ -107,7 +122,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
           <div style={{ position: 'absolute', left: 10, top: 8, bottom: 8, width: 1, background: 'var(--border2)' }} />
 
           {sorted.map((ev, idx) => {
-            const tc = TYPE_COLORS[ev.type] || TYPE_COLORS.event;
+            const tc = getTypeColor(ev.type || 'event');
             const linkedChars = characters.filter(c => ev.charIds?.includes(c.id));
             const linkedFS = foreshadows.filter(f => ev.foreshadowIds?.includes(f.id));
             const isExpanded = expandedId === ev.id;
@@ -185,7 +200,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
       {showAdd && (
         <div className="modal-backdrop" onClick={() => { setShowAdd(false); setEditTarget(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">{editTarget ? '이벤트 수정' : '이벤트 추가'}</div>
+            <div className="modal-title">{editTarget ? '타임라인 수정' : '타임라인 추가'}</div>
             <form onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group" style={{ maxWidth: 100 }}>
@@ -194,19 +209,10 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <select value={Object.keys(TYPE_COLORS).includes(form.type) ? form.type : 'custom'}
-                    onChange={e => {
-                      if (e.target.value === 'custom') { setForm(f => ({ ...f, type: customType || '' })); }
-                      else { setForm(f => ({ ...f, type: e.target.value })); setCustomType(''); }
-                    }}
-                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none' }}>
-                    {Object.entries(TYPE_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                    <option value="custom">✏️ 직접 입력</option>
-                  </select>
-                  {(!Object.keys(TYPE_COLORS).includes(form.type) || form.type === customType) && (
-                    <input value={customType} onChange={e => { setCustomType(e.target.value); setForm(f => ({ ...f, type: e.target.value })); }}
-                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
-                  )}
+                  <input value={form.type === 'event' ? '' : form.type}
+                    onChange={e => setForm(f => ({ ...f, type: e.target.value || 'event' }))}
+                    placeholder="예: 사건, 복선, 반전..."
+                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none' }} />
                 </div>
               </div>
               <div className="form-group">
