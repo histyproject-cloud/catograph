@@ -896,6 +896,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
   const [selected, setSelected] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [saved, setSaved] = useState(true);
   const [orderedDocs, setOrderedDocs] = useState(null);
   const displayDocs = orderedDocs || docs;
   const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayDocs, setOrderedDocs);
@@ -905,8 +906,8 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
     prevReorderModeW.current = reorderMode;
   }, [reorderMode]);
 
-  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); };
-  const save = () => { if (selected) onUpdate(selected.id, { title, content }); };
+  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); setSaved(true); };
+  const save = () => { if (selected) { onUpdate(selected.id, { title, content }); setSaved(true); } };
   const addNew = async () => {
     const ref = await onAdd('새 문서');
     selectDoc({ id: ref.id, title: '새 문서', content: '' });
@@ -925,7 +926,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
     e.stopPropagation();
     if (window.confirm(`'${d.title}' 삭제할까요?`)) {
       onDelete(d.id);
-      if (selected?.id === d.id) { setSelected(null); setTitle(''); setContent(''); }
+      if (selected?.id === d.id) { setSelected(null); setTitle(''); setContent(''); setSaved(true); }
     }
   };
 
@@ -933,16 +934,23 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
   if (selected) return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 10px', height: 32 }} onClick={() => { save(); setSelected(null); }}>← 목록</button>
+        <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 10px', height: 32 }}
+          onClick={() => { if (!saved && !window.confirm('저장하지 않은 내용이 있어요. 나가시겠어요?')) return; setSelected(null); }}>← 목록</button>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save}
+          <input value={title} onChange={e => { setTitle(e.target.value); setSaved(false); }}
             style={{ fontSize: 16, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none', fontWeight: 600 }} />
-          <span style={{ fontSize: 10, color: 'var(--text3)' }}>자동으로 저장 중입니다</span>
+          <span style={{ fontSize: 10, color: saved ? 'var(--text3)' : 'var(--accent)' }}>
+            {saved ? '저장됨' : '저장되지 않은 변경사항이 있어요'}
+          </span>
         </div>
+        <button className="btn btn-primary" style={{ fontSize: 12, height: 32, padding: '0 14px' }}
+          onClick={save} disabled={saved}>
+          저장
+        </button>
         <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }}
           onClick={() => { if (window.confirm(`'${title}' 삭제할까요?`)) { onDelete(selected.id); setSelected(null); } }}>삭제</button>
       </div>
-      <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save}
+      <textarea value={content} onChange={e => { setContent(e.target.value); setSaved(false); }}
         style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none', padding: '20px' }}
         placeholder="설정을 자유롭게 작성하세요..." />
     </div>
