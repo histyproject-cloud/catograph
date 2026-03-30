@@ -160,7 +160,7 @@ export default function Dashboard({ user }) {
             <form onSubmit={handleCreate}>
               <div className="form-group">
                 <label className="form-label">작품 제목</label>
-                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="예: 해리포터" style={{ width: '100%' }} autoFocus />
+                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="예: 맥베스" style={{ width: '100%' }} autoFocus />
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
                 <button type="button" className="btn" onClick={() => setShowNew(false)}>취소</button>

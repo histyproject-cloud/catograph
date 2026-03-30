@@ -211,7 +211,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
               <div className="form-row">
                 <div className="form-group" style={{ maxWidth: 100 }}>
                   <label className="form-label">화수 *</label>
-                  <input type="number" value={form.episode} onChange={e => setForm(f => ({ ...f, episode: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3" autoFocus />
+                  <input type="number" value={form.episode} onChange={e => setForm(f => ({ ...f, episode: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3화" autoFocus />
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
@@ -223,11 +223,11 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
               </div>
               <div className="form-group">
                 <label className="form-label">제목 *</label>
-                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} placeholder="예: 주인공, 책 속으로 빙의" />
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={{ width: '100%' }} placeholder="예: 맥베스, 덩컨 왕을 살해" />
               </div>
               <div className="form-group">
                 <label className="form-label">설명</label>
-                <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} style={{ width: '100%' }} placeholder="이벤트 상세 내용..." />
+                <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} style={{ width: '100%' }} placeholder="상세 내용" />
               </div>
               {/* 캐릭터 연결 */}
               <div className="form-group">

@@ -733,10 +733,10 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
 
       {/* 기본 정보 2열 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 4 }}>
-        <Field label="역할"><input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={inputStyle} placeholder="주인공, 악역..." /></Field>
+        <Field label="역할"><input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={inputStyle} placeholder="예: 주인공" /></Field>
         <Field label="나이"><input value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} style={inputStyle} placeholder="예: 23세" /></Field>
-        <Field label="소속"><input value={form.affiliation} onChange={e => setForm(f => ({ ...f, affiliation: e.target.value }))} style={inputStyle} placeholder="조직, 학교..." /></Field>
-        <Field label="능력/특기"><input value={form.ability} onChange={e => setForm(f => ({ ...f, ability: e.target.value }))} style={inputStyle} placeholder="마법, 전투..." /></Field>
+        <Field label="소속"><input value={form.affiliation} onChange={e => setForm(f => ({ ...f, affiliation: e.target.value }))} style={inputStyle} placeholder="예: 스코틀랜드 왕궁" /></Field>
+        <Field label="능력/특기"><input value={form.ability} onChange={e => setForm(f => ({ ...f, ability: e.target.value }))} style={inputStyle} placeholder="예: 정치" /></Field>
       </div>
 
       {/* 인물 소개 */}
@@ -1310,7 +1310,7 @@ function AddCharModal({ onClose, onAdd }) {
         <div className="modal-title">캐릭터 추가</div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">이름 *</label><input {...f('name')} style={{ width: '100%' }} autoFocus /></div>
-          <div className="form-group"><label className="form-label">역할</label><input {...f('role')} placeholder="주인공, 악역..." style={{ width: '100%' }} /></div>
+          <div className="form-group"><label className="form-label">역할</label><input {...f('role')} placeholder="예: 주인공" style={{ width: '100%' }} /></div>
         </div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">나이</label><input {...f('age')} style={{ width: '100%' }} /></div>
