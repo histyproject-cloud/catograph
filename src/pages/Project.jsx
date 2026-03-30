@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../firebase';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useCharacters, useRelations, useForeshadows, useWorldDocs, useTimelineEvents, useFanworks } from '../hooks/useProject';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -34,6 +36,14 @@ export default function Project({ user }) {
   const [upgradeMsg, setUpgradeMsg] = useState(null);
   const [reorderMode, setReorderMode] = useState(false);
   const [showDragToast, setShowDragToast] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const profileRef = React.useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfile(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const toggleReorderMode = () => {
     setReorderMode(v => {
@@ -187,6 +197,44 @@ export default function Project({ user }) {
         <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
           {isMobile ? '공유' : '공유'}
         </button>
+        {/* 프로필 드롭다운 */}
+        <div ref={profileRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button onClick={() => setShowProfile(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 'var(--radius)' }}>
+            {user?.photoURL
+              ? <img src={user.photoURL} alt="" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+              : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent-glow)', border: '1px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--accent)' }}>{user?.displayName?.[0] || 'U'}</div>
+            }
+          </button>
+          {showProfile && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)', padding: 8, minWidth: 210, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100 }}>
+              <div style={{ padding: '8px 12px 12px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{user?.displayName}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>{user?.email}</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg3)', borderRadius: 99, padding: '3px 10px' }}>
+                  <span style={{ fontSize: 10, color: 'var(--text3)' }}>플랜</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: isPro(user) ? 'var(--teal)' : 'var(--text2)' }}>{isPro(user) ? 'Pro ✦' : 'Free'}</span>
+                </div>
+              </div>
+              <div style={{ padding: '6px 0' }}>
+                {!isPro(user) && (
+                  <button onClick={() => { navigate('/pricing'); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--accent)', borderRadius: 6, display: 'block' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}>✦ Pro로 업그레이드</button>
+                )}
+                <button onClick={() => { navigate('/'); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text2)', borderRadius: 6, display: 'block' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>← 홈으로</button>
+                <button onClick={() => { navigate('/legal'); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text2)', borderRadius: 6, display: 'block' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>이용약관 · 개인정보처리방침</button>
+                <button onClick={() => { signOut(auth); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--coral, #f87171)', borderRadius: 6, display: 'block' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>로그아웃</button>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* 바디 */}
