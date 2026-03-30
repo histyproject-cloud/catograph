@@ -321,7 +321,7 @@ export default function OnboardingModal({ onClose, onComplete }) {
                 </button>
               </div>
               {isLast && (
-                <a href="/how-to" target="_blank" rel="noopener noreferrer" style={{
+                <a href="/how-to.html" target="_blank" rel="noopener noreferrer" style={{
                   display: "block", textAlign: "center", fontSize: 13,
                   color: "#6b7280", textDecoration: "none", padding: "4px 0",
                   transition: "color 0.2s",

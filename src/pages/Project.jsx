@@ -200,7 +200,7 @@ export default function Project({ user }) {
         <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
           {isMobile ? '공유' : '공유'}
         </button>
-        <a href="/how-to" target="_blank" rel="noopener noreferrer"
+        <a href="/how-to.html" target="_blank" rel="noopener noreferrer"
           style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none', padding: '0 12px', height: 36, display: 'flex', alignItems: 'center', borderRadius: 'var(--radius)', border: '1px solid var(--border)', transition: 'all 0.2s', flexShrink: 0 }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
@@ -1289,7 +1289,7 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
         </div>
         <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
           {/* 인라인 회수 토글 */}
-          <button onClick={() => onUpdate(fs.id, { ...fs, resolved: !isResolved, mentions: fs.mentions || [] })}
+          <button onClick={() => onUpdate(fs.id, { resolved: !isResolved })}
             style={{ width: 36, height: 20, borderRadius: 99, border: 'none', cursor: 'pointer',
               background: isResolved ? 'var(--accent)' : 'var(--bg4)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
             <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff',

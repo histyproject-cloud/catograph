@@ -65,7 +65,7 @@ export default function Dashboard({ user }) {
         <LogoMark />
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 20, letterSpacing: '-0.02em' }}>Cartographic</span>
         <div style={{ flex: 1 }} />
-        <a href="/how-to" target="_blank" rel="noopener noreferrer"
+        <a href="/how-to.html" target="_blank" rel="noopener noreferrer"
           style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none', padding: '6px 12px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', transition: 'all 0.2s' }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
