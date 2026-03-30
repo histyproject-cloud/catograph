@@ -128,11 +128,19 @@ export default function Pricing({ user }) {
               </div>
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>30명 이상 팀을 위한 맞춤 견적</div>
             </div>
-            <a href="mailto:histy.cartographic@gmail.com?subject=Cartographic Enterprise 문의&body=안녕하세요, Cartographic Enterprise 플랜에 대해 문의드립니다.%0A%0A회사명:%0A팀 인원:%0A문의 내용:"
-              style={{ display: 'block', textDecoration: 'none' }}>
-              <button className="btn" style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, border: '1px solid var(--border2)', color: 'var(--text)' }}>
-                문의하기 →
-              </button>
+            <a href="mailto:histy.cartographic@gmail.com?subject=Cartographic%20Enterprise%20%EB%AC%B8%EC%9D%98&body=%EC%95%88%EB%85%95%ED%95%98%EC%84%B8%EC%9A%94%2C%20Cartographic%20Enterprise%20%ED%94%8C%EB%9E%9C%EC%97%90%20%EB%8C%80%ED%95%B4%20%EB%AC%B8%EC%9D%98%EB%93%9C%EB%A6%BD%EB%8B%88%EB%8B%A4.%0A%0A%ED%9A%8C%EC%82%AC%EB%AA%85%3A%0A%ED%8C%80%20%EC%9D%B8%EC%9B%90%3A%0A%EB%AC%B8%EC%9D%98%20%EB%82%B4%EC%9A%A9%3A"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                height: 42, fontSize: 14, marginBottom: 24,
+                border: '1px solid var(--border2)', borderRadius: 'var(--radius)',
+                color: 'var(--text)', textDecoration: 'none',
+                background: 'transparent', cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              문의하기 →
             </a>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
               {ENTERPRISE_FEATURES.map((f, i) => (
