@@ -18,13 +18,16 @@ export default function App() {
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
-      setUser(u);
       if (u) {
-        // 첫 로그인 여부 확인
+        // Firestore에서 유저 데이터 (subscription 등) 불러와서 합치기
         const userDoc = await getDoc(doc(db, 'users', u.uid));
-        if (!userDoc.exists() || !userDoc.data()?.onboardingDone) {
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        setUser({ ...u, ...userData });
+        if (!userData?.onboardingDone) {
           setShowOnboarding(true);
         }
+      } else {
+        setUser(null);
       }
     });
   }, []);
