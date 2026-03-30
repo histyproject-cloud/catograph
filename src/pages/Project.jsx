@@ -75,8 +75,11 @@ export default function Project({ user }) {
     getDoc(doc(db, 'projects', projectId)).then(d => { if (d.exists()) setProject(d.data()); });
   }, [projectId]);
 
+  const checkLimitRef = React.useRef(checkLimit);
+  React.useEffect(() => { checkLimitRef.current = checkLimit; });
+
   useEffect(() => {
-    const handler = () => { if (checkLimit(characters.length, 'characters')) setShowAddChar(true); };
+    const handler = () => { if (checkLimitRef.current(characters.length, 'characters')) setShowAddChar(true); };
     document.addEventListener('character:add', handler);
     return () => document.removeEventListener('character:add', handler);
   }, [characters.length]);
@@ -908,9 +911,13 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
     selectDoc({ id: ref.id, title: '새 문서', content: '' });
   };
 
+  const addNewRef = React.useRef(addNew);
+  React.useEffect(() => { addNewRef.current = addNew; });
+
   React.useEffect(() => {
-    document.addEventListener('worlddoc:add', addNew);
-    return () => document.removeEventListener('worlddoc:add', addNew);
+    const handler = () => addNewRef.current();
+    document.addEventListener('worlddoc:add', handler);
+    return () => document.removeEventListener('worlddoc:add', handler);
   }, []);
 
   const handleDelete = (e, d) => {
