@@ -1,14 +1,34 @@
-import React from 'react';
-import { signInWithPopup } from 'firebase/auth';
+import React, { useEffect } from 'react';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth, googleProvider } from '../firebase';
+
+// 인앱브라우저 감지
+function isInAppBrowser() {
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes('kakaotalk') || ua.includes('naver') || ua.includes('instagram')
+    || ua.includes('fbav') || ua.includes('line/') || ua.includes('wv)')
+    || (ua.includes('android') && ua.includes('version/') && ua.includes('chrome/'));
+}
 
 export default function Login() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // 리다이렉트 후 돌아왔을 때 결과 처리
+    getRedirectResult(auth).catch(e => console.error(e));
+  }, []);
+
   const handleGoogle = async () => {
-    try { await signInWithPopup(auth, googleProvider); }
-    catch (e) { console.error(e); }
+    try {
+      if (isInAppBrowser()) {
+        // 인앱브라우저면 리다이렉트 방식
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        // 일반 브라우저면 팝업 방식
+        await signInWithPopup(auth, googleProvider);
+      }
+    } catch (e) { console.error(e); }
   };
 
   return (
