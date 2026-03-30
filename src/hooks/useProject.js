@@ -34,10 +34,10 @@ export function useCharacters(projectId) {
   useEffect(() => {
     if (!projectId) return;
     const q = query(collection(db, 'characters'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setCharacters(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return onSnapshot(q, snap => setCharacters(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
   }, [projectId]);
 
-  const addCharacter = (data) => addDoc(collection(db, 'characters'), { ...data, projectId, position: data.position || { x: 80 + Math.random() * 300, y: 80 + Math.random() * 200 }, tags: data.tags || [], createdAt: serverTimestamp() });
+  const addCharacter = (data) => addDoc(collection(db, 'characters'), { ...data, projectId, position: data.position || { x: 80 + Math.random() * 300, y: 80 + Math.random() * 200 }, tags: data.tags || [], order: Date.now(), createdAt: serverTimestamp() });
   const updateCharacter = (id, data) => updateDoc(doc(db, 'characters', id), data);
 
   // 캐릭터 삭제 시 연결된 relations, foreshadow charIds 자동 정리
@@ -91,7 +91,7 @@ export function useForeshadows(projectId) {
   useEffect(() => {
     if (!projectId) return;
     const q = query(collection(db, 'foreshadows'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setForeshadows(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return onSnapshot(q, snap => setForeshadows(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
   }, [projectId]);
 
   const addForeshadow = (data) => addDoc(collection(db, 'foreshadows'), { ...data, projectId, createdAt: serverTimestamp() });
@@ -106,7 +106,7 @@ export function useWorldDocs(projectId) {
   useEffect(() => {
     if (!projectId) return;
     const q = query(collection(db, 'worldDocs'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return onSnapshot(q, snap => setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
   }, [projectId]);
 
   const addWorldDoc = (title) => addDoc(collection(db, 'worldDocs'), { projectId, title, content: '', createdAt: serverTimestamp() });
@@ -121,7 +121,7 @@ export function useTimelineEvents(projectId) {
   useEffect(() => {
     if (!projectId) return;
     const q = query(collection(db, 'timelineEvents'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return onSnapshot(q, snap => setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
   }, [projectId]);
 
   const addEvent = (data) => addDoc(collection(db, 'timelineEvents'), { ...data, projectId, createdAt: serverTimestamp() });
@@ -136,7 +136,7 @@ export function useFanworks(projectId) {
   useEffect(() => {
     if (!projectId) return;
     const q = query(collection(db, 'fanworks'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setFanworks(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return onSnapshot(q, snap => setFanworks(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
   }, [projectId]);
 
   const addFanwork = (data) => addDoc(collection(db, 'fanworks'), { ...data, projectId, createdAt: serverTimestamp() });

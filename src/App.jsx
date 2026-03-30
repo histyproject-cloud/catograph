@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import SharedView from './pages/SharedView';
 import Legal from './pages/Legal';
 import Pricing from './pages/Pricing';
+import Settings from './pages/Settings';
 import OnboardingModal from './components/OnboardingModal';
 import './styles/global.css';
 import NotFound from './pages/NotFound';
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="/shared/:id" element={<SharedView />} />
         <Route path="/legal" element={<Legal />} />
         <Route path="/pricing" element={<Pricing user={user} />} />
+        <Route path="/settings" element={user ? <Settings user={user} onShowOnboarding={() => setShowOnboarding(true)} /> : <Navigate to="/login" />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

@@ -265,15 +265,18 @@ export default function Project({ user }) {
             />
           )}
           {activeTab === 'characters' && (
-            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} reorderMode={reorderMode} />
+            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} reorderMode={reorderMode}
+              onSaveOrder={(ordered) => ordered.forEach((c, i) => updateCharacter(c.id, { order: i }))} />
           )}
           {activeTab === 'world' && (
-            <WorldView docs={worldDocs} onAdd={(title) => { if (checkLimit(worldDocs.length, 'worldDocs')) return addWorldDoc(title); }} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} reorderMode={reorderMode} />
+            <WorldView docs={worldDocs} onAdd={(title) => { if (checkLimit(worldDocs.length, 'worldDocs')) return addWorldDoc(title); }} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} reorderMode={reorderMode}
+              onSaveOrder={(ordered) => ordered.forEach((d, i) => updateWorldDoc(d.id, { order: i }))} />
           )}
           {activeTab === 'foreshadow' && (
             <ForeshadowView foreshadows={foreshadows} characters={characters} reorderMode={reorderMode}
               onAdd={(data) => { if (checkLimit(foreshadows.length, 'foreshadows')) return addForeshadow(data); }}
-              onUpdate={updateForeshadow} onDelete={deleteForeshadow} />
+              onUpdate={updateForeshadow} onDelete={deleteForeshadow}
+              onSaveOrder={(ordered) => ordered.forEach((f, i) => updateForeshadow(f.id, { order: i }))} />
           )}
           {activeTab === 'timeline' && (
             <TimelineView
@@ -282,6 +285,7 @@ export default function Project({ user }) {
               onAdd={(data) => { if (checkLimit(events.length, 'timelineEvents')) return addEvent(data); }}
               onUpdate={updateEvent} onDelete={deleteEvent}
               limit={FREE_LIMITS.timelineEvents} isPro={isPro(user)}
+              onSaveOrder={(ordered) => ordered.forEach((e, i) => updateEvent(e.id, { order: i }))}
             />
           )}
           {activeTab === 'fanworks' && (
@@ -291,6 +295,7 @@ export default function Project({ user }) {
               onAdd={addFanwork}
               onUpdate={updateFanwork}
               onDelete={deleteFanwork}
+              onSaveOrder={(ordered) => ordered.forEach((f, i) => updateFanwork(f.id, { order: i }))}
             />
           )}
         </main>
@@ -502,7 +507,7 @@ function useDragOrder(items, onReorder) {
 }
 
 // ── 캐릭터 목록 ──
-function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events, relations, foreshadows, reorderMode }) {
+function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events, relations, foreshadows, reorderMode, onSaveOrder }) {
   const [detailChar, setDetailChar] = useState(null);
   const [visible, setVisible] = useState(false);
   const [orderedChars, setOrderedChars] = useState(null);
@@ -511,6 +516,10 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
   const prevReorderMode = React.useRef(false);
   React.useEffect(() => {
     if (reorderMode && !prevReorderMode.current) setOrderedChars([...characters]);
+    // reorderMode 종료 시 저장
+    if (!reorderMode && prevReorderMode.current && orderedChars) {
+      onSaveOrder?.(orderedChars);
+    }
     prevReorderMode.current = reorderMode;
   }, [reorderMode]);
 
@@ -892,7 +901,7 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
 }
 
 // ── 세계관 ──
-function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
+function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
   const [selected, setSelected] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -903,6 +912,9 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
   const prevReorderModeW = React.useRef(false);
   React.useEffect(() => {
     if (reorderMode && !prevReorderModeW.current) setOrderedDocs([...docs]);
+    if (!reorderMode && prevReorderModeW.current && orderedDocs) {
+      onSaveOrder?.(orderedDocs);
+    }
     prevReorderModeW.current = reorderMode;
   }, [reorderMode]);
 
