@@ -410,7 +410,7 @@ export default function Project({ user }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
               <Search size={16} color="var(--text3)" />
               <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                placeholder="캐릭터, 타임라인, 복선, 세계관 검색..."
+                placeholder="캐릭터, 타임라인, 복선, 설정집 검색..."
                 style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text)' }}
                 onKeyDown={e => e.key === 'Escape' && setShowSearch(false)} />
               {searchQuery && <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 18 }}>×</button>}
@@ -447,7 +447,7 @@ export default function Project({ user }) {
                     {matchedChars.length > 0 && <><SectionLabel label="캐릭터" count={matchedChars.length} />{matchedChars.map(c => <ResultItem key={c.id} icon="👤" title={c.name} sub={c.role} onClick={() => handleSetActiveTab('characters')} />)}</>}
                     {matchedEvents.length > 0 && <><SectionLabel label="타임라인" count={matchedEvents.length} />{matchedEvents.map(e => <ResultItem key={e.id} icon="◷" title={e.title} sub={e.episode ? `${e.episode}화` : ''} onClick={() => handleSetActiveTab('timeline')} />)}</>}
                     {matchedFS.length > 0 && <><SectionLabel label="복선" count={matchedFS.length} />{matchedFS.map(f => <ResultItem key={f.id} icon="⟡" title={f.title} sub={f.resolved ? '회수 완료' : '미회수'} onClick={() => handleSetActiveTab('foreshadow')} />)}</>}
-                    {matchedDocs.length > 0 && <><SectionLabel label="세계관" count={matchedDocs.length} />{matchedDocs.map(d => <ResultItem key={d.id} icon="⊞" title={d.title} sub={d.content?.slice(0, 40)} onClick={() => handleSetActiveTab('world')} />)}</>}
+                    {matchedDocs.length > 0 && <><SectionLabel label="설정집" count={matchedDocs.length} />{matchedDocs.map(d => <ResultItem key={d.id} icon="⊞" title={d.title} sub={d.content?.slice(0, 40)} onClick={() => handleSetActiveTab('world')} />)}</>}
                     {matchedFanworks.length > 0 && <><SectionLabel label="링크" count={matchedFanworks.length} />{matchedFanworks.map(f => <ResultItem key={f.id} icon="✦" title={f.title} sub={f.author} onClick={() => handleSetActiveTab('fanworks')} />)}</>}
                   </>
                 );
@@ -944,7 +944,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
       </div>
       <textarea value={content} onChange={e => setContent(e.target.value)} onBlur={save}
         style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none', padding: '20px' }}
-        placeholder="세계관 설정을 자유롭게 작성하세요..." />
+        placeholder="설정을 자유롭게 작성하세요..." />
     </div>
   );
 
@@ -1378,7 +1378,7 @@ function ShareModal({ projectId, project, onClose, onUpdate }) {
               </button>
             </div>
             <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
-              링크를 받은 사람은 캐릭터 설정, 세계관, 복선을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요. 편집은 불가능해요.
+              링크를 받은 사람은 캐릭터 설정, 설정집, 복선을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요. 편집은 불가능해요.
             </div>
           </div>
         )}
