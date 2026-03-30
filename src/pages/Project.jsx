@@ -166,7 +166,7 @@ export default function Project({ user }) {
         )}
         {activeTab === 'world' && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
-            onClick={() => { if (checkLimit(worldDocs.length, 'worldDocs')) addWorldDoc('새 문서'); }}>
+            onClick={() => { if (checkLimit(worldDocs.length, 'worldDocs')) document.dispatchEvent(new CustomEvent('worlddoc:add')); }}>
             + 새 문서
           </button>
         )}
@@ -934,8 +934,11 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 10px', height: 32 }} onClick={() => { save(); setSelected(null); }}>← 목록</button>
-        <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save}
-          style={{ flex: 1, fontSize: 16, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none', fontWeight: 600 }} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save}
+            style={{ fontSize: 16, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none', fontWeight: 600 }} />
+          <span style={{ fontSize: 10, color: 'var(--text3)' }}>자동으로 저장 중입니다</span>
+        </div>
         <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }}
           onClick={() => { if (window.confirm(`'${title}' 삭제할까요?`)) { onDelete(selected.id); setSelected(null); } }}>삭제</button>
       </div>
