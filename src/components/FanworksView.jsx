@@ -1,46 +1,26 @@
 import React, { useState } from 'react';
 
-// ── 드래그 순서 훅 (모션 포함) ──
 function useDragOrder(items, onReorder) {
   const dragItem = React.useRef(null);
-  const [draggingIdx, setDraggingIdx] = React.useState(null);
-  const [dragOverIdx, setDragOverIdx] = React.useState(null);
-
-  const onDragStart = (idx) => { dragItem.current = idx; setDraggingIdx(idx); };
-  const onDragEnter = (idx) => { setDragOverIdx(idx); };
+  const dragOver = React.useRef(null);
+  const onDragStart = (idx) => { dragItem.current = idx; };
+  const onDragEnter = (idx) => { dragOver.current = idx; };
   const onDragEnd = () => {
-    const from = dragItem.current;
-    const to = dragOverIdx;
-    if (from !== null && to !== null && from !== to) {
-      const next = [...items];
-      const dragged = next.splice(from, 1)[0];
-      next.splice(to, 0, dragged);
-      onReorder(next);
+    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
+      dragItem.current = null; dragOver.current = null; return;
     }
-    dragItem.current = null;
-    setDraggingIdx(null);
-    setDragOverIdx(null);
+    const next = [...items];
+    const dragged = next.splice(dragItem.current, 1)[0];
+    next.splice(dragOver.current, 0, dragged);
+    onReorder(next);
+    dragItem.current = null; dragOver.current = null;
   };
-
-  const getItemStyle = (idx) => {
-    if (draggingIdx === null || dragOverIdx === null || draggingIdx === dragOverIdx) {
-      return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
-    }
-    if (idx === draggingIdx) return { opacity: 0.25, transition: 'opacity 0.15s' };
-    const from = draggingIdx, to = dragOverIdx;
-    if (from < to && idx > from && idx <= to)
-      return { transform: 'translateY(-44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
-    if (from > to && idx >= to && idx < from)
-      return { transform: 'translateY(44px)', transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
-    return { transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)' };
-  };
-
-  return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle };
+  return { onDragStart, onDragEnter, onDragEnd };
 }
 
-export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
+export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: '', url: '', author: '', type: '' });
+  const [form, setForm] = useState({ title: '', url: '', author: '', type: '그림' });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [customType, setCustomType] = useState('');
@@ -55,15 +35,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   }, []);
   const [orderedFanworks, setOrderedFanworks] = React.useState(null);
   const displayFanworks = orderedFanworks || fanworks;
-  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayFanworks, setOrderedFanworks);
-  const prevReorderMode = React.useRef(false);
-  React.useEffect(() => {
-    if (reorderMode && !prevReorderMode.current) setOrderedFanworks([...fanworks]);
-    if (!reorderMode && prevReorderMode.current && orderedFanworks) {
-      onSaveOrder?.(orderedFanworks);
-    }
-    prevReorderMode.current = reorderMode;
-  }, [reorderMode]);
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayFanworks, setOrderedFanworks);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -71,7 +43,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
     let url = form.url.trim();
     if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
     await onAdd({ ...form, url });
-    setForm({ title: '', url: '', author: '', type: '' });
+    setForm({ title: '', url: '', author: '', type: '팬픽' });
     setShowAdd(false);
   };
 
@@ -91,37 +63,28 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
     window.open(u, '_blank', 'noopener,noreferrer');
   };
 
-  const TYPE_PALETTE = [
-    { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf' },
-    { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
-    { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
-    { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24' },
-    { bg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
-    { bg: 'rgba(244,114,182,0.15)', color: '#f472b6' },
-    { bg: 'rgba(52,211,153,0.15)', color: '#34d399' },
-  ];
-
-  const getTypeColor = (type = '기타') => {
-    let hash = 0;
-    for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
-    return TYPE_PALETTE[Math.abs(hash) % TYPE_PALETTE.length];
+  const TYPE_COLORS = {
+    '그림': { bg: 'rgba(45,212,191,0.15)', color: '#2dd4bf' },
+    '소설': { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8' },
+    '영상': { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
+    '기타': { bg: 'rgba(88,88,100,0.2)', color: '#9d9caa' },
   };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>2차창작물, 타인의 작품 해석 문서 등 링크를 저장해두세요</p>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>팬픽, 팬아트, 번역 등 링크를 저장해두세요</p>
 
       {fanworks.length === 0 && !showAdd && (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 저장된 링크가 없어요</p>
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>첫 링크 추가하기</button>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 저장된 2차창작물이 없어요</p>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>첫 작품 추가하기</button>
         </div>
       )}
 
       <div style={{ display: 'grid', gap: 10 }}>
         {displayFanworks.map((fw, fwIdx) => {
-          const tc = getTypeColor(fw.type);
+          const tc = TYPE_COLORS[fw.type] || TYPE_COLORS['기타'];
           if (editId === fw.id) return (
             <div key={fw.id} style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
               <div className="form-group">
@@ -135,14 +98,23 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">작가/출처</label>
-                  <input value={editForm.author} onChange={e => setEditForm(f => ({ ...f, author: e.target.value }))} placeholder="닉네임" style={{ width: '100%' }} />
+                  <input value={editForm.author} onChange={e => setEditForm(f => ({ ...f, author: e.target.value }))} placeholder="출처" style={{ width: '100%' }} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <input value={editForm.type}
-                    onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
-                    placeholder="예: 그림, 소설, 영상..."
-                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none' }} />
+                  <select value={TYPES.includes(editForm.type) ? editForm.type : 'custom'}
+                    onChange={e => {
+                      if (e.target.value === 'custom') { setEditForm(f => ({ ...f, type: editCustomType || '' })); }
+                      else { setEditForm(f => ({ ...f, type: e.target.value })); setEditCustomType(''); }
+                    }}
+                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
+                    {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    <option value="custom">✏️ 직접 입력</option>
+                  </select>
+                  {(!TYPES.includes(editForm.type)) && (
+                    <input value={editCustomType} onChange={e => { setEditCustomType(e.target.value); setEditForm(f => ({ ...f, type: e.target.value })); }}
+                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -161,11 +133,13 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
               onDragOver={e => reorderMode && e.preventDefault()}
               style={{
                 background: 'var(--bg2)',
-                border: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? '2px solid var(--accent)' : '1px solid var(--border)',
+                border: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? '1px solid var(--accent)' : '1px solid var(--border)',
                 borderRadius: 'var(--radius-lg)', padding: '14px 16px',
                 display: 'flex', alignItems: 'center', gap: 12,
                 cursor: reorderMode ? 'grab' : 'default',
-                ...(reorderMode ? getItemStyle(fwIdx) : {}),
+                opacity: reorderMode && draggingIdx === fwIdx ? 0.35 : 1,
+                transform: reorderMode && dragOverIdx === fwIdx && draggingIdx !== fwIdx ? 'translateX(8px)' : 'translateX(0)',
+                transition: 'border-color 0.12s, opacity 0.15s, transform 0.15s',
               }}
             >
               {/* 클릭 영역 */}
@@ -208,14 +182,23 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">작가/출처</label>
-                  <input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="닉네임 (선택)" style={{ width: '100%' }} />
+                  <input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="출처 (선택)" style={{ width: '100%' }} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
-                  <input value={form.type}
-                    onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                    placeholder="예: 그림, 소설, 영상..."
-                    style={{ width: '100%' }} />
+                  <select value={TYPES.includes(form.type) ? form.type : 'custom'}
+                    onChange={e => {
+                      if (e.target.value === 'custom') { setForm(f => ({ ...f, type: customType || '' })); }
+                      else { setForm(f => ({ ...f, type: e.target.value })); setCustomType(''); }
+                    }}
+                    style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', padding: '8px 12px', outline: 'none', fontSize: 16 }}>
+                    {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    <option value="custom">✏️ 직접 입력</option>
+                  </select>
+                  {(!TYPES.includes(form.type)) && (
+                    <input value={customType} onChange={e => { setCustomType(e.target.value); setForm(f => ({ ...f, type: e.target.value })); }}
+                      placeholder="유형 직접 입력" style={{ width: '100%', marginTop: 6 }} />
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>

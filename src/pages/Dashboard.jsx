@@ -105,7 +105,7 @@ export default function Dashboard({ user }) {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, letterSpacing: '-0.02em' }}>내 작품</h1>
-            <p style={{ color: 'var(--text2)', fontSize: 13, marginTop: 4 }}>세계관을 그려나가세요</p>
+            <p style={{ color: 'var(--text2)', fontSize: 13, marginTop: 4 }}>나만의 세계관을 그려나가세요</p>
           </div>
           <button className="btn btn-primary" onClick={handleNewClick}>+ 새 작품</button>
         </div>
@@ -132,8 +132,8 @@ export default function Dashboard({ user }) {
                 { icon: <Network size={18} />, title: '캐릭터 관계도', desc: '인물 카드를 자유롭게 배치하고 관계선으로 연결해요' },
                 { icon: <Sparkles size={18} />, title: '복선 관리', desc: '심은 복선과 회수 회차를 한눈에 추적해요' },
                 { icon: <Clock size={18} />, title: '타임라인', desc: '화수별 사건을 정리하고 등장인물을 연결해요' },
-                { icon: <Globe size={18} />, title: '세계관 문서', desc: '설정집을 자유롭게 작성하고 보관해요' },
-                { icon: <Star size={18} />, title: '2차창작 모음', desc: '팬아트, 팬픽 링크를 작품별로 저장해요' },
+                { icon: <Globe size={18} />, title: '설정집 문서', desc: '설정집을 자유롭게 작성하고 보관해요' },
+                { icon: <Star size={18} />, title: '링크 모음', desc: '팬아트, 관련 문서 링크를 작품별로 저장해요' },
                 { icon: <Share2 size={18} />, title: '공유 기능', desc: '읽기 전용 링크로 협업자와 설정을 공유해요' },
               ].map((f, i) => (
                 <div key={i} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '18px 16px', textAlign: 'left' }}>

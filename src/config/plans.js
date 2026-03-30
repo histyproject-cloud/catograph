@@ -17,7 +17,7 @@ export const FREE_LIMITS = {
 export const LIMIT_MESSAGES = {
   projects: '무료 플랜은 프로젝트를 1개까지 만들 수 있어요.',
   characters: '무료 플랜은 캐릭터를 10명까지 등록할 수 있어요.',
-  worldDocs: '무료 플랜은 세계관 문서를 3개까지 만들 수 있어요.',
+  worldDocs: '무료 플랜은 설정집 문서를 3개까지 만들 수 있어요.',
   foreshadows: '무료 플랜은 복선을 10개까지 등록할 수 있어요.',
   timelineEvents: '무료 플랜은 타임라인 이벤트를 20개까지 등록할 수 있어요.',
 };
