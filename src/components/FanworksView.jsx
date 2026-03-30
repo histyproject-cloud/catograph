@@ -38,7 +38,7 @@ function useDragOrder(items, onReorder) {
   return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle };
 }
 
-export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode }) {
+export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', url: '', author: '', type: '' });
   const [editId, setEditId] = useState(null);
@@ -59,6 +59,9 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   const prevReorderMode = React.useRef(false);
   React.useEffect(() => {
     if (reorderMode && !prevReorderMode.current) setOrderedFanworks([...fanworks]);
+    if (!reorderMode && prevReorderMode.current && orderedFanworks) {
+      onSaveOrder?.(orderedFanworks);
+    }
     prevReorderMode.current = reorderMode;
   }, [reorderMode]);
 

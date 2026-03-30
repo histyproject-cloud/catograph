@@ -1011,12 +1011,12 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
 }
 
 // ── 복선 관리 ──
-function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, reorderMode }) {
+function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', mentions: [], resolved: false, charIds: [] });
   const [orderedOpen, setOrderedOpen] = useState(null);
   const [orderedClosed, setOrderedClosed] = useState(null);
-  const [filter, setFilter] = useState('all'); // 'all' | 'open' | 'closed'
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     const handler = () => setShowAdd(true);
@@ -1043,6 +1043,9 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
     if (reorderMode && !prevReorderModeF.current) {
       setOrderedOpen([...openRaw]);
       setOrderedClosed([...closedRaw]);
+    }
+    if (!reorderMode && prevReorderModeF.current) {
+      if (orderedOpen) onSaveOrder?.([...orderedOpen, ...(orderedClosed || closedRaw)]);
     }
     prevReorderModeF.current = reorderMode;
   }, [reorderMode]);

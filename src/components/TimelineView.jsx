@@ -39,7 +39,7 @@ function useDragOrder(items, onReorder) {
   return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle };
 }
 
-export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete, reorderMode }) {
+export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm] = useState({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
@@ -79,6 +79,9 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   React.useEffect(() => {
     if (reorderMode && !prevReorderMode.current) {
       setOrderedEvents([...sortedByEpisode]);
+    }
+    if (!reorderMode && prevReorderMode.current && orderedEvents) {
+      onSaveOrder?.(orderedEvents);
     }
     prevReorderMode.current = reorderMode;
   }, [reorderMode]);
