@@ -115,9 +115,12 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>화수별 주요 사건과 복선을 시간 순서로 정리하세요</p>
       {sorted.length === 0 && !showAdd ? (
-        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>
-          화수별 이벤트를 추가해보세요
+        <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 추가된 타임라인이 없어요</p>
+          <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('timeline:add'))}>첫 타임라인 추가하기</button>
         </div>
       ) : (
         <div style={{ position: 'relative', paddingLeft: 32 }}>

@@ -543,10 +543,11 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
+        <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>작품에 등장하는 캐릭터를 추가하고 관계를 정리하세요</p>
         {characters.length === 0 ? (
           <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-            <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>캐릭터가 없어요</p>
+            <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 추가된 캐릭터가 없어요</p>
             <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('character:add'))}>첫 캐릭터 추가하기</button>
           </div>
         ) : (
@@ -971,10 +972,11 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
   // 문서 리스트 화면
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>세계관, 배경, 마법 체계 등 작품 설정을 문서로 정리하세요</p>
       {docs.length === 0 ? (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>문서를 선택하거나 새로 만드세요</p>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 작성된 문서가 없어요</p>
           <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('worlddoc:add'))}>첫 문서 만들기</button>
         </div>
       ) : (
@@ -1052,6 +1054,7 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>심어둔 복선과 회수 여부를 한눈에 관리하세요</p>
       {/* 필터 버튼 */}
       {foreshadows.length > 0 && (
         <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
@@ -1072,7 +1075,7 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
       {foreshadows.length === 0 && (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
-          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>복선을 추가해보세요</p>
+          <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 추가된 복선이 없어요</p>
           <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('foreshadow:add'))}>첫 복선 추가하기</button>
         </div>
       )}
