@@ -71,7 +71,7 @@ export default function Pricing({ user }) {
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>영원히 무료</div>
             </div>
             <button className="btn" style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24 }} onClick={() => navigate('/')}>
-              시작하기
+              {userIsPro ? '현재 플랜' : '무료로 시작하기'}
             </button>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
               {FREE_FEATURES.map((f, i) => (
@@ -103,7 +103,7 @@ export default function Pricing({ user }) {
             <button className={`btn ${userIsPro ? '' : 'btn-primary'}`}
               style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24 }}
               onClick={() => navigate('/')}>
-              {userIsPro ? '✦ 구독 중' : '무료로 시작하기'}
+              {userIsPro ? '✦ 현재 플랜' : '30일 무료로 시작하기'}
             </button>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
               {PRO_FEATURES.map((f, i) => (
