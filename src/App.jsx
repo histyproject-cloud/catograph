@@ -11,6 +11,7 @@ import Legal from './pages/Legal';
 import Pricing from './pages/Pricing';
 import OnboardingModal from './components/OnboardingModal';
 import './styles/global.css';
+import NotFound from './pages/NotFound';
 
 export default function App() {
   const [user, setUser] = useState(undefined);
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/shared/:id" element={<SharedView />} />
         <Route path="/legal" element={<Legal />} />
         <Route path="/pricing" element={<Pricing user={user} />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
