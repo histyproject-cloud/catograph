@@ -211,7 +211,8 @@ export default function Project({ user }) {
               <div style={{ padding: '8px 12px 12px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{user?.displayName}</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>{user?.email}</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg3)', borderRadius: 99, padding: '3px 10px' }}>
+                <div onClick={() => { navigate('/pricing'); setShowProfile(false); }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg3)', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}>
                   <span style={{ fontSize: 10, color: 'var(--text3)' }}>플랜</span>
                   <span style={{ fontSize: 11, fontWeight: 500, color: isPro(user) ? 'var(--teal)' : 'var(--text2)' }}>{isPro(user) ? 'Pro ✦' : 'Free'}</span>
                 </div>
@@ -824,9 +825,12 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
 
 function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
   const ac = getAvatarColor(c.name || '?');
+  const [hovered, setHovered] = React.useState(false);
 
   return (
     <div onClick={() => onSelect(c)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         background: 'var(--bg2)',
         border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
@@ -874,9 +878,11 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
           </div>
         )}
       </div>
-      {/* 삭제 버튼 */}
-      <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px', zIndex: 2 }}
-        onClick={e => { e.stopPropagation(); if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
+      {/* 삭제 버튼 - 호버시에만 표시 */}
+      {hovered && (
+        <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px', zIndex: 2 }}
+          onClick={e => { e.stopPropagation(); if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
+      )}
     </div>
   );
 }

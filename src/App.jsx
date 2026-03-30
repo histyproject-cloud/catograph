@@ -64,7 +64,7 @@ export default function App() {
         {/* 공유 링크 - 로그인 없이 접근 가능 */}
         <Route path="/shared/:id" element={<SharedView />} />
         <Route path="/legal" element={<Legal />} />
-        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/pricing" element={<Pricing user={user} />} />
       </Routes>
     </BrowserRouter>
   );

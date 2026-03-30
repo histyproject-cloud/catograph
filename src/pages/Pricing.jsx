@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isPro } from '../config/plans';
 
-export default function Pricing() {
+export default function Pricing({ user }) {
   const navigate = useNavigate();
   const [yearly, setYearly] = useState(false);
+  const userIsPro = isPro(user);
 
   const FREE_FEATURES = [
     '프로젝트 1개',
@@ -98,8 +100,10 @@ export default function Pricing() {
                 {yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}
               </div>
             </div>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24 }} onClick={() => navigate('/')}>
-              무료로 시작하기
+            <button className={`btn ${userIsPro ? '' : 'btn-primary'}`}
+              style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24 }}
+              onClick={() => navigate('/')}>
+              {userIsPro ? '✦ 구독 중' : '무료로 시작하기'}
             </button>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
               {PRO_FEATURES.map((f, i) => (
