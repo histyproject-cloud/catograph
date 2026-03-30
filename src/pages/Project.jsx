@@ -200,6 +200,12 @@ export default function Project({ user }) {
         <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
           {isMobile ? '공유' : '공유'}
         </button>
+        <a href="/how-to" target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none', padding: '0 12px', height: 36, display: 'flex', alignItems: 'center', borderRadius: 'var(--radius)', border: '1px solid var(--border)', transition: 'all 0.2s', flexShrink: 0 }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+          이용방법
+        </a>
         {/* 프로필 드롭다운 */}
         <div ref={profileRef} style={{ position: 'relative', flexShrink: 0 }}>
           <button onClick={() => setShowProfile(v => !v)}

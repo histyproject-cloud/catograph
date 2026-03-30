@@ -307,17 +307,30 @@ export default function OnboardingModal({ onClose, onComplete }) {
             <p style={{ margin: "0 0 28px", fontSize: 14, lineHeight: 1.7, color: "#9ca3af", whiteSpace: "pre-line" }}>{slide.description}</p>
 
             {/* Buttons */}
-            <div style={{ display: "flex", gap: 10 }}>
-              {current > 0 && (
-                <button className="onboarding-btn-secondary" onClick={() => go(current - 1)}>이전</button>
+            <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
+              <div style={{ display: "flex", gap: 10 }}>
+                {current > 0 && (
+                  <button className="onboarding-btn-secondary" onClick={() => go(current - 1)}>이전</button>
+                )}
+                {current === 0 && (
+                  <button className="onboarding-btn-secondary" onClick={handleClose}>건너뛰기</button>
+                )}
+                <button className="onboarding-btn-primary" style={{ "--slide-color": slide.color }}
+                  onClick={() => isLast ? handleClose() : go(current + 1)}>
+                  {isLast ? "시작하기 🎉" : "다음"}
+                </button>
+              </div>
+              {isLast && (
+                <a href="/how-to" target="_blank" rel="noopener noreferrer" style={{
+                  display: "block", textAlign: "center", fontSize: 13,
+                  color: "#6b7280", textDecoration: "none", padding: "4px 0",
+                  transition: "color 0.2s",
+                }}
+                  onMouseEnter={e => e.currentTarget.style.color = "#a89cf8"}
+                  onMouseLeave={e => e.currentTarget.style.color = "#6b7280"}>
+                  자세한 이용방법 보기 →
+                </a>
               )}
-              {current === 0 && (
-                <button className="onboarding-btn-secondary" onClick={handleClose}>건너뛰기</button>
-              )}
-              <button className="onboarding-btn-primary" style={{ "--slide-color": slide.color }}
-                onClick={() => isLast ? handleClose() : go(current + 1)}>
-                {isLast ? "시작하기 🎉" : "다음"}
-              </button>
             </div>
           </div>
         </div>
