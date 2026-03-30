@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>이용방법 — Cartographic</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0d18;
+      --bg2: #13131f;
+      --bg3: #1a1a2e;
+      --border: rgba(255,255,255,0.07);
+      --accent: #8b7cf8;
+      --accent2: #a89cf8;
+      --text: #f9fafb;
+      --text2: #9ca3af;
+      --text3: #6b7280;
+      --teal: #2dd4bf;
+      --pink: #f472b6;
+      --amber: #fbbf24;
+      --green: #34d399;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* 헤더 */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13,13,24,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .header-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .header-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    /* 히어로 */
+    .hero {
+      text-align: center;
+      padding: 80px 20px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 300px;
+      background: radial-gradient(ellipse, rgba(139,124,248,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(139,124,248,0.1);
+      border: 1px solid rgba(139,124,248,0.2);
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: var(--accent2);
+      letter-spacing: 0.06em;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(36px, 6vw, 56px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--text2);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* 탭 네비 */
+    .tab-nav {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      padding: 0 20px;
+      margin-bottom: 60px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--text2);
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 400;
+    }
+    .tab-btn:hover { border-color: var(--accent); color: var(--text); }
+    .tab-btn.active {
+      background: rgba(139,124,248,0.12);
+      border-color: var(--accent);
+      color: var(--accent2);
+      font-weight: 500;
+    }
+
+    /* 섹션 */
+    .section {
+      display: none;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+      animation: fadeUp 0.4s ease both;
+    }
+    .section.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      color: var(--text);
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--text3);
+      margin-top: 4px;
+    }
+
+    /* 기능 카드 */
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: rgba(139,124,248,0.3); }
+
+    .feature-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feature-card p {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.8;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.04em;
+    }
+
+    /* 팁 박스 */
+    .tip-box {
+      background: rgba(139,124,248,0.07);
+      border: 1px solid rgba(139,124,248,0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .tip-box .tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .tip-box p { font-size: 13px; color: var(--text2); line-height: 1.7; }
+    .tip-box strong { color: var(--accent2); }
+
+    /* 연결 표시 */
+    .connect-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .connect-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    .connect-arrow {
+      font-size: 14px;
+      color: var(--text3);
+    }
+
+    /* 푸터 */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      text-align: center;
+    }
+
+    footer p {
+      font-size: 12px;
+      color: var(--text3);
+      line-height: 2;
+    }
+
+    footer a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 0 20px; }
+      .tab-btn { font-size: 12px; padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://cartographic.agency" class="logo">
+    <svg class="logo-icon" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="22" stroke="#8b7cf8" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.6"/>
+      <circle cx="24" cy="24" r="3" fill="#8b7cf8"/>
+      <circle cx="11" cy="15" r="2.5" fill="#8b7cf8" opacity="0.5"/>
+      <circle cx="37" cy="15" r="2.5" fill="#8b7cf8" opacity="0.5"/>
+      <circle cx="11" cy="33" r="2.5" fill="#8b7cf8" opacity="0.5"/>
+      <circle cx="37" cy="33" r="2.5" fill="#8b7cf8" opacity="0.5"/>
+      <line x1="24" y1="24" x2="11" y2="15" stroke="#8b7cf8" stroke-width="1" opacity="0.35"/>
+      <line x1="24" y1="24" x2="37" y2="15" stroke="#8b7cf8" stroke-width="1" opacity="0.35"/>
+      <line x1="24" y1="24" x2="11" y2="33" stroke="#8b7cf8" stroke-width="1" opacity="0.35"/>
+      <line x1="24" y1="24" x2="37" y2="33" stroke="#8b7cf8" stroke-width="1" opacity="0.35"/>
+    </svg>
+    Cartographic
+  </a>
+  <a href="https://cartographic.agency" class="header-btn">시작하기 →</a>
+</header>
+
+<section class="hero">
+  <div class="hero-label">✦ 이용방법</div>
+  <h1>창작의 모든 것을<br>한 곳에서</h1>
+  <p>카토그래픽의 주요 기능을 탭별로 살펴보세요.</p>
+</section>
+
+<!-- 탭 네비 -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('relation')">
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="4" cy="9" r="2.5" stroke="currentColor" stroke-width="1.3"/><circle cx="14" cy="4" r="2.5" stroke="currentColor" stroke-width="1.3"/><circle cx="14" cy="14" r="2.5" stroke="currentColor" stroke-width="1.3"/><line x1="6.2" y1="8" x2="11.8" y2="5" stroke="currentColor" stroke-width="1"/><line x1="6.2" y1="10" x2="11.8" y2="13" stroke="currentColor" stroke-width="1"/></svg>
+    관계도
+  </button>
+  <button class="tab-btn" onclick="showTab('character')">
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M3 16c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    캐릭터
+  </button>
+  <button class="tab-btn" onclick="showTab('foreshadow')">
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><path d="M9 3v2M9 13v2M3 9h2M13 9h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.3"/></svg>
+    복선
+  </button>
+  <button class="tab-btn" onclick="showTab('timeline')">
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="9" r="2" fill="currentColor" opacity="0.6"/><circle cx="9" cy="9" r="2" fill="currentColor"/><circle cx="12" cy="9" r="2" fill="currentColor" opacity="0.6"/></svg>
+    타임라인
+  </button>
+  <button class="tab-btn" onclick="showTab('link')">
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><path d="M9 3.5L10.5 7h3.5l-2.8 2.1 1 3.4L9 10.5l-3.2 2 1-3.4L4 7h3.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    링크
+  </button>
+  <button class="tab-btn" onclick="showTab('world')">
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.3"/><ellipse cx="9" cy="9" rx="3" ry="6.5" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="9" x2="15.5" y2="9" stroke="currentColor" stroke-width="1"/></svg>
+    설정집
+  </button>
+</div>
+
+<!-- 관계도 -->
+<div id="tab-relation" class="section active">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(244,114,182,0.12);border:1px solid rgba(244,114,182,0.2);">🕸️</div>
+    <div>
+      <div class="section-title">인물 관계도</div>
+      <div class="section-subtitle">복잡한 인물 관계를 시각적으로 정리하세요</div>
+    </div>
+  </div>
+
+  <div class="feature-card">
+    <h3>🔗 관계 연결하기</h3>
+    <p>상단의 <strong style="color:var(--text)">관계 연결</strong> 버튼을 누르면 연결 모드가 활성화돼요. 연결할 캐릭터 카드를 순서대로 클릭하면 관계선이 생겨요. 관계선에 이름(사랑, 배신, 동료 등)과 색상을 지정할 수 있어요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>👤 캐릭터 카드 클릭</h3>
+    <p>관계도에서 캐릭터 카드를 클릭하면 오른쪽에 <strong style="color:var(--text)">인물 상세 패널</strong>이 열려요. 소속, 능력, 성격 태그, 연결된 복선, 관계 목록을 한눈에 볼 수 있어요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>🗺️ 자유 배치</h3>
+    <p>캐릭터 카드를 드래그해서 원하는 위치에 자유롭게 배치할 수 있어요. 배치한 위치는 자동으로 저장돼요.</p>
+  </div>
+
+  <div class="tip-box">
+    <div class="tip-icon">💡</div>
+    <p><strong>팁:</strong> 우측 하단 <strong>+/−</strong> 버튼으로 관계도를 확대·축소할 수 있어요. 캐릭터가 많을 때 유용해요!</p>
+  </div>
+</div>
+
+<!-- 캐릭터 -->
+<div id="tab-character" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(139,124,248,0.12);border:1px solid rgba(139,124,248,0.2);">👤</div>
+    <div>
+      <div class="section-title">캐릭터</div>
+      <div class="section-subtitle">인물 설정을 상세하게 관리하고 다른 탭과 연동하세요</div>
+    </div>
+  </div>
+
+  <div class="feature-card">
+    <h3>📝 상세 설정 입력</h3>
+    <p>캐릭터마다 이름, 역할, 소속, 능력, 인물 소개, 성격 태그, 프로필 사진을 입력할 수 있어요. 카드를 클릭하면 오른쪽 패널에서 수정할 수 있어요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>🔄 다른 탭과 자동 연동</h3>
+    <p>캐릭터 상세 패널에서 해당 인물이 등장하는 타임라인과 연결된 복선을 바로 확인할 수 있어요. 타임라인·복선 탭에서 캐릭터를 연결하면 캐릭터 탭에 자동으로 반영돼요.</p>
+    <div class="connect-row">
+      <div class="connect-chip">🕸️ 관계도</div>
+      <div class="connect-arrow">→</div>
+      <div class="connect-chip">👤 캐릭터 패널</div>
+      <div class="connect-arrow">↔</div>
+      <div class="connect-chip">◷ 타임라인</div>
+      <div class="connect-arrow">↔</div>
+      <div class="connect-chip">⟡ 복선</div>
+    </div>
+  </div>
+
+  <div class="feature-card">
+    <h3>📸 프로필 사진</h3>
+    <p>캐릭터 카드에 사진을 업로드할 수 있어요. 사진 위치(상단·중앙·하단)도 조정 가능해요.</p>
+  </div>
+
+  <div class="tip-box">
+    <div class="tip-icon">💡</div>
+    <p><strong>팁:</strong> 캐릭터 탭 상단 검색창으로 여러 탭에 걸쳐 한 번에 검색할 수 있어요.</p>
+  </div>
+</div>
+
+<!-- 복선 -->
+<div id="tab-foreshadow" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.2);">⟡</div>
+    <div>
+      <div class="section-title">복선</div>
+      <div class="section-subtitle">심어둔 복선의 회수 여부를 한눈에 관리하세요</div>
+    </div>
+  </div>
+
+  <div class="feature-card">
+    <h3>✍️ 복선 등록하기</h3>
+    <p>복선 제목과 함께 <strong style="color:var(--text)">몇 화에서 언급되었는지</strong>를 상세하게 추가할 수 있어요. 화수와 언급 내용을 여러 개 추가해서 복선이 작품 전체에서 어떻게 흐르는지 추적할 수 있어요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>✅ 회수 여부 관리</h3>
+    <p>복선마다 <strong style="color:var(--green)">회수 완료</strong> / <strong style="color:var(--amber)">미회수</strong>로 상태를 구분해요. 상단 필터 버튼으로 미회수 복선만 모아서 볼 수 있어요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>👥 관련 캐릭터 연결</h3>
+    <p>복선과 관련된 캐릭터를 연결해두면 캐릭터 탭의 상세 패널에서 해당 복선을 바로 확인할 수 있어요. 인물과 복선을 함께 관리할 수 있어요.</p>
+  </div>
+
+  <div class="tip-box">
+    <div class="tip-icon">💡</div>
+    <p><strong>팁:</strong> 복선 회수 여부는 토글 버튼으로 바로 변경할 수 있어요. 매화 검토할 때 빠르게 체크해보세요!</p>
+  </div>
+</div>
+
+<!-- 타임라인 -->
+<div id="tab-timeline" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.2);">◷</div>
+    <div>
+      <div class="section-title">타임라인</div>
+      <div class="section-subtitle">화수별 사건을 시간순으로 정리하세요</div>
+    </div>
+  </div>
+
+  <div class="feature-card">
+    <h3>📅 화수별 사건 등록</h3>
+    <p>몇 화에 무슨 일이 일어났는지 등록해요. 유형(사건, 복선 심기, 복선 회수, 캐릭터 등장, 반전 등)을 직접 입력해서 분류할 수 있어요. 같은 유형은 같은 색으로 표시돼요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>🔗 관련 인물·복선 연결</h3>
+    <p>타임라인 이벤트에 <strong style="color:var(--text)">등장 캐릭터</strong>와 <strong style="color:var(--text)">연결된 복선</strong>을 함께 등록할 수 있어요. 캐릭터 탭에서 해당 인물이 언제 등장했는지 자동으로 반영돼요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>👁️ 시간순 한눈에 보기</h3>
+    <p>모든 이벤트가 화수 기준으로 자동 정렬돼요. 이벤트를 클릭하면 상세 내용, 등장 캐릭터, 연결된 복선이 펼쳐져요.</p>
+  </div>
+
+  <div class="tip-box">
+    <div class="tip-icon">💡</div>
+    <p><strong>팁:</strong> 위치 수정 모드에서 드래그로 순서를 바꿀 수 있어요. 수정 종료를 누르면 자동으로 저장돼요.</p>
+  </div>
+</div>
+
+<!-- 링크 -->
+<div id="tab-link" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.2);">🔗</div>
+    <div>
+      <div class="section-title">링크</div>
+      <div class="section-subtitle">작품 관련 외부 링크를 프로젝트별로 저장하세요</div>
+    </div>
+  </div>
+
+  <div class="feature-card">
+    <h3>📎 링크 저장하기</h3>
+    <p>작품과 관련된 외부 문서, 참고 자료, 2차 창작물 링크를 저장할 수 있어요. 링크를 클릭하면 새 탭에서 바로 열려요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>🏷️ 제목·유형 지정</h3>
+    <p>링크마다 제목, 작가/출처, 유형(그림, 소설, 영상, 논문 등)을 직접 입력할 수 있어요. 같은 유형끼리 색이 통일되어 한눈에 구분돼요.</p>
+  </div>
+
+  <div class="tip-box">
+    <div class="tip-icon">💡</div>
+    <p><strong>팁:</strong> 2차 창작물뿐 아니라 작품 설정 참고 자료, 시대 배경 자료, 학술 자료 링크도 저장해두면 편리해요!</p>
+  </div>
+</div>
+
+<!-- 설정집 -->
+<div id="tab-world" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.2);">🌐</div>
+    <div>
+      <div class="section-title">설정집</div>
+      <div class="section-subtitle">작품 세계관과 설정을 자유롭게 문서로 정리하세요</div>
+    </div>
+  </div>
+
+  <div class="feature-card">
+    <h3>📄 자유로운 문서 작성</h3>
+    <p>세계관, 배경, 마법 체계, 사회 구조 등 작품에 필요한 설정을 자유롭게 문서로 작성할 수 있어요. 문서 개수 제한 없이(Pro 플랜) 원하는 만큼 만들 수 있어요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>💾 수동 저장</h3>
+    <p>내용을 작성하고 <strong style="color:var(--text)">저장</strong> 버튼을 눌러 저장해요. 저장되지 않은 변경사항이 있으면 상단에 안내가 표시돼요.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>📋 목록 관리</h3>
+    <p>문서 목록에서 제목을 클릭하면 편집 화면으로 이동해요. 위치 수정 모드에서 드래그로 문서 순서를 바꿀 수도 있어요.</p>
+  </div>
+
+  <div class="tip-box">
+    <div class="tip-icon">💡</div>
+    <p><strong>팁:</strong> "마법 체계", "왕위 계승 제도", "지역별 특성" 등 주제별로 문서를 나눠 관리하면 나중에 찾기 편해요!</p>
+  </div>
+</div>
+
+<footer>
+  <p>
+    <a href="https://cartographic.agency">cartographic.agency</a> &nbsp;·&nbsp;
+    <a href="https://cartographic.agency/pricing">요금제</a> &nbsp;·&nbsp;
+    <a href="https://cartographic.agency/legal">이용약관</a>
+  </p>
+  <p style="margin-top:8px;">© 2026 Histy. 상호명: 히스티 · 대표자: 우연우 · 사업자등록번호: 162-18-02499</p>
+</footer>
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
