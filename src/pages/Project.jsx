@@ -221,6 +221,9 @@ export default function Project({ user }) {
                 </div>
               </div>
               <div style={{ padding: '6px 0' }}>
+                <button onClick={() => { navigate('/settings'); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text2)', borderRadius: 6, display: 'block' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>마이페이지</button>
                 {!isPro(user) && (
                   <button onClick={() => { navigate('/pricing'); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--accent)', borderRadius: 6, display: 'block' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
@@ -229,9 +232,7 @@ export default function Project({ user }) {
                 <button onClick={() => { navigate('/'); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text2)', borderRadius: 6, display: 'block' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>← 홈으로</button>
-                <button onClick={() => { navigate('/legal'); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text2)', borderRadius: 6, display: 'block' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>이용약관 · 개인정보처리방침</button>
+                <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
                 <button onClick={() => { signOut(auth); setShowProfile(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--coral, #f87171)', borderRadius: 6, display: 'block' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>로그아웃</button>

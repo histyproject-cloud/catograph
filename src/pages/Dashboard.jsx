@@ -82,21 +82,19 @@ export default function Dashboard({ user }) {
               <div style={{ padding: '8px 12px 12px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{user.displayName}</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>{user.email}</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg3)', borderRadius: 99, padding: '3px 10px' }}>
+                <div onClick={() => { navigate('/pricing'); setShowProfile(false); }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg3)', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}>
                   <span style={{ fontSize: 10, color: 'var(--text3)' }}>플랜</span>
                   <span style={{ fontSize: 11, fontWeight: 500, color: isPro(user) ? 'var(--teal)' : 'var(--text2)' }}>{isPro(user) ? 'Pro ✦' : 'Free'}</span>
                 </div>
               </div>
               <div style={{ padding: '6px 0' }}>
+                <MenuItem onClick={() => { navigate('/settings'); setShowProfile(false); }}>마이페이지</MenuItem>
                 {!isPro(user) && (
                   <MenuItem color="var(--accent)" onClick={() => { navigate('/pricing'); setShowProfile(false); }}>✦ Pro로 업그레이드</MenuItem>
                 )}
-                <MenuItem onClick={() => { navigate('/legal'); setShowProfile(false); }}>이용약관 · 개인정보처리방침</MenuItem>
-                <MenuItem color="var(--coral)" onClick={() => { signOut(auth); setShowProfile(false); }}>로그아웃</MenuItem>
                 <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
-                <MenuItem color="var(--coral)" onClick={() => { setShowProfile(false); handleDeleteAccount(); }}>
-                  {deletingAccount ? '탈퇴 처리 중...' : '회원 탈퇴'}
-                </MenuItem>
+                <MenuItem color="var(--coral)" onClick={() => { signOut(auth); setShowProfile(false); }}>로그아웃</MenuItem>
               </div>
             </div>
           )}
