@@ -305,6 +305,122 @@
       letter-spacing: 0.03em;
     }
 
+    /* 탭 온보딩 오버레이 */
+    .tab-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(6, 6, 14, 0.82);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .tab-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .overlay-card {
+      position: relative;
+      width: 100%;
+      max-width: 860px;
+      background: var(--bg2);
+      border: 1px solid rgba(139,124,248,0.3);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+      cursor: default;
+      transform: translateY(20px);
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .tab-overlay.visible .overlay-card {
+      transform: translateY(0);
+    }
+    .overlay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .overlay-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--accent2);
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+    .overlay-label span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.7); }
+    }
+    .overlay-close {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text2);
+      font-size: 12px;
+      font-family: 'Noto Sans KR', sans-serif;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .overlay-close:hover { background: rgba(139,124,248,0.1); border-color: var(--accent); color: var(--accent2); }
+    .overlay-screenshot {
+      position: relative;
+      width: 100%;
+      height: 460px;
+      overflow: hidden;
+      background: #080810;
+    }
+    .overlay-screenshot img {
+      position: absolute;
+      top: 0; left: 0;
+      display: block;
+    }
+    .overlay-screenshot.horizontal img {
+      height: 100%;
+      width: auto;
+      max-width: none;
+      animation: panX 12s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+    }
+    .overlay-screenshot.vertical img {
+      height: 100%;
+      width: auto;
+      max-width: none;
+    }
+    .overlay-footer {
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .overlay-desc {
+      font-size: 13px;
+      color: var(--text2);
+    }
+    .overlay-hint {
+      font-size: 11px;
+      color: var(--text3);
+    }
+
     /* 팁 박스 */
     .tip-box {
       background: rgba(139,124,248,0.07);
@@ -658,6 +774,27 @@
   </div>
 </div>
 
+<div id="tab-overlay" class="tab-overlay" onclick="closeOverlay(event)">
+  <div class="overlay-card" onclick="event.stopPropagation()">
+    <div class="overlay-header">
+      <div class="overlay-label">
+        <span></span>
+        맥베스 예시 — <span id="overlay-tab-name" style="width:auto;height:auto;background:none;animation:none;border-radius:0;display:inline;"></span>
+      </div>
+      <button class="overlay-close" onclick="closeOverlay()">
+        확인했어요 ✓
+      </button>
+    </div>
+    <div id="overlay-screenshot" class="overlay-screenshot horizontal">
+      <img id="overlay-img" src="" alt="" />
+    </div>
+    <div class="overlay-footer">
+      <span class="overlay-desc" id="overlay-desc"></span>
+      <span class="overlay-hint">아무 곳이나 클릭하면 닫혀요</span>
+    </div>
+  </div>
+</div>
+
 <footer>
   <p>
     <a href="https://cartographic.agency">cartographic.agency</a> &nbsp;·&nbsp;
@@ -668,37 +805,87 @@
 </footer>
 
 <script>
+  const overlayData = {
+    relation:    { src: 'screenshots/relation.png',   dir: 'horizontal', name: '인물 관계도', desc: '캐릭터 간 관계가 색상별 선으로 표시돼요' },
+    character:   { src: 'screenshots/character.png',  dir: 'horizontal', name: '캐릭터',     desc: '프로필 사진과 역할이 카드로 표시돼요' },
+    foreshadow:  { src: 'screenshots/foreshadow.png', dir: 'horizontal', name: '복선',       desc: '미회수/회수 완료 상태를 토글로 관리해요' },
+    timeline:    { src: 'screenshots/timeline.png',   dir: 'horizontal', name: '타임라인',   desc: '화수별 사건이 시간순으로 정렬돼요' },
+    link:        { src: 'screenshots/link.png',       dir: 'horizontal', name: '링크',       desc: '유형별로 색상 태그가 붙어요' },
+    world:       { src: 'screenshots/world.png',      dir: 'horizontal', name: '설정집',     desc: '주제별 문서를 자유롭게 추가하고 정렬할 수 있어요' },
+  };
+
+  const seenTabs = new Set();
+
   function showTab(id) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + id).classList.add('active');
     event.currentTarget.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (!seenTabs.has(id) && overlayData[id]) {
+      seenTabs.add(id);
+      openOverlay(id);
+    }
   }
 
+  function openOverlay(id) {
+    const d = overlayData[id];
+    const overlay = document.getElementById('tab-overlay');
+    const shot = document.getElementById('overlay-screenshot');
+    const img = document.getElementById('overlay-img');
+
+    document.getElementById('overlay-tab-name').textContent = d.name;
+    document.getElementById('overlay-desc').textContent = d.desc;
+    shot.className = 'overlay-screenshot ' + d.dir;
+    img.src = d.src;
+    img.alt = d.name + ' 화면';
+
+    img.onload = function() {
+      if (d.dir === 'horizontal') {
+        const excess = img.naturalWidth * (shot.offsetHeight / img.naturalHeight) - shot.offsetWidth;
+        if (excess > 0) shot.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
+      }
+    };
+    if (img.complete && img.naturalWidth) img.onload();
+
+    requestAnimationFrame(() => {
+      overlay.classList.add('visible');
+    });
+  }
+
+  function closeOverlay(e) {
+    document.getElementById('tab-overlay').classList.remove('visible');
+  }
+
+  // 키보드 ESC로 닫기
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeOverlay();
+  });
+
+  // 기존 pan 뷰어 초기화
   function initPan(viewer) {
     const img = viewer.querySelector('img');
     function setPanDist() {
       if (viewer.classList.contains('horizontal')) {
         const excess = img.naturalWidth * (viewer.offsetHeight / img.naturalHeight) - viewer.offsetWidth;
-        if (excess > 0) {
-          viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
-        }
+        if (excess > 0) viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
       } else {
         const excess = img.naturalHeight * (viewer.offsetWidth / img.naturalWidth) - viewer.offsetHeight;
-        if (excess > 0) {
-          viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
-        }
+        if (excess > 0) viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
       }
     }
-    if (img.complete && img.naturalWidth) {
-      setPanDist();
-    } else {
-      img.addEventListener('load', setPanDist);
-    }
+    if (img.complete && img.naturalWidth) setPanDist();
+    else img.addEventListener('load', setPanDist);
   }
 
   document.querySelectorAll('.screenshot-viewer').forEach(initPan);
+
+  // 첫 탭(관계도)은 페이지 로드 시 자동으로 오버레이
+  window.addEventListener('DOMContentLoaded', () => {
+    seenTabs.add('relation');
+    openOverlay('relation');
+  });
 </script>
 
 </body>
