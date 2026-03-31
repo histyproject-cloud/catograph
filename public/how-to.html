@@ -170,12 +170,6 @@
     }
     .section.active { display: block; }
 
-    .screenshot-outer {
-      margin-left: calc(-50vw + 50%);
-      margin-right: calc(-50vw + 50%);
-      margin-bottom: 0;
-    }
-
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
@@ -249,170 +243,6 @@
       border-radius: 6px;
       letter-spacing: 0.04em;
     }
-
-    /* 스크린샷 pan 뷰어 */
-    .screenshot-viewer {
-      position: relative;
-      overflow: hidden;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #0a0a14;
-      margin-bottom: 8px;
-    }
-    .screenshot-viewer.horizontal {
-      width: 100%;
-      height: 500px;
-    }
-    .screenshot-viewer.vertical {
-      width: 100%;
-      height: 560px;
-    }
-    .screenshot-viewer img {
-      display: block;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    .screenshot-viewer.horizontal img {
-      height: 500px;
-      width: auto;
-      max-width: none;
-      animation: panX 10s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
-    }
-    .screenshot-viewer.vertical img {
-      width: 340px;
-      height: auto;
-      max-height: none;
-      animation: panY 10s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
-    }
-    @keyframes panX {
-      0%   { transform: translateX(0); }
-      20%  { transform: translateX(0); }
-      80%  { transform: translateX(var(--pan-dist, -400px)); }
-      100% { transform: translateX(var(--pan-dist, -400px)); }
-    }
-    @keyframes panY {
-      0%   { transform: translateY(0); }
-      20%  { transform: translateY(0); }
-      80%  { transform: translateY(var(--pan-dist, -300px)); }
-      100% { transform: translateY(var(--pan-dist, -300px)); }
-    }
-    .screenshot-caption {
-      font-size: 11px;
-      color: var(--text3);
-      text-align: center;
-      padding: 6px 0 16px;
-      letter-spacing: 0.03em;
-    }
-
-    /* 탭 온보딩 오버레이 */
-    .tab-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
-    }
-    .tab-overlay.visible {
-      opacity: 1;
-      pointer-events: all;
-    }
-    .overlay-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 28px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .overlay-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--accent2);
-      letter-spacing: 0.05em;
-      font-weight: 500;
-    }
-    .overlay-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: inline-block;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.65); }
-    }
-    .overlay-close {
-      background: var(--accent);
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 13px;
-      font-family: 'Noto Sans KR', sans-serif;
-      font-weight: 500;
-      padding: 9px 20px;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-    }
-    .overlay-close:hover { background: var(--accent2); transform: translateY(-1px); }
-    .overlay-close:active { transform: translateY(0); }
-    .overlay-screenshot {
-      position: relative;
-      flex: 1;
-      overflow: hidden;
-      background: #06060f;
-    }
-    .overlay-screenshot img {
-      position: absolute;
-      top: 0; left: 0;
-      display: block;
-    }
-    .overlay-screenshot.horizontal img {
-      height: 100%;
-      width: auto;
-      max-width: none;
-      animation: panX 14s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
-    }
-    .overlay-screenshot.vertical img {
-      height: 100%;
-      width: auto;
-      max-width: none;
-    }
-    .overlay-footer {
-      padding: 14px 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .overlay-desc {
-      font-size: 13px;
-      color: var(--text2);
-    }
-    .overlay-see-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text2);
-      font-size: 12px;
-      font-family: 'Noto Sans KR', sans-serif;
-      padding: 6px 14px;
-      cursor: pointer;
-      transition: all 0.15s;
-      margin-top: 20px;
-    }
-    .overlay-see-btn:hover { border-color: var(--accent); color: var(--accent2); }
 
     /* 팁 박스 */
     .tip-box {
@@ -545,12 +375,6 @@
     </div>
   </div>
 
-  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
-    <img src="screenshots/relation.png" alt="관계도 화면" />
-  </div>
-</div>
-  <p class="screenshot-caption">맥베스 예제 — 캐릭터 간 관계가 색상별 선으로 표시돼요</p>
-
   <div class="feature-card">
     <h3>🔗 관계 연결하기</h3>
     <p>상단의 <strong style="color:var(--text)">관계 연결</strong> 버튼을 누르면 연결 모드가 활성화돼요. 연결할 캐릭터 카드를 순서대로 클릭하면 관계선이 생겨요. 관계선에 이름(사랑, 배신, 동료 등)과 색상을 지정할 수 있어요.</p>
@@ -570,7 +394,7 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 우측 하단 <strong>+/−</strong> 버튼으로 관계도를 확대·축소할 수 있어요. 캐릭터가 많을 때 유용해요!</p>
   </div>
-  <button class="overlay-see-btn" onclick="openOverlay('relation')">🖼 맥베스 예시 다시 보기</button>
+</div>
 
 <!-- 캐릭터 -->
 <div id="tab-character" class="section">
@@ -581,12 +405,6 @@
       <div class="section-subtitle">인물 설정을 상세하게 관리하고 다른 탭과 연동하세요</div>
     </div>
   </div>
-
-  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
-    <img src="screenshots/character.png" alt="캐릭터 목록 화면" />
-  </div>
-</div>
-  <p class="screenshot-caption">캐릭터 목록 — 프로필 사진과 역할이 카드로 표시돼요</p>
 
   <div class="feature-card">
     <h3>📝 상세 설정 입력</h3>
@@ -612,17 +430,10 @@
     <p>캐릭터 카드에 사진을 업로드할 수 있어요. 사진 위치(상단·중앙·하단)도 조정 가능해요.</p>
   </div>
 
-  <div class="screenshot-outer"><div class="screenshot-viewer vertical" style="--pan-dist:-62%;">
-    <img src="screenshots/character-detail.png" alt="캐릭터 상세 화면" />
-  </div>
-</div>
-  <p class="screenshot-caption">캐릭터 상세 — 소개·복선·관계를 스크롤하며 확인할 수 있어요</p>
-
   <div class="tip-box">
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 캐릭터 탭 상단 검색창으로 여러 탭에 걸쳐 한 번에 검색할 수 있어요.</p>
   </div>
-  <button class="overlay-see-btn" onclick="openOverlay('character')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 복선 -->
@@ -634,12 +445,6 @@
       <div class="section-subtitle">심어둔 복선의 회수 여부를 한눈에 관리하세요</div>
     </div>
   </div>
-
-  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
-    <img src="screenshots/foreshadow.png" alt="복선 화면" />
-  </div>
-</div>
-  <p class="screenshot-caption">복선 목록 — 미회수/회수 완료 상태를 토글로 관리해요</p>
 
   <div class="feature-card">
     <h3>✍️ 복선 등록하기</h3>
@@ -660,7 +465,6 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 복선 회수 여부는 토글 버튼으로 바로 변경할 수 있어요. 매화 검토할 때 빠르게 체크해보세요!</p>
   </div>
-  <button class="overlay-see-btn" onclick="openOverlay('foreshadow')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 타임라인 -->
@@ -672,12 +476,6 @@
       <div class="section-subtitle">화수별 사건을 시간순으로 정리하세요</div>
     </div>
   </div>
-
-  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
-    <img src="screenshots/timeline.png" alt="타임라인 화면" />
-  </div>
-</div>
-  <p class="screenshot-caption">타임라인 — 화수별 사건이 시간순으로 정렬돼요</p>
 
   <div class="feature-card">
     <h3>📅 화수별 사건 등록</h3>
@@ -698,7 +496,6 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 위치 수정 모드에서 드래그로 순서를 바꿀 수 있어요. 수정 종료를 누르면 자동으로 저장돼요.</p>
   </div>
-  <button class="overlay-see-btn" onclick="openOverlay('timeline')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 링크 -->
@@ -710,12 +507,6 @@
       <div class="section-subtitle">작품 관련 외부 링크를 프로젝트별로 저장하세요</div>
     </div>
   </div>
-
-  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
-    <img src="screenshots/link.png" alt="링크 화면" />
-  </div>
-</div>
-  <p class="screenshot-caption">링크 목록 — 유형별로 색상 태그가 붙어요</p>
 
   <div class="feature-card">
     <h3>📎 링크 저장하기</h3>
@@ -731,7 +522,6 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 2차 창작물뿐 아니라 작품 설정 참고 자료, 시대 배경 자료, 학술 자료 링크도 저장해두면 편리해요!</p>
   </div>
-  <button class="overlay-see-btn" onclick="openOverlay('link')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 설정집 -->
@@ -743,12 +533,6 @@
       <div class="section-subtitle">작품 세계관과 설정을 자유롭게 문서로 정리하세요</div>
     </div>
   </div>
-
-  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
-    <img src="screenshots/world.png" alt="설정집 화면" />
-  </div>
-</div>
-  <p class="screenshot-caption">설정집 목록 — 주제별 문서를 자유롭게 추가하고 정렬할 수 있어요</p>
 
   <div class="feature-card">
     <h3>📄 자유로운 문서 작성</h3>
@@ -769,23 +553,6 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> "마법 체계", "왕위 계승 제도", "지역별 특성" 등 주제별로 문서를 나눠 관리하면 나중에 찾기 편해요!</p>
   </div>
-  <button class="overlay-see-btn" onclick="openOverlay('world')">🖼 맥베스 예시 다시 보기</button>
-</div>
-
-<div id="tab-overlay" class="tab-overlay">
-  <div class="overlay-header">
-    <div class="overlay-label">
-      <span class="overlay-dot"></span>
-      맥베스 예시 — <span id="overlay-tab-name"></span>
-    </div>
-    <button class="overlay-close" onclick="closeOverlay()">예시 닫기</button>
-  </div>
-  <div id="overlay-screenshot" class="overlay-screenshot horizontal">
-    <img id="overlay-img" src="" alt="" />
-  </div>
-  <div class="overlay-footer">
-    <span class="overlay-desc" id="overlay-desc"></span>
-  </div>
 </div>
 
 <footer>
@@ -798,82 +565,13 @@
 </footer>
 
 <script>
-  const overlayData = {
-    relation:    { src: 'screenshots/relation.png',   dir: 'horizontal', name: '인물 관계도', desc: '캐릭터 간 관계가 색상별 선으로 표시돼요' },
-    character:   { src: 'screenshots/character.png',  dir: 'horizontal', name: '캐릭터',     desc: '프로필 사진과 역할이 카드로 표시돼요' },
-    foreshadow:  { src: 'screenshots/foreshadow.png', dir: 'horizontal', name: '복선',       desc: '미회수/회수 완료 상태를 토글로 관리해요' },
-    timeline:    { src: 'screenshots/timeline.png',   dir: 'horizontal', name: '타임라인',   desc: '화수별 사건이 시간순으로 정렬돼요' },
-    link:        { src: 'screenshots/link.png',       dir: 'horizontal', name: '링크',       desc: '유형별로 색상 태그가 붙어요' },
-    world:       { src: 'screenshots/world.png',      dir: 'horizontal', name: '설정집',     desc: '주제별 문서를 자유롭게 추가하고 정렬할 수 있어요' },
-  };
-
-  const seenTabs = new Set();
-
   function showTab(id) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + id).classList.add('active');
     event.currentTarget.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    if (!seenTabs.has(id) && overlayData[id]) {
-      seenTabs.add(id);
-      openOverlay(id);
-    }
   }
-
-  function openOverlay(id) {
-    const d = overlayData[id];
-    const overlay = document.getElementById('tab-overlay');
-    const shot = document.getElementById('overlay-screenshot');
-    const img = document.getElementById('overlay-img');
-
-    document.getElementById('overlay-tab-name').textContent = d.name;
-    document.getElementById('overlay-desc').textContent = d.desc;
-    shot.className = 'overlay-screenshot ' + d.dir;
-    img.src = d.src;
-    img.alt = d.name + ' 화면';
-
-    img.onload = function() {
-      if (d.dir === 'horizontal') {
-        const excess = img.naturalWidth * (shot.offsetHeight / img.naturalHeight) - shot.offsetWidth;
-        if (excess > 0) shot.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
-      }
-    };
-    if (img.complete && img.naturalWidth) img.onload();
-
-    requestAnimationFrame(() => {
-      overlay.classList.add('visible');
-    });
-  }
-
-  function closeOverlay() {
-    document.getElementById('tab-overlay').classList.remove('visible');
-  }
-
-  // 기존 pan 뷰어 초기화
-  function initPan(viewer) {
-    const img = viewer.querySelector('img');
-    function setPanDist() {
-      if (viewer.classList.contains('horizontal')) {
-        const excess = img.naturalWidth * (viewer.offsetHeight / img.naturalHeight) - viewer.offsetWidth;
-        if (excess > 0) viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
-      } else {
-        const excess = img.naturalHeight * (viewer.offsetWidth / img.naturalWidth) - viewer.offsetHeight;
-        if (excess > 0) viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
-      }
-    }
-    if (img.complete && img.naturalWidth) setPanDist();
-    else img.addEventListener('load', setPanDist);
-  }
-
-  document.querySelectorAll('.screenshot-viewer').forEach(initPan);
-
-  // 첫 탭(관계도)은 페이지 로드 시 자동으로 오버레이
-  window.addEventListener('DOMContentLoaded', () => {
-    seenTabs.add('relation');
-    openOverlay('relation');
-  });
 </script>
 
 </body>
