@@ -244,6 +244,62 @@
       letter-spacing: 0.04em;
     }
 
+    /* 스크린샷 pan 뷰어 */
+    .screenshot-viewer {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0a0a14;
+      margin-bottom: 16px;
+      cursor: default;
+    }
+    .screenshot-viewer.horizontal {
+      width: 100%;
+      height: 240px;
+    }
+    .screenshot-viewer.vertical {
+      width: 100%;
+      height: 360px;
+    }
+    .screenshot-viewer img {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .screenshot-viewer.horizontal img {
+      height: 100%;
+      width: auto;
+      max-width: none;
+      animation: panX 8s ease-in-out infinite alternate;
+    }
+    .screenshot-viewer.vertical img {
+      width: 100%;
+      height: auto;
+      max-height: none;
+      animation: panY 8s ease-in-out infinite alternate;
+    }
+    @keyframes panX {
+      0%   { transform: translateX(0); }
+      15%  { transform: translateX(0); }
+      85%  { transform: translateX(var(--pan-dist, -60%)); }
+      100% { transform: translateX(var(--pan-dist, -60%)); }
+    }
+    @keyframes panY {
+      0%   { transform: translateY(0); }
+      15%  { transform: translateY(0); }
+      85%  { transform: translateY(var(--pan-dist, -55%)); }
+      100% { transform: translateY(var(--pan-dist, -55%)); }
+    }
+    .screenshot-caption {
+      font-size: 11px;
+      color: var(--text3);
+      text-align: center;
+      padding: 8px 0 4px;
+      letter-spacing: 0.03em;
+    }
+
     /* 팁 박스 */
     .tip-box {
       background: rgba(139,124,248,0.07);
@@ -375,6 +431,11 @@
     </div>
   </div>
 
+  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+    <img src="screenshots/relation.png" alt="관계도 화면" />
+  </div>
+  <p class="screenshot-caption">맥베스 예제 — 캐릭터 간 관계가 색상별 선으로 표시돼요</p>
+
   <div class="feature-card">
     <h3>🔗 관계 연결하기</h3>
     <p>상단의 <strong style="color:var(--text)">관계 연결</strong> 버튼을 누르면 연결 모드가 활성화돼요. 연결할 캐릭터 카드를 순서대로 클릭하면 관계선이 생겨요. 관계선에 이름(사랑, 배신, 동료 등)과 색상을 지정할 수 있어요.</p>
@@ -406,6 +467,11 @@
     </div>
   </div>
 
+  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+    <img src="screenshots/character.png" alt="캐릭터 목록 화면" />
+  </div>
+  <p class="screenshot-caption">캐릭터 목록 — 프로필 사진과 역할이 카드로 표시돼요</p>
+
   <div class="feature-card">
     <h3>📝 상세 설정 입력</h3>
     <p>캐릭터마다 이름, 역할, 소속, 능력, 인물 소개, 성격 태그, 프로필 사진을 입력할 수 있어요. 카드를 클릭하면 오른쪽 패널에서 수정할 수 있어요.</p>
@@ -430,6 +496,11 @@
     <p>캐릭터 카드에 사진을 업로드할 수 있어요. 사진 위치(상단·중앙·하단)도 조정 가능해요.</p>
   </div>
 
+  <div class="screenshot-viewer vertical" style="--pan-dist:-62%;">
+    <img src="screenshots/character-detail.png" alt="캐릭터 상세 화면" />
+  </div>
+  <p class="screenshot-caption">캐릭터 상세 — 소개·복선·관계를 스크롤하며 확인할 수 있어요</p>
+
   <div class="tip-box">
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 캐릭터 탭 상단 검색창으로 여러 탭에 걸쳐 한 번에 검색할 수 있어요.</p>
@@ -445,6 +516,11 @@
       <div class="section-subtitle">심어둔 복선의 회수 여부를 한눈에 관리하세요</div>
     </div>
   </div>
+
+  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+    <img src="screenshots/foreshadow.png" alt="복선 화면" />
+  </div>
+  <p class="screenshot-caption">복선 목록 — 미회수/회수 완료 상태를 토글로 관리해요</p>
 
   <div class="feature-card">
     <h3>✍️ 복선 등록하기</h3>
@@ -477,6 +553,11 @@
     </div>
   </div>
 
+  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+    <img src="screenshots/timeline.png" alt="타임라인 화면" />
+  </div>
+  <p class="screenshot-caption">타임라인 — 화수별 사건이 시간순으로 정렬돼요</p>
+
   <div class="feature-card">
     <h3>📅 화수별 사건 등록</h3>
     <p>몇 화에 무슨 일이 일어났는지 등록해요. 유형(사건, 복선 심기, 복선 회수, 캐릭터 등장, 반전 등)을 직접 입력해서 분류할 수 있어요. 같은 유형은 같은 색으로 표시돼요.</p>
@@ -508,6 +589,11 @@
     </div>
   </div>
 
+  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+    <img src="screenshots/link.png" alt="링크 화면" />
+  </div>
+  <p class="screenshot-caption">링크 목록 — 유형별로 색상 태그가 붙어요</p>
+
   <div class="feature-card">
     <h3>📎 링크 저장하기</h3>
     <p>작품과 관련된 외부 문서, 참고 자료, 2차 창작물 링크를 저장할 수 있어요. 링크를 클릭하면 새 탭에서 바로 열려요.</p>
@@ -533,6 +619,11 @@
       <div class="section-subtitle">작품 세계관과 설정을 자유롭게 문서로 정리하세요</div>
     </div>
   </div>
+
+  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+    <img src="screenshots/world.png" alt="설정집 화면" />
+  </div>
+  <p class="screenshot-caption">설정집 목록 — 주제별 문서를 자유롭게 추가하고 정렬할 수 있어요</p>
 
   <div class="feature-card">
     <h3>📄 자유로운 문서 작성</h3>
