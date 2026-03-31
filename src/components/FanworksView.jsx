@@ -72,7 +72,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>팬픽, 팬아트, 번역 등 링크를 저장해두세요</p>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 20 }}>2차창작물, 참고자료 등 링크를 저장해두세요</p>
 
       {fanworks.length === 0 && !showAdd && (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>

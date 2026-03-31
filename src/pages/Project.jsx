@@ -549,7 +549,7 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: '100%', overflowY: 'auto', padding: 20 }}>
-        <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>작품에 등장하는 캐릭터를 추가하고 관계를 정리하세요</p>
+        <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>작품에 등장하는 캐릭터를 추가하고 세부 정보를 정리하세요</p>
         {characters.length === 0 ? (
           <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
@@ -978,7 +978,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
   // 문서 리스트 화면
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>세계관, 배경, 마법 체계 등 작품 설정을 문서로 정리하세요</p>
+      <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>세계관, 배경, 상징 등 작품 설정을 문서로 정리하세요</p>
       {docs.length === 0 ? (
         <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
