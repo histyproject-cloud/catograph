@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const AVATAR_COLORS = [
@@ -31,7 +31,8 @@ function PanelContent({ character, onUpdate, onClose, foreshadows, onAddForeshad
     setEditing(true);
   };
 
-  const saveEdit = () => { onUpdate(character.id, form); setEditing(false); };
+  const saveEdit = useCallback(() => { onUpdate(character.id, form); setEditing(false); }, [character.id, form, onUpdate]);
+  const cancelEdit = useCallback(() => setEditing(false), []);
 
   const addTag = (e) => {
     e.preventDefault();
@@ -73,7 +74,7 @@ function PanelContent({ character, onUpdate, onClose, foreshadows, onAddForeshad
       {/* 내용 */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
         {editing ? (
-          <EditForm form={form} setForm={setForm} newTag={newTag} setNewTag={setNewTag} addTag={addTag} onSave={saveEdit} onCancel={() => setEditing(false)} />
+          <EditForm form={form} setForm={setForm} newTag={newTag} setNewTag={setNewTag} addTag={addTag} onSave={saveEdit} onCancel={cancelEdit} />
         ) : (
           <>
             {[{ label: '나이', value: character.age }, { label: '소속', value: character.affiliation }, { label: '능력', value: character.ability }].filter(f => f.value).length > 0 && (
@@ -153,7 +154,7 @@ function FSItem({ fs, onUpdate, onDelete }) {
   );
 }
 
-function EditForm({ form, setForm, newTag, setNewTag, addTag, onSave, onCancel }) {
+const EditForm = memo(function EditForm({ form, setForm, newTag, setNewTag, addTag, onSave, onCancel }) {
   const f = key => ({ value: form[key], onChange: e => setForm(p => ({ ...p, [key]: e.target.value })) });
   return (
     <div>
@@ -181,7 +182,7 @@ function EditForm({ form, setForm, newTag, setNewTag, addTag, onSave, onCancel }
       </div>
     </div>
   );
-}
+});
 
 function Section({ title, children, action }) {
   return (
