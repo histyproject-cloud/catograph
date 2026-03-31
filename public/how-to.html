@@ -170,6 +170,12 @@
     }
     .section.active { display: block; }
 
+    .screenshot-outer {
+      margin-left: calc(-50vw + 50%);
+      margin-right: calc(-50vw + 50%);
+      margin-bottom: 0;
+    }
+
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
@@ -251,16 +257,15 @@
       border-radius: 12px;
       border: 1px solid var(--border);
       background: #0a0a14;
-      margin-bottom: 16px;
-      cursor: default;
+      margin-bottom: 8px;
     }
     .screenshot-viewer.horizontal {
       width: 100%;
-      height: 240px;
+      height: 500px;
     }
     .screenshot-viewer.vertical {
       width: 100%;
-      height: 360px;
+      height: 560px;
     }
     .screenshot-viewer img {
       display: block;
@@ -269,34 +274,34 @@
       left: 0;
     }
     .screenshot-viewer.horizontal img {
-      height: 100%;
+      height: 500px;
       width: auto;
       max-width: none;
-      animation: panX 8s ease-in-out infinite alternate;
+      animation: panX 10s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
     }
     .screenshot-viewer.vertical img {
-      width: 100%;
+      width: 340px;
       height: auto;
       max-height: none;
-      animation: panY 8s ease-in-out infinite alternate;
+      animation: panY 10s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
     }
     @keyframes panX {
       0%   { transform: translateX(0); }
-      15%  { transform: translateX(0); }
-      85%  { transform: translateX(var(--pan-dist, -60%)); }
-      100% { transform: translateX(var(--pan-dist, -60%)); }
+      20%  { transform: translateX(0); }
+      80%  { transform: translateX(var(--pan-dist, -400px)); }
+      100% { transform: translateX(var(--pan-dist, -400px)); }
     }
     @keyframes panY {
       0%   { transform: translateY(0); }
-      15%  { transform: translateY(0); }
-      85%  { transform: translateY(var(--pan-dist, -55%)); }
-      100% { transform: translateY(var(--pan-dist, -55%)); }
+      20%  { transform: translateY(0); }
+      80%  { transform: translateY(var(--pan-dist, -300px)); }
+      100% { transform: translateY(var(--pan-dist, -300px)); }
     }
     .screenshot-caption {
       font-size: 11px;
       color: var(--text3);
       text-align: center;
-      padding: 8px 0 4px;
+      padding: 6px 0 16px;
       letter-spacing: 0.03em;
     }
 
@@ -431,9 +436,10 @@
     </div>
   </div>
 
-  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
     <img src="screenshots/relation.png" alt="관계도 화면" />
   </div>
+</div>
   <p class="screenshot-caption">맥베스 예제 — 캐릭터 간 관계가 색상별 선으로 표시돼요</p>
 
   <div class="feature-card">
@@ -467,9 +473,10 @@
     </div>
   </div>
 
-  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
     <img src="screenshots/character.png" alt="캐릭터 목록 화면" />
   </div>
+</div>
   <p class="screenshot-caption">캐릭터 목록 — 프로필 사진과 역할이 카드로 표시돼요</p>
 
   <div class="feature-card">
@@ -496,9 +503,10 @@
     <p>캐릭터 카드에 사진을 업로드할 수 있어요. 사진 위치(상단·중앙·하단)도 조정 가능해요.</p>
   </div>
 
-  <div class="screenshot-viewer vertical" style="--pan-dist:-62%;">
+  <div class="screenshot-outer"><div class="screenshot-viewer vertical" style="--pan-dist:-62%;">
     <img src="screenshots/character-detail.png" alt="캐릭터 상세 화면" />
   </div>
+</div>
   <p class="screenshot-caption">캐릭터 상세 — 소개·복선·관계를 스크롤하며 확인할 수 있어요</p>
 
   <div class="tip-box">
@@ -517,9 +525,10 @@
     </div>
   </div>
 
-  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
     <img src="screenshots/foreshadow.png" alt="복선 화면" />
   </div>
+</div>
   <p class="screenshot-caption">복선 목록 — 미회수/회수 완료 상태를 토글로 관리해요</p>
 
   <div class="feature-card">
@@ -553,9 +562,10 @@
     </div>
   </div>
 
-  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
     <img src="screenshots/timeline.png" alt="타임라인 화면" />
   </div>
+</div>
   <p class="screenshot-caption">타임라인 — 화수별 사건이 시간순으로 정렬돼요</p>
 
   <div class="feature-card">
@@ -589,9 +599,10 @@
     </div>
   </div>
 
-  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
     <img src="screenshots/link.png" alt="링크 화면" />
   </div>
+</div>
   <p class="screenshot-caption">링크 목록 — 유형별로 색상 태그가 붙어요</p>
 
   <div class="feature-card">
@@ -620,9 +631,10 @@
     </div>
   </div>
 
-  <div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
+  <div class="screenshot-outer"><div class="screenshot-viewer horizontal" style="--pan-dist:-52%;">
     <img src="screenshots/world.png" alt="설정집 화면" />
   </div>
+</div>
   <p class="screenshot-caption">설정집 목록 — 주제별 문서를 자유롭게 추가하고 정렬할 수 있어요</p>
 
   <div class="feature-card">
@@ -663,6 +675,30 @@
     event.currentTarget.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  function initPan(viewer) {
+    const img = viewer.querySelector('img');
+    function setPanDist() {
+      if (viewer.classList.contains('horizontal')) {
+        const excess = img.naturalWidth * (viewer.offsetHeight / img.naturalHeight) - viewer.offsetWidth;
+        if (excess > 0) {
+          viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
+        }
+      } else {
+        const excess = img.naturalHeight * (viewer.offsetWidth / img.naturalWidth) - viewer.offsetHeight;
+        if (excess > 0) {
+          viewer.style.setProperty('--pan-dist', '-' + Math.round(excess) + 'px');
+        }
+      }
+    }
+    if (img.complete && img.naturalWidth) {
+      setPanDist();
+    } else {
+      img.addEventListener('load', setPanDist);
+    }
+  }
+
+  document.querySelectorAll('.screenshot-viewer').forEach(initPan);
 </script>
 
 </body>
