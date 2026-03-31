@@ -23,7 +23,19 @@ export default function Project({ user }) {
 
   const [project, setProject] = useState(null);
   const [activeTab, setActiveTab] = useState('relation');
-  const handleSetActiveTab = (tab) => { setActiveTab(tab); setReorderMode(false); setSelectedChar(null); };
+  const [seenTabs] = useState(() => new Set(['relation']));
+  const [overlayTab, setOverlayTab] = useState('relation');
+  const [showOverlay, setShowOverlay] = useState(true);
+  const handleSetActiveTab = (tab) => {
+    setActiveTab(tab);
+    setReorderMode(false);
+    setSelectedChar(null);
+    if (!seenTabs.has(tab)) {
+      seenTabs.add(tab);
+      setOverlayTab(tab);
+      setShowOverlay(true);
+    }
+  };
   const [selectedChar, setSelectedChar] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [connectMode, setConnectMode] = useState(false);
@@ -470,6 +482,115 @@ export default function Project({ user }) {
 
       {/* 업그레이드 모달 */}
       <UpgradeModal message={upgradeMsg} onClose={() => setUpgradeMsg(null)} />
+
+      {/* 맥베스 예시 온보딩 오버레이 */}
+      {showOverlay && <TabExampleOverlay tab={overlayTab} onClose={() => setShowOverlay(false)} />}
+    </div>
+  );
+}
+
+// ── 탭 예시 오버레이 ──
+const TAB_OVERLAY_DATA = {
+  relation:   { name: '인물 관계도', src: '/screenshots/relation.png',   dir: 'horizontal', desc: '캐릭터 간 관계가 색상별 선으로 표시돼요' },
+  characters: { name: '캐릭터',     src: '/screenshots/character.png',  dir: 'horizontal', desc: '프로필 사진과 역할이 카드로 표시돼요' },
+  world:      { name: '설정집',     src: '/screenshots/world.png',      dir: 'horizontal', desc: '주제별 문서를 자유롭게 추가하고 정렬할 수 있어요' },
+  foreshadow: { name: '복선',       src: '/screenshots/foreshadow.png', dir: 'horizontal', desc: '미회수/회수 완료 상태를 토글로 관리해요' },
+  timeline:   { name: '타임라인',   src: '/screenshots/timeline.png',   dir: 'horizontal', desc: '화수별 사건이 시간순으로 정렬돼요' },
+  fanworks:   { name: '링크',       src: '/screenshots/link.png',       dir: 'horizontal', desc: '유형별로 색상 태그가 붙어요' },
+};
+
+function TabExampleOverlay({ tab, onClose }) {
+  const data = TAB_OVERLAY_DATA[tab];
+  const imgRef = React.useRef(null);
+  const shotRef = React.useRef(null);
+  const animRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!imgRef.current || !shotRef.current) return;
+    const img = imgRef.current;
+    const shot = shotRef.current;
+
+    const startPan = () => {
+      const excess = img.naturalWidth * (shot.offsetHeight / img.naturalHeight) - shot.offsetWidth;
+      if (excess <= 0) return;
+      let startTs = null;
+      const duration = 10000;
+      let forward = true;
+
+      const step = (ts) => {
+        if (!startTs) startTs = ts;
+        const raw = Math.min((ts - startTs) / duration, 1);
+        const t = forward ? raw : 1 - raw;
+        const smooth = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        if (img.parentElement) img.style.transform = `translateX(${-excess * smooth}px)`;
+        if (raw < 1) {
+          animRef.current = requestAnimationFrame(step);
+        } else {
+          forward = !forward;
+          startTs = null;
+          animRef.current = requestAnimationFrame(step);
+        }
+      };
+      animRef.current = requestAnimationFrame(step);
+    };
+
+    if (img.complete && img.naturalWidth) startPan();
+    else img.addEventListener('load', startPan);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [tab]);
+
+  if (!data) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'var(--bg)',
+      display: 'flex', flexDirection: 'column',
+      animation: 'overlayFadeIn 0.2s ease',
+    }}>
+      <style>{`
+        @keyframes overlayFadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes overlayPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.6)} }
+      `}</style>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 20px', height: 52,
+        borderBottom: '1px solid var(--border)', flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'overlayPulse 2s ease-in-out infinite' }} />
+          <span style={{ fontSize: 12, color: 'var(--accent2)', letterSpacing: '0.05em', fontWeight: 500 }}>
+            맥베스 예시 — {data.name}
+          </span>
+        </div>
+        <button
+          onClick={onClose}
+          style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, padding: '8px 18px', cursor: 'pointer', fontFamily: 'inherit' }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        >
+          예시 닫기
+        </button>
+      </div>
+
+      <div ref={shotRef} style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#06060f' }}>
+        <img
+          ref={imgRef}
+          src={data.src}
+          alt={data.name}
+          style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: 'auto', maxWidth: 'none', willChange: 'transform' }}
+        />
+      </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 20px', height: 44,
+        borderTop: '1px solid var(--border)', flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 12, color: 'var(--text3)' }}>{data.desc}</span>
+        <span style={{ fontSize: 11, color: 'var(--text3)' }}>맥베스(Shakespeare) 예시 데이터</span>
+      </div>
     </div>
   );
 }
