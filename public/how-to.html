@@ -310,43 +310,24 @@
       position: fixed;
       inset: 0;
       z-index: 200;
-      background: rgba(6, 6, 14, 0.82);
-      backdrop-filter: blur(4px);
+      background: var(--bg);
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      cursor: pointer;
+      flex-direction: column;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.25s ease;
     }
     .tab-overlay.visible {
       opacity: 1;
       pointer-events: all;
     }
-    .overlay-card {
-      position: relative;
-      width: 100%;
-      max-width: 860px;
-      background: var(--bg2);
-      border: 1px solid rgba(139,124,248,0.3);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
-      cursor: default;
-      transform: translateY(20px);
-      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .tab-overlay.visible .overlay-card {
-      transform: translateY(0);
-    }
     .overlay-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 22px 14px;
+      padding: 16px 28px;
       border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .overlay-label {
       display: flex;
@@ -357,7 +338,7 @@
       letter-spacing: 0.05em;
       font-weight: 500;
     }
-    .overlay-label span {
+    .overlay-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
       background: var(--accent);
@@ -366,29 +347,27 @@
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.7); }
+      50% { opacity: 0.4; transform: scale(0.65); }
     }
     .overlay-close {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text2);
-      font-size: 12px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 13px;
       font-family: 'Noto Sans KR', sans-serif;
-      padding: 6px 14px;
+      font-weight: 500;
+      padding: 9px 20px;
       cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      transition: background 0.15s, transform 0.1s;
     }
-    .overlay-close:hover { background: rgba(139,124,248,0.1); border-color: var(--accent); color: var(--accent2); }
+    .overlay-close:hover { background: var(--accent2); transform: translateY(-1px); }
+    .overlay-close:active { transform: translateY(0); }
     .overlay-screenshot {
       position: relative;
-      width: 100%;
-      height: 460px;
+      flex: 1;
       overflow: hidden;
-      background: #080810;
+      background: #06060f;
     }
     .overlay-screenshot img {
       position: absolute;
@@ -399,7 +378,7 @@
       height: 100%;
       width: auto;
       max-width: none;
-      animation: panX 12s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+      animation: panX 14s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
     }
     .overlay-screenshot.vertical img {
       height: 100%;
@@ -407,19 +386,33 @@
       max-width: none;
     }
     .overlay-footer {
-      padding: 14px 22px;
+      padding: 14px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .overlay-desc {
       font-size: 13px;
       color: var(--text2);
     }
-    .overlay-hint {
-      font-size: 11px;
-      color: var(--text3);
+    .overlay-see-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text2);
+      font-size: 12px;
+      font-family: 'Noto Sans KR', sans-serif;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 20px;
     }
+    .overlay-see-btn:hover { border-color: var(--accent); color: var(--accent2); }
 
     /* 팁 박스 */
     .tip-box {
@@ -577,7 +570,7 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 우측 하단 <strong>+/−</strong> 버튼으로 관계도를 확대·축소할 수 있어요. 캐릭터가 많을 때 유용해요!</p>
   </div>
-</div>
+  <button class="overlay-see-btn" onclick="openOverlay('relation')">🖼 맥베스 예시 다시 보기</button>
 
 <!-- 캐릭터 -->
 <div id="tab-character" class="section">
@@ -629,6 +622,7 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 캐릭터 탭 상단 검색창으로 여러 탭에 걸쳐 한 번에 검색할 수 있어요.</p>
   </div>
+  <button class="overlay-see-btn" onclick="openOverlay('character')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 복선 -->
@@ -666,6 +660,7 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 복선 회수 여부는 토글 버튼으로 바로 변경할 수 있어요. 매화 검토할 때 빠르게 체크해보세요!</p>
   </div>
+  <button class="overlay-see-btn" onclick="openOverlay('foreshadow')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 타임라인 -->
@@ -703,6 +698,7 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 위치 수정 모드에서 드래그로 순서를 바꿀 수 있어요. 수정 종료를 누르면 자동으로 저장돼요.</p>
   </div>
+  <button class="overlay-see-btn" onclick="openOverlay('timeline')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 링크 -->
@@ -735,6 +731,7 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> 2차 창작물뿐 아니라 작품 설정 참고 자료, 시대 배경 자료, 학술 자료 링크도 저장해두면 편리해요!</p>
   </div>
+  <button class="overlay-see-btn" onclick="openOverlay('link')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
 <!-- 설정집 -->
@@ -772,26 +769,22 @@
     <div class="tip-icon">💡</div>
     <p><strong>팁:</strong> "마법 체계", "왕위 계승 제도", "지역별 특성" 등 주제별로 문서를 나눠 관리하면 나중에 찾기 편해요!</p>
   </div>
+  <button class="overlay-see-btn" onclick="openOverlay('world')">🖼 맥베스 예시 다시 보기</button>
 </div>
 
-<div id="tab-overlay" class="tab-overlay" onclick="closeOverlay(event)">
-  <div class="overlay-card" onclick="event.stopPropagation()">
-    <div class="overlay-header">
-      <div class="overlay-label">
-        <span></span>
-        맥베스 예시 — <span id="overlay-tab-name" style="width:auto;height:auto;background:none;animation:none;border-radius:0;display:inline;"></span>
-      </div>
-      <button class="overlay-close" onclick="closeOverlay()">
-        확인했어요 ✓
-      </button>
+<div id="tab-overlay" class="tab-overlay">
+  <div class="overlay-header">
+    <div class="overlay-label">
+      <span class="overlay-dot"></span>
+      맥베스 예시 — <span id="overlay-tab-name"></span>
     </div>
-    <div id="overlay-screenshot" class="overlay-screenshot horizontal">
-      <img id="overlay-img" src="" alt="" />
-    </div>
-    <div class="overlay-footer">
-      <span class="overlay-desc" id="overlay-desc"></span>
-      <span class="overlay-hint">아무 곳이나 클릭하면 닫혀요</span>
-    </div>
+    <button class="overlay-close" onclick="closeOverlay()">예시 닫기</button>
+  </div>
+  <div id="overlay-screenshot" class="overlay-screenshot horizontal">
+    <img id="overlay-img" src="" alt="" />
+  </div>
+  <div class="overlay-footer">
+    <span class="overlay-desc" id="overlay-desc"></span>
   </div>
 </div>
 
@@ -854,14 +847,9 @@
     });
   }
 
-  function closeOverlay(e) {
+  function closeOverlay() {
     document.getElementById('tab-overlay').classList.remove('visible');
   }
-
-  // 키보드 ESC로 닫기
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeOverlay();
-  });
 
   // 기존 pan 뷰어 초기화
   function initPan(viewer) {
