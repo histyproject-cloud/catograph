@@ -11,12 +11,14 @@ import Legal from './pages/Legal';
 import Pricing from './pages/Pricing';
 import Settings from './pages/Settings';
 import OnboardingModal from './components/OnboardingModal';
+import ConsentModal from './components/ConsentModal';
 import './styles/global.css';
 import NotFound from './pages/NotFound';
 
 export default function App() {
   const [user, setUser] = useState(undefined);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
@@ -25,7 +27,10 @@ export default function App() {
         const userDoc = await getDoc(doc(db, 'users', u.uid));
         const userData = userDoc.exists() ? userDoc.data() : {};
         setUser({ ...u, ...userData });
-        if (!userData?.onboardingDone) {
+        // 동의 기록 없으면 동의 모달 먼저
+        if (!userData?.consentAt) {
+          setShowConsent(true);
+        } else if (!userData?.onboardingDone) {
           setShowOnboarding(true);
         }
       } else {
@@ -53,6 +58,16 @@ export default function App() {
   return (
     <BrowserRouter>
       {/* 온보딩: 로그인한 유저에게만 표시 */}
+      {user && showConsent && (
+        <ConsentModal
+          user={user}
+          onComplete={async (data) => {
+            setShowConsent(false);
+            setUser(u => ({ ...u, ...data, consentAt: new Date() }));
+            if (!user?.onboardingDone) setShowOnboarding(true);
+          }}
+        />
+      )}
       {user && showOnboarding && (
         <OnboardingModal
           onClose={handleOnboardingComplete}
