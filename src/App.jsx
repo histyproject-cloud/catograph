@@ -12,6 +12,7 @@ import Pricing from './pages/Pricing';
 import Settings from './pages/Settings';
 import OnboardingModal from './components/OnboardingModal';
 import ConsentModal from './components/ConsentModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import './styles/global.css';
 import NotFound from './pages/NotFound';
 
@@ -56,6 +57,7 @@ export default function App() {
   );
 
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       {/* 온보딩: 로그인한 유저에게만 표시 */}
       {user && showConsent && (
@@ -86,5 +88,6 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
