@@ -43,7 +43,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
     let url = form.url.trim();
     if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
     await onAdd({ ...form, url });
-    setForm({ title: '', url: '', author: '', type: '팬픽' });
+    setForm({ title: '', url: '', author: '', type: '그림' });
     setShowAdd(false);
   };
 
