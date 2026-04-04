@@ -11,12 +11,21 @@ setGlobalOptions({ maxInstances: 10, region: "asia-northeast3" });
 const db = getFirestore();
 const storage = getStorage();
 
+// batch 500개 제한 처리용 헬퍼
+async function deleteInBatches(refs) {
+  const CHUNK = 400;
+  for (let i = 0; i < refs.length; i += CHUNK) {
+    const batch = db.batch();
+    refs.slice(i, i + CHUNK).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+}
+
 /**
  * 회원 탈퇴 함수
  * 호출 시 해당 유저의 모든 Firestore 데이터 + Storage 파일 + Auth 계정 삭제
  */
 exports.deleteAccount = onCall(async (request) => {
-  // 로그인 확인
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
@@ -32,7 +41,6 @@ exports.deleteAccount = onCall(async (request) => {
 
     const projectIds = projectsSnap.docs.map((d) => d.id);
 
-    // 2. 서브컬렉션 일괄 삭제 (프로젝트별)
     const COLLECTIONS = [
       "characters",
       "relations",
@@ -43,18 +51,7 @@ exports.deleteAccount = onCall(async (request) => {
     ];
 
     for (const projectId of projectIds) {
-      for (const col of COLLECTIONS) {
-        const snap = await db
-          .collection(col)
-          .where("projectId", "==", projectId)
-          .get();
-
-        const batch = db.batch();
-        snap.docs.forEach((d) => batch.delete(d.ref));
-        if (!snap.empty) await batch.commit();
-      }
-
-      // Storage 캐릭터 사진 삭제 (characters/{charId}/photo)
+      // 2. Storage 캐릭터 사진 먼저 삭제 (Firestore 삭제 전에)
       const charsSnap = await db
         .collection("characters")
         .where("projectId", "==", projectId)
@@ -72,17 +69,29 @@ exports.deleteAccount = onCall(async (request) => {
           }
         }
       }
+
+      // 3. 서브컬렉션 일괄 삭제 (500개 제한 처리)
+      for (const col of COLLECTIONS) {
+        const snap = await db
+          .collection(col)
+          .where("projectId", "==", projectId)
+          .get();
+
+        if (!snap.empty) {
+          await deleteInBatches(snap.docs.map((d) => d.ref));
+        }
+      }
     }
 
-    // 3. 프로젝트 문서 삭제
-    const projectBatch = db.batch();
-    projectsSnap.docs.forEach((d) => projectBatch.delete(d.ref));
-    if (!projectsSnap.empty) await projectBatch.commit();
+    // 4. 프로젝트 문서 삭제
+    if (!projectsSnap.empty) {
+      await deleteInBatches(projectsSnap.docs.map((d) => d.ref));
+    }
 
-    // 4. 유저 문서 삭제
+    // 5. 유저 문서 삭제
     await db.collection("users").doc(uid).delete();
 
-    // 5. Firebase Auth 계정 삭제
+    // 6. Firebase Auth 계정 삭제
     await getAuth().deleteUser(uid);
 
     return { success: true };

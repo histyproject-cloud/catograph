@@ -3,7 +3,6 @@ import { Share2, Network, Sparkles, Globe, Clock, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useProjects } from '../hooks/useProject';
 import { FREE_LIMITS, LIMIT_MESSAGES, isPro } from '../config/plans';
 import UpgradeModal from '../components/UpgradeModal';
@@ -16,7 +15,6 @@ export default function Dashboard({ user }) {
   const [creating, setCreating] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false);
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -31,22 +29,6 @@ export default function Dashboard({ user }) {
       return;
     }
     setShowNew(true);
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('정말 탈퇴하시겠어요?\n모든 작품 데이터가 영구 삭제되며 복구할 수 없어요.')) return;
-    if (!window.confirm('마지막 확인입니다. 정말 삭제할까요?')) return;
-    setDeletingAccount(true);
-    try {
-      const functions = getFunctions(undefined, 'asia-northeast3');
-      const deleteAccount = httpsCallable(functions, 'deleteAccount');
-      await deleteAccount();
-      await signOut(auth);
-    } catch (err) {
-      console.error(err);
-      alert('탈퇴 처리 중 오류가 발생했어요. 다시 시도해주세요.');
-      setDeletingAccount(false);
-    }
   };
 
   const handleCreate = async (e) => {
@@ -187,7 +169,7 @@ export default function Dashboard({ user }) {
               <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/pricing')}>요금제</span>
               <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/legal')}>이용약관</span>
               <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/legal')}>개인정보처리방침</span>
-              <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/legal?tab=refund')}>환불 정책</span>
+              <span style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }} onClick={() => navigate('/legal')}>환불 정책</span>
             </div>
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>© 2026 Histy</span>
           </div>
