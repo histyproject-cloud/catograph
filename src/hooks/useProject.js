@@ -22,7 +22,20 @@ export function useProjects(userId) {
   const createProject = async (name) =>
     addDoc(collection(db, 'projects'), { name, ownerId: userId, createdAt: serverTimestamp(), sharedWith: [] });
 
-  const deleteProject = async (id) => deleteDoc(doc(db, 'projects', id));
+  const deleteProject = async (id) => {
+    const batch = writeBatch(db);
+    const collections = ['characters', 'relations', 'foreshadows', 'worldDocs', 'timelineEvents', 'fanworks'];
+
+    // 하위 컬렉션 전부 삭제
+    for (const col of collections) {
+      const snap = await getDocs(query(collection(db, col), where('projectId', '==', id)));
+      snap.docs.forEach(d => batch.delete(d.ref));
+    }
+
+    // 프로젝트 document 삭제
+    batch.delete(doc(db, 'projects', id));
+    await batch.commit();
+  };
 
   const updateProject = async (id, data) => updateDoc(doc(db, 'projects', id), data);
 
