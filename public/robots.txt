@@ -1,0 +1,16 @@
+User-agent: *
+
+# 로그인 필요한 페이지 - 크롤링 차단
+Disallow: /project/
+Disallow: /settings
+
+# 공개 페이지 - 크롤링 허용
+Allow: /
+Allow: /login
+Allow: /legal
+Allow: /pricing
+Allow: /how-to.html
+Allow: /shared/
+
+# 사이트맵
+Sitemap: https://cartographic.agency/sitemap.xml
