@@ -97,7 +97,7 @@ export default function Settings({ user, onShowOnboarding }) {
             <button className="btn btn-ghost" style={{ justifyContent: 'flex-start', fontSize: 13, height: 36 }}
               onClick={() => navigate('/legal')}>개인정보처리방침</button>
             <button className="btn btn-ghost" style={{ justifyContent: 'flex-start', fontSize: 13, height: 36 }}
-              onClick={() => navigate('/legal?tab=refund')}>환불 정책</button>
+              onClick={() => navigate('/legal')}>환불 정책</button>
           </div>
         </section>
 
