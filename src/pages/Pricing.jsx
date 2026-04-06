@@ -21,16 +21,16 @@ export default function Pricing({ user }) {
     try {
       const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
       const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
-      const billing = tossPayments.billing({ customerKey: user.uid });
       const amount = yearly ? 29900 : 3300;
       const planName = yearly ? 'Cartographic Pro 연간' : 'Cartographic Pro 월간';
       const orderId = `order_${user.uid}_${Date.now()}`;
-      await billing.requestBillingAuth({
+      await tossPayments.requestBillingAuth({
         method: 'CARD',
         successUrl: `${window.location.origin}/payment/success?orderId=${orderId}&amount=${amount}&yearly=${yearly}`,
         failUrl: `${window.location.origin}/payment/fail`,
         customerEmail: user.email || '',
         customerName: user.displayName || '고객',
+        customerKey: user.uid,
         orderName: planName,
       });
     } catch (e) {
