@@ -31,7 +31,6 @@ export default function Pricing({ user }) {
         failUrl: `${window.location.origin}/payment/fail`,
         customerEmail: user.email || '',
         customerName: user.displayName || '고객',
-        orderName: planName,
       });
     } catch (e) {
       console.error(e);
