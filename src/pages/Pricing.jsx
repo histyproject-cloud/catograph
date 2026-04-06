@@ -2,41 +2,47 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isPro } from '../config/plans';
 
+const TOSS_CLIENT_KEY = process.env.REACT_APP_TOSS_CLIENT_KEY;
+
 export default function Pricing({ user }) {
   const navigate = useNavigate();
   const [yearly, setYearly] = useState(false);
+  const [paying, setPaying] = useState(false);
   const userIsPro = isPro(user);
 
-  const FREE_FEATURES = [
-    '프로젝트 1개 생성 가능',
-    '캐릭터 최대 10명 등록',
-    '설정집 문서 최대 3개 등록',
-    '복선 최대 10개 등록',
-    '타임라인 최대 20개 등록',
-    '공유 링크 (읽기 전용) 전송 가능',
-  ];
+  const FREE_FEATURES = ['프로젝트 1개 생성 가능','캐릭터 최대 10명 등록','설정집 문서 최대 3개 등록','복선 최대 10개 등록','타임라인 최대 20개 등록','공유 링크 (읽기 전용) 전송 가능'];
+  const PRO_FEATURES = ['프로젝트 무제한 생성','캐릭터 무제한 등록','설정집 문서 무제한 등록','복선 무제한 등록','타임라인 무제한 등록','공유 링크 (읽기 전용) 전송 가능','우선 고객 지원'];
+  const ENTERPRISE_FEATURES = ['30명 이상 팀을 위한 플랜','Pro 기능 전체 포함','인당 요금 할인','우선 기술 지원 (SLA)','맞춤 계약 및 세금계산서'];
 
-  const PRO_FEATURES = [
-    '프로젝트 무제한 생성',
-    '캐릭터 무제한 등록',
-    '설정집 문서 무제한 등록',
-    '복선 무제한 등록',
-    '타임라인 무제한 등록',
-    '공유 링크 (읽기 전용) 전송 가능',
-    '우선 고객 지원',
-  ];
-
-  const ENTERPRISE_FEATURES = [
-    '30명 이상 팀을 위한 플랜',
-    'Pro 기능 전체 포함',
-    '인당 요금 할인',
-    '우선 기술 지원 (SLA)',
-    '맞춤 계약 및 세금계산서',
-  ];
+  const handlePayment = async () => {
+    if (!user) { navigate('/login'); return; }
+    if (paying) return;
+    setPaying(true);
+    try {
+      const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
+      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+      const billing = tossPayments.billing({ customerKey: user.uid });
+      const amount = yearly ? 29900 : 3300;
+      const planName = yearly ? 'Cartographic Pro 연간' : 'Cartographic Pro 월간';
+      const orderId = `order_${user.uid}_${Date.now()}`;
+      await billing.requestBillingAuth({
+        method: 'CARD',
+        successUrl: `${window.location.origin}/payment/success?orderId=${orderId}&amount=${amount}&yearly=${yearly}`,
+        failUrl: `${window.location.origin}/payment/fail`,
+        customerEmail: user.email || '',
+        customerName: user.displayName || '고객',
+        orderName: planName,
+      });
+    } catch (e) {
+      console.error(e);
+      alert('결제 창 열기에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* 헤더 */}
       <header style={{ height: 52, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', position: 'sticky', top: 0, zIndex: 10 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => navigate(-1)}>← 뒤로</button>
         <div style={{ width: 1, height: 16, background: 'var(--border)' }} />
@@ -47,119 +53,73 @@ export default function Pricing({ user }) {
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', marginBottom: 12 }}>요금제</h1>
           <p style={{ color: 'var(--text2)', fontSize: 15, marginBottom: 28 }}>처음 30일은 Pro 플랜을 무료로 체험해보세요</p>
-
-          {/* 월간/연간 토글 */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 99, padding: '6px 8px' }}>
             <button onClick={() => setYearly(false)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: !yearly ? 'var(--accent)' : 'transparent', color: !yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}>월간</button>
             <button onClick={() => setYearly(true)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: yearly ? 'var(--accent)' : 'transparent', color: yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}>
-              연간
-              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>25% 할인</span>
+              연간 <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>25% 할인</span>
             </button>
           </div>
         </div>
 
-        {/* 요금제 카드 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
           {/* Free */}
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: 28 }}>
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Free</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40 }}>0원</span>
-              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}><span style={{ fontFamily: 'var(--font-serif)', fontSize: 40 }}>0원</span></div>
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>영원히 무료</div>
             </div>
-            <button className="btn" 
-              style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, opacity: userIsPro ? 0.4 : 1, cursor: userIsPro ? 'default' : 'pointer' }} 
-              onClick={() => !userIsPro && navigate('/')}
-              disabled={userIsPro}>
-              무료로 시작하기
-            </button>
+            <button className="btn" style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, opacity: userIsPro ? 0.4 : 1, cursor: userIsPro ? 'default' : 'pointer' }} onClick={() => !userIsPro && navigate('/')} disabled={userIsPro}>무료로 시작하기</button>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
-              {FREE_FEATURES.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <span style={{ color: 'var(--text3)', fontSize: 14 }}>○</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)' }}>{f}</span>
-                </div>
-              ))}
+              {FREE_FEATURES.map((f, i) => (<div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}><span style={{ color: 'var(--text3)', fontSize: 14 }}>○</span><span style={{ fontSize: 13, color: 'var(--text2)' }}>{f}</span></div>))}
             </div>
           </div>
 
           {/* Pro */}
           <div style={{ background: 'var(--bg2)', border: '2px solid var(--accent)', borderRadius: 'var(--radius-xl)', padding: 28, position: 'relative' }}>
-            <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '3px 14px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-              30일 무료 체험
-            </div>
+            <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '3px 14px', borderRadius: 99, whiteSpace: 'nowrap' }}>30일 무료 체험</div>
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Pro</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40 }}>
-                  {yearly ? '29,900' : '3,300'}원
-                </span>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40 }}>{yearly ? '29,900' : '3,300'}원</span>
                 <span style={{ color: 'var(--text3)', fontSize: 13 }}>{yearly ? '/년' : '/월'}</span>
               </div>
-              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>
-                {yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}
-              </div>
+              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}</div>
             </div>
             <button className={`btn ${userIsPro ? '' : 'btn-primary'}`}
               style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, cursor: userIsPro ? 'default' : 'pointer' }}
-              onClick={() => !userIsPro && navigate('/')}
-              disabled={userIsPro}>
-              {userIsPro ? '✦ 현재 플랜' : '30일 무료로 시작하기'}
+              onClick={() => !userIsPro && handlePayment()}
+              disabled={userIsPro || paying}>
+              {userIsPro ? '✦ 현재 플랜' : paying ? '처리 중...' : '30일 무료로 시작하기'}
             </button>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
-              {PRO_FEATURES.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span>
-                  <span style={{ fontSize: 13, color: 'var(--text)' }}>{f}</span>
-                </div>
-              ))}
+              {PRO_FEATURES.map((f, i) => (<div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}><span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span><span style={{ fontSize: 13, color: 'var(--text)' }}>{f}</span></div>))}
             </div>
           </div>
 
           {/* Enterprise */}
-          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-xl)', padding: 28, position: 'relative' }}>
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-xl)', padding: 28 }}>
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, color: 'var(--teal, #2dd4bf)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Enterprise</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--text)' }}>맞춤 견적</span>
-              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}><span style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--text)' }}>맞춤 견적</span></div>
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>30명 이상 팀을 위한 맞춤 견적</div>
             </div>
-            <a href="mailto:histy.cartographic@gmail.com?subject=Cartographic%20Enterprise%20%EB%AC%B8%EC%9D%98&body=%EC%95%88%EB%85%95%ED%95%98%EC%84%B8%EC%9A%94%2C%20Cartographic%20Enterprise%20%ED%94%8C%EB%9E%9C%EC%97%90%20%EB%8C%80%ED%95%B4%20%EB%AC%B8%EC%9D%98%EB%93%9C%EB%A6%BD%EB%8B%88%EB%8B%A4.%0A%0A%ED%9A%8C%EC%82%AC%EB%AA%85%3A%0A%ED%8C%80%20%EC%9D%B8%EC%9B%90%3A%0A%EB%AC%B8%EC%9D%98%20%EB%82%B4%EC%9A%A9%3A"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: 42, fontSize: 14, marginBottom: 24,
-                border: '1px solid var(--border2)', borderRadius: 'var(--radius)',
-                color: 'var(--text)', textDecoration: 'none',
-                background: 'transparent', cursor: 'pointer',
-                transition: 'background 0.2s',
-              }}
+            <a href="mailto:histy.cartographic@gmail.com?subject=Cartographic%20Enterprise%20%EB%AC%B8%EC%9D%98"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', textDecoration: 'none', background: 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              문의하기 →
-            </a>
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>문의하기 →</a>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
-              {ENTERPRISE_FEATURES.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <span style={{ color: '#2dd4bf', fontSize: 14 }}>✦</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)' }}>{f}</span>
-                </div>
-              ))}
+              {ENTERPRISE_FEATURES.map((f, i) => (<div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}><span style={{ color: '#2dd4bf', fontSize: 14 }}>✦</span><span style={{ fontSize: 13, color: 'var(--text2)' }}>{f}</span></div>))}
             </div>
           </div>
         </div>
 
-        {/* 환불 안내 */}
         <div style={{ textAlign: 'center', marginTop: 40, padding: '20px', background: 'var(--bg2)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
           <p style={{ fontSize: 13, color: 'var(--text2)' }}>결제일로부터 7일 이내 전액 환불 보장 · 언제든지 해지 가능</p>
           <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>문의: histy.cartographic@gmail.com</p>
         </div>
       </main>
 
-      {/* 사업자 정보 footer */}
       <footer style={{ borderTop: '1px solid var(--border)', padding: '24px 20px', background: 'var(--bg2)' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', fontSize: 11, color: 'var(--text3)', lineHeight: 2, textAlign: 'center' }}>
           <p>상호명: 히스티 · 대표자: 우연우 · 사업자등록번호: 162-18-02499</p>
