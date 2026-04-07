@@ -29,6 +29,14 @@ export default function App() {
         // Firestore에서 유저 데이터 (subscription 등) 불러와서 합치기
         const userDoc = await getDoc(doc(db, 'users', u.uid));
         const userData = userDoc.exists() ? userDoc.data() : {};
+
+        // 문서 없으면 기본 문서 생성
+        if (!userDoc.exists()) {
+          await setDoc(doc(db, 'users', u.uid), {
+            createdAt: serverTimestamp(),
+          });
+        }
+
         setUser({ ...u, ...userData });
         // 동의 기록 없으면 동의 모달 먼저
         if (!userData?.consentAt) {
