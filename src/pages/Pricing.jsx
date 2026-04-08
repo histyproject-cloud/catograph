@@ -22,7 +22,7 @@ export default function Pricing({ user }) {
       const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
       const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
       const payment = tossPayments.payment({ customerKey: user.uid });
-      const amount = yearly ? 29900 : 3300;
+      const amount = yearly ? 29700 : 3300;
       const planName = yearly ? 'Cartographic Pro 연간' : 'Cartographic Pro 월간';
       const orderId = `order_${user.uid}_${Date.now()}`;
       await payment.requestBillingAuth({
@@ -80,10 +80,10 @@ export default function Pricing({ user }) {
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Pro</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40 }}>{yearly ? '29,900' : '3,300'}원</span>
-                <span style={{ color: 'var(--text3)', fontSize: 13 }}>{yearly ? '/년' : '/월'}</span>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40 }}>{yearly ? '2,475' : '3,300'}원</span>
+                <span style={{ color: 'var(--text3)', fontSize: 13 }}>{yearly ? '/월' : '/월'}</span>
               </div>
-              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}</div>
+              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{yearly ? '연 29,700원 · 25% 할인' : '연간 결제 시 25% 할인'}</div>
             </div>
             <button className={`btn ${userIsPro ? '' : 'btn-primary'}`}
               style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, cursor: userIsPro ? 'default' : 'pointer' }}
@@ -122,7 +122,7 @@ export default function Pricing({ user }) {
       <footer style={{ borderTop: '1px solid var(--border)', padding: '24px 20px', background: 'var(--bg2)' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', fontSize: 11, color: 'var(--text3)', lineHeight: 2, textAlign: 'center' }}>
           <p>상호명: 히스티 · 대표자: 우연우 · 사업자등록번호: 162-18-02499</p>
-          <p>주소: 서울특별시 광진구 구의강변로 11 · 이메일: histy.cartographic@gmail.com</p>
+          <p>주소: 서울특별시 광진구 구의강변로 11 · 전화: 010-5629-4236 · 이메일: histy.cartographic@gmail.com</p>
         </div>
       </footer>
     </div>
