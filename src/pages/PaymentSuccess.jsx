@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 export default function PaymentSuccess() {
-  const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [status, setStatus] = useState('processing'); // processing | done | error
+  const [status, setStatus] = useState('processing');
 
   useEffect(() => {
     const confirm = async () => {
@@ -19,11 +18,9 @@ export default function PaymentSuccess() {
 
         if (!authKey || !customerKey) throw new Error('파라미터 없음');
 
-        // 토스 빌링키 발급 요청 (서버리스 함수에서 처리해야 하지만 테스트용으로 Firestore에 저장)
         const user = auth.currentUser;
         if (!user) throw new Error('로그인 필요');
 
-        // 구독 정보 저장 (실제 서비스에서는 Cloud Functions 웹훅으로 처리)
         const now = new Date();
         const periodEnd = new Date(now);
         if (yearly) {
@@ -46,6 +43,12 @@ export default function PaymentSuccess() {
         }, { merge: true });
 
         setStatus('done');
+
+        // 3초 후 새로고침하며 홈으로 → App.jsx가 Firestore 다시 읽어서 Pro 반영
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+
       } catch (e) {
         console.error(e);
         setStatus('error');
@@ -71,11 +74,12 @@ export default function PaymentSuccess() {
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--text)', marginBottom: 12 }}>결제가 완료됐어요!</div>
             <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.8, marginBottom: 32 }}>
               Pro 플랜이 활성화됐어요.<br />
-              이제 모든 기능을 무제한으로 사용할 수 있어요.
+              잠시 후 홈으로 이동합니다...
             </p>
-            <button className="btn btn-primary" style={{ height: 44, padding: '0 32px', fontSize: 14 }} onClick={() => navigate('/')}>
-              시작하기 →
-            </button>
+            <div style={{ width: '100%', height: 4, background: 'var(--bg3)', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 99, animation: 'progress 3s linear forwards' }} />
+            </div>
+            <style>{`@keyframes progress { from { width: 0% } to { width: 100% } }`}</style>
           </>
         )}
         {status === 'error' && (
@@ -86,7 +90,7 @@ export default function PaymentSuccess() {
               결제는 완료됐을 수 있어요.<br />
               histy.cartographic@gmail.com 으로 문의해 주세요.
             </p>
-            <button className="btn" style={{ height: 44, padding: '0 32px', fontSize: 14 }} onClick={() => navigate('/')}>
+            <button className="btn" style={{ height: 44, padding: '0 32px', fontSize: 14 }} onClick={() => window.location.href = '/'}>
               홈으로
             </button>
           </>
