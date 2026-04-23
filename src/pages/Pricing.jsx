@@ -116,8 +116,8 @@ export default function Pricing({ user }) {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 40, padding: '20px', background: 'var(--bg2)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
-          <p style={{ fontSize: 13, color: 'var(--text2)' }}>결제일로부터 7일 이내 전액 환불 보장 · 언제든지 해지 가능</p>
-          <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>문의: histy.cartographic@gmail.com</p>
+          <p style={{ fontSize: 13, color: 'var(--text2)' }}>서비스 이용 시작 전 취소 시 전액 환불 · 이용 시작 후 환불 불가 (전자상거래법 제17조 제2항 제5호) · 언제든지 해지 가능</p>
+          <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>무료 플랜으로 먼저 체험 후 결제를 권장합니다 · 문의: histy.cartographic@gmail.com</p>
         </div>
       </main>
 
