@@ -148,47 +148,47 @@ export default function Project({ user }) {
         {/* 검색 아이콘 */}
         <button className="btn btn-ghost" style={{ padding: '0 10px', height: 36, flexShrink: 0, display: 'flex', alignItems: 'center' }}
           onClick={() => { setShowSearch(true); setSearchQuery(''); }}><Search size={16} /></button>
-        {/* 액션 버튼들 - 탭에 따라 다르게 */}
-        {activeTab === 'relation' && (
+        {/* 액션 버튼들 - 데스크톱/태블릿만 헤더에 표시 */}
+        {!isMobile && activeTab === 'relation' && (
           <button
             className={`btn ${connectMode ? 'btn-primary' : ''}`}
             style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => { setConnectMode(v => !v); setConnectFrom(null); }}
           >
-            {isMobile ? '연결' : connectMode ? (connectFrom ? '대상 선택' : '시작 선택') : '관계 연결'}
+            {connectMode ? (connectFrom ? '대상 선택' : '시작 선택') : '관계 연결'}
           </button>
         )}
-        {(activeTab === 'relation' || activeTab === 'characters') && (
+        {!isMobile && (activeTab === 'relation' || activeTab === 'characters') && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => { if (checkLimit(characters.length, 'characters')) setShowAddChar(true); }}>
             + 캐릭터
           </button>
         )}
-        {activeTab === 'world' && (
+        {!isMobile && activeTab === 'world' && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => { if (checkLimit(worldDocs.length, 'worldDocs')) document.dispatchEvent(new CustomEvent('worlddoc:add')); }}>
             + 새 문서
           </button>
         )}
-        {activeTab === 'foreshadow' && (
+        {!isMobile && activeTab === 'foreshadow' && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => document.dispatchEvent(new CustomEvent('foreshadow:add'))}>
             + 복선 추가
           </button>
         )}
-        {activeTab === 'timeline' && (
+        {!isMobile && activeTab === 'timeline' && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => document.dispatchEvent(new CustomEvent('timeline:add'))}>
             + 타임라인 추가
           </button>
         )}
-        {activeTab === 'fanworks' && (
+        {!isMobile && activeTab === 'fanworks' && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
             onClick={() => document.dispatchEvent(new CustomEvent('fanworks:add'))}>
             + 링크 추가
           </button>
         )}
-        {['characters', 'world', 'foreshadow', 'timeline', 'fanworks'].includes(activeTab) && (
+        {!isMobile && ['characters', 'world', 'foreshadow', 'timeline', 'fanworks'].includes(activeTab) && (
           <button
             className={`btn${reorderMode ? ' btn-primary' : ''}`}
             style={{ fontSize: 13, padding: '0 14px', height: 36, background: reorderMode ? 'rgba(139,124,248,0.25)' : undefined, borderColor: reorderMode ? 'var(--accent)' : undefined }}
@@ -198,14 +198,16 @@ export default function Project({ user }) {
           </button>
         )}
         <button className="btn" style={{ fontSize: 13, padding: '0 14px', height: 36 }} onClick={() => setShowShareModal(true)}>
-          {isMobile ? '공유' : '공유'}
+          공유
         </button>
-        <a href="/how-to.html" target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none', padding: '0 12px', height: 36, display: 'flex', alignItems: 'center', borderRadius: 'var(--radius)', border: '1px solid var(--border)', transition: 'all 0.2s', flexShrink: 0 }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
-          이용방법
-        </a>
+        {!isMobile && (
+          <a href="/how-to.html" target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none', padding: '0 12px', height: 36, display: 'flex', alignItems: 'center', borderRadius: 'var(--radius)', border: '1px solid var(--border)', transition: 'all 0.2s', flexShrink: 0 }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+            이용방법
+          </a>
+        )}
         {/* 프로필 드롭다운 */}
         <div ref={profileRef} style={{ position: 'relative', flexShrink: 0 }}>
           <button onClick={() => setShowProfile(v => !v)}
@@ -319,6 +321,59 @@ export default function Project({ user }) {
           />
         )}
       </div>
+
+      {/* 모바일 FAB - 바텀탭바 위에 플로팅 액션 버튼 */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(var(--bottombar-h) + 12px)',
+          right: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          zIndex: 40,
+        }}>
+          {/* 관계 연결 버튼 (relation 탭만) */}
+          {activeTab === 'relation' && (
+            <button
+              onClick={() => { setConnectMode(v => !v); setConnectFrom(null); }}
+              style={{
+                width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: connectMode ? 'var(--accent)' : 'var(--bg2)',
+                border: `1.5px solid ${connectMode ? 'var(--accent)' : 'var(--border2)'}`,
+                color: connectMode ? '#fff' : 'var(--text2)',
+                fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              }}
+              title="관계 연결"
+            >⇌</button>
+          )}
+          {/* + 추가 버튼 (탭에 따라 동작 다름) */}
+          <button
+            onClick={() => {
+              if (activeTab === 'relation' || activeTab === 'characters') {
+                if (checkLimit(characters.length, 'characters')) setShowAddChar(true);
+              } else if (activeTab === 'world') {
+                if (checkLimit(worldDocs.length, 'worldDocs')) document.dispatchEvent(new CustomEvent('worlddoc:add'));
+              } else if (activeTab === 'foreshadow') {
+                document.dispatchEvent(new CustomEvent('foreshadow:add'));
+              } else if (activeTab === 'timeline') {
+                document.dispatchEvent(new CustomEvent('timeline:add'));
+              } else if (activeTab === 'fanworks') {
+                document.dispatchEvent(new CustomEvent('fanworks:add'));
+              }
+            }}
+            style={{
+              width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: 'pointer',
+              background: 'var(--accent)',
+              color: '#fff',
+              fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(139,124,248,0.5)',
+            }}
+            title="추가"
+          >+</button>
+        </div>
+      )}
 
       {/* 바텀 탭바 (모바일/태블릿) */}
       {(isMobile || isTablet) && (
