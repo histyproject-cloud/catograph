@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 export default function PaymentSuccess() {
@@ -20,6 +20,14 @@ export default function PaymentSuccess() {
 
         const user = auth.currentUser;
         if (!user) throw new Error('로그인 필요');
+
+        // ── 중복 실행 방지: 이미 같은 orderId로 처리된 경우 스킵 ──
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data()?.subscription?.orderId === orderId) {
+          setStatus('done');
+          setTimeout(() => { window.location.href = '/'; }, 3000);
+          return;
+        }
 
         const now = new Date();
         const periodEnd = new Date(now);
