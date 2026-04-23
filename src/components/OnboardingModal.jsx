@@ -72,10 +72,10 @@ function WelcomeVisual() {
 
 function TimelineVisual() {
   const items = [
-    { ep: "1화", tag: "사건", text: "지니, 환생", color: "#818cf8" },
-    { ep: "5화", tag: "복선 심기", text: "검은 머리 남자의 등장", color: "#a78bfa" },
-    { ep: "10화", tag: "캐릭터 등장", text: "채드의 등장", color: "#34d399" },
-    { ep: "120화", tag: "사건", text: "애쉬의 정체 발각", color: "#818cf8" },
+    { ep: "1막", tag: "사건", text: "맥베스, 마녀들의 예언을 듣다", color: "#818cf8" },
+    { ep: "2막", tag: "복선 심기", text: "단검 환영 — 불길한 예언의 시작", color: "#a78bfa" },
+    { ep: "3막", tag: "사건", text: "맥베스, 뱅쿠오를 암살하다", color: "#34d399" },
+    { ep: "5막", tag: "결말", text: "맥더프, 맥베스를 처단하다", color: "#818cf8" },
   ];
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -98,9 +98,9 @@ function TimelineVisual() {
 
 function ForeshadowingVisual() {
   const items = [
-    { title: "바이올린 소리", status: "미회수", color: "#f59e0b" },
-    { title: "파란 용의 정체", status: "회수 완료", color: "#34d399", done: true },
-    { title: "검은 머리 남자", status: "미회수", color: "#f59e0b" },
+    { title: "단검 환영 — 살인의 예고", status: "회수 완료", color: "#34d399", done: true },
+    { title: "세 마녀의 예언", status: "회수 완료", color: "#34d399", done: true },
+    { title: "맥베스 부인의 몽유병", status: "미회수", color: "#f59e0b" },
   ];
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -131,9 +131,9 @@ function RelationshipVisual() {
     { label: "던컨 왕", role: "스코틀랜드의 왕", x: 20, y: 68, color: "#818cf8" },
   ];
   const edges = [
-    { x1: "35%", y1: "30%", x2: "68%", y2: "52%", label: "사랑", color: "#f472b6" },
-    { x1: "30%", y1: "68%", x2: "63%", y2: "60%", label: "애정", color: "#f472b6" },
-    { x1: "25%", y1: "25%", x2: "22%", y2: "65%", label: "신뢰", color: "#34d399" },
+    { x1: "35%", y1: "30%", x2: "68%", y2: "52%", label: "동료", color: "#34d399" },
+    { x1: "30%", y1: "68%", x2: "63%", y2: "60%", label: "충성", color: "#818cf8" },
+    { x1: "25%", y1: "25%", x2: "22%", y2: "65%", label: "살의", color: "#f472b6" },
   ];
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -169,9 +169,9 @@ function RelationshipVisual() {
 
 function WorldVisual() {
   const links = [
-    { type: "그림", title: "맥베스 초상화", color: "#818cf8" },
-    { type: "소설", title: "만약 배경이 현대라면?", color: "#34d399" },
-    { type: "그림", title: "만약 배경이 현대라면?", color: "#818cf8" },
+    { type: "그림", title: "맥베스와 맥베스 부인 팬아트", color: "#818cf8" },
+    { type: "소설", title: "현대 배경 AU — CEO 맥베스", color: "#34d399" },
+    { type: "번역", title: "영문 원작 전문 링크", color: "#f472b6" },
   ];
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
