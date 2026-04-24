@@ -6,6 +6,7 @@
     "node": "20.x"
   },
   "dependencies": {
+    "@sentry/react": "^10.50.0",
     "@tosspayments/tosspayments-sdk": "^2.6.0",
     "firebase": "^10.8.0",
     "lucide-react": "^0.577.0",
