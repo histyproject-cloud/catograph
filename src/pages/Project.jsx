@@ -261,7 +261,7 @@ export default function Project({ user }) {
         />
 
         {/* 메인 콘텐츠 */}
-        <main style={{ flex: 1, overflow: 'hidden', display: 'flex', minWidth: 0 }}>
+        <main id="project-main-content" style={{ flex: 1, overflow: 'hidden', display: 'flex', minWidth: 0 }}>
           {activeTab === 'relation' && (
             <RelationCanvas
               characters={characters} relations={relations}
@@ -449,6 +449,7 @@ export default function Project({ user }) {
         <ShareModal
           projectId={projectId}
           project={project}
+          activeTab={activeTab}
           onClose={() => setShowShareModal(false)}
           onUpdate={(data) => setProject(p => ({ ...p, ...data }))}
         />
@@ -1400,15 +1401,20 @@ function AddCharModal({ onClose, onAdd }) {
 }
 
 // ── 공유 모달 ──
-function ShareModal({ projectId, project, onClose, onUpdate }) {
+function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
   const [shareEnabled, setShareEnabled] = useState(project?.shareEnabled || false);
   const [shareTab, setShareTab] = useState(project?.shareTab || 'all');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [shareMode, setShareMode] = useState('link'); // 'link' | 'image'
 
+  const currentTabUrl = `${window.location.origin}/shared/${projectId}?tab=${activeTab}`;
   const shareUrl = shareTab === 'all'
     ? `${window.location.origin}/shared/${projectId}`
-    : `${window.location.origin}/shared/${projectId}?tab=${shareTab}`;
+    : shareTab === 'current'
+      ? currentTabUrl
+      : `${window.location.origin}/shared/${projectId}?tab=${shareTab}`;
 
   const toggleShare = async () => {
     setSaving(true);
@@ -1421,8 +1427,10 @@ function ShareModal({ projectId, project, onClose, onUpdate }) {
 
   const handleTabChange = async (tab) => {
     setShareTab(tab);
-    await updateDoc(doc(db, 'projects', projectId), { shareTab: tab });
-    onUpdate({ shareTab: tab });
+    if (tab !== 'current') {
+      await updateDoc(doc(db, 'projects', projectId), { shareTab: tab });
+      onUpdate({ shareTab: tab });
+    }
   };
 
   const copyLink = () => {
@@ -1431,8 +1439,28 @@ function ShareModal({ projectId, project, onClose, onUpdate }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const captureImage = async () => {
+    setCapturing(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const target = document.getElementById('project-main-content');
+      if (!target) { alert('캡처할 화면을 찾을 수 없어요.'); return; }
+      const canvas = await html2canvas(target, { backgroundColor: '#0d0d0f', scale: 2, useCORS: true });
+      const link = document.createElement('a');
+      link.download = `cartographic-${activeTab}-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (e) {
+      console.error(e);
+      alert('이미지 저장에 실패했어요.');
+    } finally {
+      setCapturing(false);
+    }
+  };
+
   const SHARE_TABS = [
     { id: 'all', label: '전체 공유', desc: '캐릭터, 세계관, 복선, 타임라인 모두' },
+    { id: 'current', label: '현재 탭만', desc: `지금 보고 있는 탭만 (${activeTab})` },
     { id: 'characters', label: '캐릭터만', desc: '캐릭터 목록과 상세 정보만' },
     { id: 'world', label: '세계관만', desc: '설정집 문서만' },
     { id: 'foreshadow', label: '복선만', desc: '복선 목록만' },
@@ -1444,56 +1472,80 @@ function ShareModal({ projectId, project, onClose, onUpdate }) {
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
         <div className="modal-title">공유 설정</div>
 
-        {/* 공유 토글 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 500 }}>읽기 전용 링크</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>협업자가 설정을 열람할 수 있어요</div>
-          </div>
-          <button onClick={toggleShare} disabled={saving} style={{ width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer', background: shareEnabled ? 'var(--accent)' : 'var(--bg4)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-            <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: shareEnabled ? 23 : 3, transition: 'left 0.2s' }} />
+        {/* 공유 방식 선택 */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button onClick={() => setShareMode('link')} style={{ flex: 1, height: 36, borderRadius: 'var(--radius)', border: `1px solid ${shareMode === 'link' ? 'var(--accent)' : 'var(--border)'}`, background: shareMode === 'link' ? 'var(--accent-glow, rgba(139,124,248,0.08))' : 'transparent', color: shareMode === 'link' ? 'var(--accent)' : 'var(--text2)', fontSize: 13, cursor: 'pointer', fontWeight: shareMode === 'link' ? 500 : 400 }}>
+            🔗 링크로 공유
+          </button>
+          <button onClick={() => setShareMode('image')} style={{ flex: 1, height: 36, borderRadius: 'var(--radius)', border: `1px solid ${shareMode === 'image' ? 'var(--accent)' : 'var(--border)'}`, background: shareMode === 'image' ? 'var(--accent-glow, rgba(139,124,248,0.08))' : 'transparent', color: shareMode === 'image' ? 'var(--accent)' : 'var(--text2)', fontSize: 13, cursor: 'pointer', fontWeight: shareMode === 'image' ? 500 : 400 }}>
+            🖼 이미지로 저장
           </button>
         </div>
 
-        {shareEnabled && (
+        {shareMode === 'link' && (
           <>
-            {/* 공유 범위 선택 */}
-            <div style={{ marginTop: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>공유할 탭 선택</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {SHARE_TABS.map(t => (
-                  <button key={t.id} onClick={() => handleTabChange(t.id)} style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                    borderRadius: 'var(--radius)', border: `1px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border)'}`,
-                    background: shareTab === t.id ? 'var(--accent-glow, rgba(139,124,248,0.08))' : 'transparent',
-                    cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-                  }}>
-                    <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border2)'}`, background: shareTab === t.id ? 'var(--accent)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {shareTab === t.id && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: shareTab === t.id ? 500 : 400, color: 'var(--text)' }}>{t.label}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>{t.desc}</div>
-                    </div>
-                  </button>
-                ))}
+            {/* 공유 토글 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500 }}>읽기 전용 링크</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>협업자가 설정을 열람할 수 있어요</div>
               </div>
+              <button onClick={toggleShare} disabled={saving} style={{ width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer', background: shareEnabled ? 'var(--accent)' : 'var(--bg4)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: shareEnabled ? 23 : 3, transition: 'left 0.2s' }} />
+              </button>
             </div>
 
-            {/* 링크 복사 */}
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-              <label className="form-label">공유 링크</label>
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <input readOnly value={shareUrl} style={{ flex: 1, fontSize: 12, color: 'var(--text2)', cursor: 'text' }} onClick={e => e.target.select()} />
-                <button className="btn btn-primary" style={{ flexShrink: 0, fontSize: 12, padding: '0 14px' }} onClick={copyLink}>
-                  {copied ? '✓ 복사됨' : '복사'}
-                </button>
-              </div>
-              <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
-                링크를 받은 사람은 선택한 탭을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요.
-              </div>
-            </div>
+            {shareEnabled && (
+              <>
+                <div style={{ marginTop: 16, marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>공유할 탭 선택</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {SHARE_TABS.map(t => (
+                      <button key={t.id} onClick={() => handleTabChange(t.id)} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                        borderRadius: 'var(--radius)', border: `1px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border)'}`,
+                        background: shareTab === t.id ? 'var(--accent-glow, rgba(139,124,248,0.08))' : 'transparent',
+                        cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                      }}>
+                        <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border2)'}`, background: shareTab === t.id ? 'var(--accent)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {shareTab === t.id && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: shareTab === t.id ? 500 : 400, color: 'var(--text)' }}>{t.label}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text3)' }}>{t.desc}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                  <label className="form-label">공유 링크</label>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    <input readOnly value={shareUrl} style={{ flex: 1, fontSize: 12, color: 'var(--text2)', cursor: 'text' }} onClick={e => e.target.select()} />
+                    <button className="btn btn-primary" style={{ flexShrink: 0, fontSize: 12, padding: '0 14px' }} onClick={copyLink}>
+                      {copied ? '✓ 복사됨' : '복사'}
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
+                    링크를 받은 사람은 선택한 탭을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요.
+                  </div>
+                </div>
+              </>
+            )}
           </>
+        )}
+
+        {shareMode === 'image' && (
+          <div style={{ padding: '16px 0' }}>
+            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.7 }}>
+              현재 화면을 이미지로 저장해요.<br />
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>관계도, 타임라인 등 현재 보이는 화면 그대로 캡처돼요.</span>
+            </div>
+            <button className="btn btn-primary" style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
+              onClick={captureImage} disabled={capturing}>
+              {capturing ? '캡처 중...' : '📸 현재 화면 이미지로 저장'}
+            </button>
+          </div>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
