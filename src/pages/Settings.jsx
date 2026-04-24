@@ -95,10 +95,16 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
         <section style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>사용 가이드</div>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>카토그래픽 기능 소개를 다시 볼 수 있어요.</div>
-          <button className="btn" style={{ fontSize: 13, padding: '0 16px', height: 36 }}
-            onClick={() => { onShowOnboarding?.(); navigate('/'); }}>
-            온보딩 다시 보기
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" style={{ fontSize: 13, padding: '0 16px', height: 36 }}
+              onClick={() => { onShowOnboarding?.(); navigate('/'); }}>
+              온보딩 다시 보기
+            </button>
+            <a href="/how-to.html" target="_blank" rel="noopener noreferrer"
+              className="btn" style={{ fontSize: 13, padding: '0 16px', height: 36, textDecoration: 'none' }}>
+              이용방법 보기 →
+            </a>
+          </div>
         </section>
 
         {/* 법적 정보 */}
