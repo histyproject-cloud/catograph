@@ -243,6 +243,9 @@ exports.billingScheduler = onSchedule(
     }
   }
 );
+
+/**
+ * 토스페이먼츠 웹훅 수신
  * 결제 성공 시 구독 갱신 + pendingPlan 처리
  */
 const TOSS_IPS = new Set([
