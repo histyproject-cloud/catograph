@@ -62,7 +62,6 @@ export default function Pricing({ user }) {
       const planName = yearly ? 'Cartographic Pro 연간' : 'Cartographic Pro 월간';
       const orderId = `order_${user.uid}_${Date.now()}`;
       await payment.requestBillingAuth({
-        method: 'CARD',
         successUrl: `${window.location.origin}/payment/success?orderId=${orderId}&amount=${amount}&yearly=${yearly}`,
         failUrl: `${window.location.origin}/payment/fail`,
         customerEmail: user.email || '',
