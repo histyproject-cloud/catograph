@@ -154,10 +154,24 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY] }, async (request)
  * 토스페이먼츠 웹훅 수신
  * 결제 성공 시 구독 갱신 + pendingPlan 처리
  */
+const TOSS_IPS = new Set([
+  "13.124.18.147", "13.124.108.35", "3.36.173.151", "3.38.81.32",
+  "115.92.221.121", "115.92.221.122", "115.92.221.123",
+  "115.92.221.125", "115.92.221.126", "115.92.221.127",
+]);
+
 exports.tossWebhook = onRequest(
   { secrets: [TOSS_SECRET_KEY], region: "asia-northeast3" },
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+
+    // 토스 IP 검증
+    const clientIp = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.ip;
+    if (!TOSS_IPS.has(clientIp)) {
+      console.warn("허용되지 않은 IP:", clientIp);
+      res.status(403).send("Forbidden");
+      return;
+    }
 
     const event = req.body;
     console.log("토스 웹훅 수신:", JSON.stringify(event));
