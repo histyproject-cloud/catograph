@@ -1,15 +1,17 @@
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
-const { getFirestore } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
 const { getAuth } = require("firebase-admin/auth");
 const { initializeApp } = require("firebase-admin/app");
+const { defineSecret } = require("firebase-functions/params");
 
 initializeApp();
 setGlobalOptions({ maxInstances: 10, region: "asia-northeast3" });
 
 const db = getFirestore();
 const storage = getStorage();
+const TOSS_SECRET_KEY = defineSecret("TOSS_SECRET_KEY");
 
 // batch 500개 제한 처리용 헬퍼
 async function deleteInBatches(refs) {
@@ -100,3 +102,109 @@ exports.deleteAccount = onCall(async (request) => {
     throw new HttpsError("internal", "탈퇴 처리 중 오류가 발생했습니다.");
   }
 });
+
+/**
+ * 빌링키 발급 함수
+ * 클라이언트에서 authKey 받아서 토스 서버에 billingKey 발급 요청
+ */
+exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY] }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  }
+
+  const { authKey, customerKey } = request.data;
+  if (!authKey || !customerKey) {
+    throw new HttpsError("invalid-argument", "authKey, customerKey가 필요합니다.");
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.tosspayments.com/v1/billing/authorizations/${authKey}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY.value() + ":").toString("base64")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ customerKey }),
+      }
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("토스 빌링키 발급 실패:", data);
+      throw new HttpsError("internal", data.message || "빌링키 발급 실패");
+    }
+
+    // billingKey를 Firestore에 저장 (uid = customerKey)
+    await db.collection("users").doc(request.auth.uid).update({
+      "subscription.billingKey": data.billingKey,
+      "subscription.cardCompany": data.card?.company || "",
+      "subscription.cardNumber": data.card?.number || "",
+    });
+
+    return { success: true, billingKey: data.billingKey };
+  } catch (err) {
+    console.error("issueBillingKey error:", err);
+    throw new HttpsError("internal", "빌링키 발급 중 오류가 발생했습니다.");
+  }
+});
+
+/**
+ * 토스페이먼츠 웹훅 수신
+ * 결제 성공 시 구독 갱신 + pendingPlan 처리
+ */
+exports.tossWebhook = onRequest(
+  { secrets: [TOSS_SECRET_KEY], region: "asia-northeast3" },
+  async (req, res) => {
+    if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+
+    const event = req.body;
+    console.log("토스 웹훅 수신:", JSON.stringify(event));
+
+    try {
+      const { eventType, data } = event;
+
+      // 정기결제 성공
+      if (eventType === "PAYMENT_STATUS_CHANGED" && data?.status === "DONE") {
+        const customerKey = data.customerKey;
+        if (!customerKey) { res.status(200).send("ok"); return; }
+
+        // customerKey = uid로 유저 조회
+        const userRef = db.collection("users").doc(customerKey);
+        const userSnap = await userRef.get();
+        if (!userSnap.exists) { res.status(200).send("ok"); return; }
+
+        const sub = userSnap.data()?.subscription || {};
+        const pendingPlan = sub.pendingPlan || null;
+
+        // pendingPlan이 있으면 플랜 전환, 없으면 현재 플랜 유지
+        const newPlan = pendingPlan || sub.plan || "monthly";
+        const isYearly = newPlan === "yearly";
+
+        const now = new Date();
+        const periodEnd = new Date(now);
+        if (isYearly) {
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+        } else {
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+        }
+
+        await userRef.update({
+          "subscription.status": "active",
+          "subscription.plan": newPlan,
+          "subscription.currentPeriodEnd": periodEnd,
+          "subscription.lastPaidAt": FieldValue.serverTimestamp(),
+          "subscription.pendingPlan": FieldValue.delete(), // 예약 초기화
+        });
+
+        console.log(`구독 갱신 완료: ${customerKey} → ${newPlan}`);
+      }
+
+      res.status(200).send("ok");
+    } catch (err) {
+      console.error("tossWebhook error:", err);
+      res.status(500).send("error");
+    }
+  }
+);
