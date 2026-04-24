@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getAvatarColor } from '../components/DetailPanel';
 
 export default function SharedView() {
   const { id: projectId } = useParams();
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab'); // 'characters' | 'world' | 'foreshadow' | 'timeline' | null
+
   const [project, setProject] = useState(null);
   const [characters, setCharacters] = useState([]);
   const [foreshadows, setForeshadows] = useState([]);
@@ -13,7 +16,7 @@ export default function SharedView() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('characters');
+  const [activeTab, setActiveTab] = useState(tabParam || 'characters');
   const [selectedChar, setSelectedChar] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
 
@@ -61,12 +64,17 @@ export default function SharedView() {
     </div>
   );
 
-  const TABS = [
+  const ALL_TABS = [
     { id: 'characters', label: '캐릭터' },
     { id: 'world', label: '세계관' },
     { id: 'foreshadow', label: '복선' },
     { id: 'timeline', label: '타임라인' },
   ];
+
+  // tabParam이 있으면 해당 탭만, 없으면 전체
+  const TABS = tabParam
+    ? ALL_TABS.filter(t => t.id === tabParam)
+    : ALL_TABS;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>

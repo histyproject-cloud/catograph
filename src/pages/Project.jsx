@@ -1402,10 +1402,13 @@ function AddCharModal({ onClose, onAdd }) {
 // ── 공유 모달 ──
 function ShareModal({ projectId, project, onClose, onUpdate }) {
   const [shareEnabled, setShareEnabled] = useState(project?.shareEnabled || false);
+  const [shareTab, setShareTab] = useState(project?.shareTab || 'all');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = `${window.location.origin}/shared/${projectId}`;
+  const shareUrl = shareTab === 'all'
+    ? `${window.location.origin}/shared/${projectId}`
+    : `${window.location.origin}/shared/${projectId}?tab=${shareTab}`;
 
   const toggleShare = async () => {
     setSaving(true);
@@ -1416,59 +1419,81 @@ function ShareModal({ projectId, project, onClose, onUpdate }) {
     setSaving(false);
   };
 
+  const handleTabChange = async (tab) => {
+    setShareTab(tab);
+    await updateDoc(doc(db, 'projects', projectId), { shareTab: tab });
+    onUpdate({ shareTab: tab });
+  };
+
   const copyLink = () => {
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const SHARE_TABS = [
+    { id: 'all', label: '전체 공유', desc: '캐릭터, 세계관, 복선, 타임라인 모두' },
+    { id: 'characters', label: '캐릭터만', desc: '캐릭터 목록과 상세 정보만' },
+    { id: 'world', label: '세계관만', desc: '설정집 문서만' },
+    { id: 'foreshadow', label: '복선만', desc: '복선 목록만' },
+    { id: 'timeline', label: '타임라인만', desc: '타임라인 이벤트만' },
+  ];
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
         <div className="modal-title">공유 설정</div>
 
         {/* 공유 토글 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 500 }}>읽기 전용 링크</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>웹툰 작가 등 협업자가 설정을 열람할 수 있어요</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>협업자가 설정을 열람할 수 있어요</div>
           </div>
-          <button
-            onClick={toggleShare}
-            disabled={saving}
-            style={{
-              width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer',
-              background: shareEnabled ? 'var(--accent)' : 'var(--bg4)',
-              position: 'relative', transition: 'background 0.2s', flexShrink: 0
-            }}
-          >
-            <div style={{
-              width: 18, height: 18, borderRadius: '50%', background: '#fff',
-              position: 'absolute', top: 3,
-              left: shareEnabled ? 23 : 3,
-              transition: 'left 0.2s'
-            }} />
+          <button onClick={toggleShare} disabled={saving} style={{ width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer', background: shareEnabled ? 'var(--accent)' : 'var(--bg4)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+            <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: shareEnabled ? 23 : 3, transition: 'left 0.2s' }} />
           </button>
         </div>
 
-        {/* 링크 복사 */}
         {shareEnabled && (
-          <div style={{ marginTop: 16 }}>
-            <label className="form-label">공유 링크</label>
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              <input
-                readOnly value={shareUrl}
-                style={{ flex: 1, fontSize: 12, color: 'var(--text2)', cursor: 'text' }}
-                onClick={e => e.target.select()}
-              />
-              <button className="btn btn-primary" style={{ flexShrink: 0, fontSize: 12, padding: '0 14px' }} onClick={copyLink}>
-                {copied ? '✓ 복사됨' : '복사'}
-              </button>
+          <>
+            {/* 공유 범위 선택 */}
+            <div style={{ marginTop: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>공유할 탭 선택</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {SHARE_TABS.map(t => (
+                  <button key={t.id} onClick={() => handleTabChange(t.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                    borderRadius: 'var(--radius)', border: `1px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border)'}`,
+                    background: shareTab === t.id ? 'var(--accent-glow, rgba(139,124,248,0.08))' : 'transparent',
+                    cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                  }}>
+                    <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border2)'}`, background: shareTab === t.id ? 'var(--accent)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {shareTab === t.id && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: shareTab === t.id ? 500 : 400, color: 'var(--text)' }}>{t.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>{t.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
-              링크를 받은 사람은 캐릭터 설정, 설정집, 복선을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요. 편집은 불가능해요.
+
+            {/* 링크 복사 */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <label className="form-label">공유 링크</label>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                <input readOnly value={shareUrl} style={{ flex: 1, fontSize: 12, color: 'var(--text2)', cursor: 'text' }} onClick={e => e.target.select()} />
+                <button className="btn btn-primary" style={{ flexShrink: 0, fontSize: 12, padding: '0 14px' }} onClick={copyLink}>
+                  {copied ? '✓ 복사됨' : '복사'}
+                </button>
+              </div>
+              <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
+                링크를 받은 사람은 선택한 탭을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요.
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
