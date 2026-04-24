@@ -6,20 +6,20 @@ export const PRICE = {
 
 // ── Free 플랜 제한 ──
 export const FREE_LIMITS = {
-  projects: 1,
+  projects: 3,
   characters: 10,
-  worldDocs: 3,
-  foreshadows: 10,
-  timelineEvents: 20,
+  worldDocs: 5,
+  foreshadows: 15,
+  timelineEvents: 15,
 };
 
 // ── 제한 초과 메시지 ──
 export const LIMIT_MESSAGES = {
-  projects: '무료 플랜은 프로젝트를 1개까지 만들 수 있어요.',
+  projects: '무료 플랜은 프로젝트를 3개까지 만들 수 있어요.',
   characters: '무료 플랜은 캐릭터를 10명까지 등록할 수 있어요.',
-  worldDocs: '무료 플랜은 설정집 문서를 3개까지 만들 수 있어요.',
-  foreshadows: '무료 플랜은 복선을 10개까지 등록할 수 있어요.',
-  timelineEvents: '무료 플랜은 타임라인 이벤트를 20개까지 등록할 수 있어요.',
+  worldDocs: '무료 플랜은 설정집 문서를 5개까지 만들 수 있어요.',
+  foreshadows: '무료 플랜은 복선을 15개까지 등록할 수 있어요.',
+  timelineEvents: '무료 플랜은 타임라인 이벤트를 15개까지 등록할 수 있어요.',
 };
 
 // ── Pro 여부 체크 ──
