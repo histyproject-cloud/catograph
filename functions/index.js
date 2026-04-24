@@ -1,3 +1,4 @@
+// deploy trigger 2026-04-24
 const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
