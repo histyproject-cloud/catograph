@@ -27,7 +27,7 @@ async function deleteInBatches(refs) {
  * 회원 탈퇴 함수
  * 호출 시 해당 유저의 모든 Firestore 데이터 + Storage 파일 + Auth 계정 삭제
  */
-exports.deleteAccount = onCall(async (request) => {
+exports.deleteAccount = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
@@ -107,7 +107,7 @@ exports.deleteAccount = onCall(async (request) => {
  * 빌링키 발급 함수
  * 클라이언트에서 authKey 받아서 토스 서버에 billingKey 발급 요청
  */
-exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY] }, async (request) => {
+exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
