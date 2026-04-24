@@ -189,10 +189,32 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
             </marker>
           </defs>
 
-          {relations.map(rel => {
+          {(() => {
+            // 양방향 같은 라벨 쌍 감지 → 이미 처리된 쌍은 스킵
+            const processedPairs = new Set();
+
+            return relations.map(rel => {
             const from = characters.find(c => c.id === rel.fromId);
             const to = characters.find(c => c.id === rel.toId);
             if (!from || !to) return null;
+
+            // 양방향 쌍 찾기
+            const pairRel = relations.find(r =>
+              r.id !== rel.id &&
+              r.fromId === rel.toId &&
+              r.toId === rel.fromId
+            );
+
+            // 양방향이고 라벨이 같으면 → 하나로 합치기
+            const isMerged = pairRel &&
+              (rel.label || '') === (pairRel.label || '') &&
+              (rel.color || '') === (pairRel.color || '');
+
+            if (isMerged) {
+              const pairKey = [rel.id, pairRel.id].sort().join('-');
+              if (processedPairs.has(pairKey)) return null; // 이미 그린 쌍 스킵
+              processedPairs.add(pairKey);
+            }
 
             const fp = getPos(from), tp = getPos(to);
             const fcx = fp.x + CARD_W / 2, fcy = fp.y + CARD_H / 2;
@@ -253,13 +275,14 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                 </defs>
                 {/* 히트 영역 */}
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="18" />
-                {/* 화살표 선 */}
+                {/* 화살표 선 — 합쳐진 경우 양방향 화살표 */}
                 <line
-                  x1={x1} y1={y1}
+                  x1={isMerged ? x1 + (ddx / len) * 3 : x1} y1={isMerged ? y1 + (ddy / len) * 3 : y1}
                   x2={x2 - (ddx / len) * 3} y2={y2 - (ddy / len) * 3}
                   stroke={lineColor}
                   strokeWidth={isHovered || isSelected ? 2 : 1.5}
                   markerEnd={isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`}
+                  markerStart={isMerged ? (isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`) : undefined}
                 />
                 {/* 개별 라벨 — 선 옆에 */}
                 {rel.label && (
@@ -293,7 +316,8 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                 )}
               </g>
             );
-          })}
+          });
+          })()}
         </svg>
 
         {/* 캐릭터 카드 */}
