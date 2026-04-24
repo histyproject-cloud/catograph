@@ -5,7 +5,7 @@ import { auth, app } from '../firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { isPro, getSubscriptionLabel } from '../config/plans';
 
-export default function Settings({ user, onShowOnboarding }) {
+export default function Settings({ user, onShowOnboarding, theme, onToggleTheme }) {
   const navigate = useNavigate();
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -76,6 +76,19 @@ export default function Settings({ user, onShowOnboarding }) {
               구독 관련 문의는 <strong style={{ color: 'var(--text2)' }}>histy.cartographic@gmail.com</strong> 으로 연락해 주세요.
             </div>
           )}
+        </section>
+
+        {/* 테마 */}
+        <section style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>화면 테마</div>
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>현재 {theme === 'dark' ? '다크' : '라이트'} 모드</div>
+            </div>
+            <button className="btn" style={{ fontSize: 13, padding: '0 16px', height: 36 }} onClick={onToggleTheme}>
+              {theme === 'dark' ? '☀️ 라이트모드로 전환' : '🌙 다크모드로 전환'}
+            </button>
+          </div>
         </section>
 
         {/* 온보딩 다시 보기 */}

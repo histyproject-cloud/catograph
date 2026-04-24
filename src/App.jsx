@@ -22,6 +22,14 @@ export default function App() {
   const [user, setUser] = useState(undefined);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
@@ -94,7 +102,7 @@ export default function App() {
         <Route path="/shared/:id" element={<SharedView />} />
         <Route path="/legal" element={<Legal />} />
         <Route path="/pricing" element={<Pricing user={user} />} />
-        <Route path="/settings" element={user ? <Settings user={user} onShowOnboarding={() => setShowOnboarding(true)} /> : <Navigate to="/login" />} />
+        <Route path="/settings" element={user ? <Settings user={user} onShowOnboarding={() => setShowOnboarding(true)} theme={theme} onToggleTheme={toggleTheme} /> : <Navigate to="/login" />} />
         <Route path="*" element={<NotFound />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/fail" element={<PaymentFail />} />
