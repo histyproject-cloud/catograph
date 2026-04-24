@@ -93,9 +93,14 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
     setScale(s => Math.max(0.4, Math.min(2.5, s * (e.deltaY > 0 ? 0.9 : 1.1))));
   };
 
+  const touchStartTime = useRef(null);
+  const touchStartPos = useRef(null);
+
   const onTouchStartCard = (e, char) => {
     e.stopPropagation();
-    if (connectMode) { onCharClick(char); return; }
+    touchStartTime.current = Date.now();
+    touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (connectMode) return; // 연결 모드에서는 드래그 시작 안 함
     if (e.touches.length !== 1) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const t = e.touches[0];
@@ -125,7 +130,20 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
     }
   };
 
-  const onTouchEndCanvas = () => {
+  const onTouchEndCanvas = (char) => (e) => {
+    // 탭 감지: 300ms 이내 + 10px 이내 이동
+    if (touchStartTime.current && touchStartPos.current && e.changedTouches[0]) {
+      const elapsed = Date.now() - touchStartTime.current;
+      const dx = Math.abs(e.changedTouches[0].clientX - touchStartPos.current.x);
+      const dy = Math.abs(e.changedTouches[0].clientY - touchStartPos.current.y);
+      if (elapsed < 300 && dx < 10 && dy < 10 && connectMode) {
+        onCharClick(char);
+        setDragging(null);
+        isPanning.current = false;
+        lastPinchDist.current = null;
+        return;
+      }
+    }
     if (dragging && localPositions[dragging]) onUpdatePosition(dragging, localPositions[dragging]);
     setDragging(null);
     isPanning.current = false;
@@ -164,7 +182,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       onMouseDown={onMouseDownCanvas}
       onWheel={onWheel}
       onTouchMove={onTouchMoveCanvas}
-      onTouchEnd={onTouchEndCanvas}
+      onTouchEnd={onTouchEndCanvas(null)}
       onClick={() => setRelMenu(null)}
       style={{
         flex: 1, position: 'relative', overflow: 'hidden',
@@ -342,6 +360,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
               onMouseDown={e => onMouseDownCard(e, char)}
               onClick={() => !connectMode && onCharClick(char)}
               onTouchStart={e => onTouchStartCard(e, char)}
+              onTouchEnd={onTouchEndCanvas(char)}
               style={{
                 position: 'absolute', left: pos.x, top: pos.y, width: CARD_W,
                 background: connectMode ? (isConnFrom ? 'rgba(45,212,191,0.12)' : 'var(--bg2)') : 'var(--bg2)',
@@ -380,12 +399,14 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
         })}
       </div>
 
-      {/* 줌 컨트롤 */}
+      {/* 줌 컨트롤 — 데스크톱/태블릿만 표시 */}
+      {!isMobile && (
       <div style={{ position: 'absolute', bottom: 16, right: 16, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 10 }}>
         <button className="btn-icon" style={{ fontSize: 16 }} onClick={() => setScale(s => Math.min(2.5, s * 1.2))}>+</button>
         <button className="btn-icon" style={{ fontSize: 12, color: 'var(--text3)' }} onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}>↺</button>
         <button className="btn-icon" style={{ fontSize: 16 }} onClick={() => setScale(s => Math.max(0.4, s * 0.8))}>−</button>
       </div>
+      )}
 
       {/* 연결 모드 안내 */}
       {connectMode && (
