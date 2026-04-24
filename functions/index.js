@@ -1,5 +1,6 @@
 // deploy trigger 2026-04-24
 const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
@@ -152,7 +153,96 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, asy
 });
 
 /**
- * 토스페이먼츠 웹훅 수신
+ * 매일 오전 9시 자동결제 스케줄러
+ * currentPeriodEnd가 오늘인 유저에게 빌링키로 자동 청구
+ */
+exports.billingScheduler = onSchedule(
+  { schedule: "0 9 * * *", timeZone: "Asia/Seoul", secrets: [TOSS_SECRET_KEY], region: "asia-northeast3" },
+  async () => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    // 오늘 결제일인 active 유저 조회
+    const usersSnap = await db.collection("users")
+      .where("subscription.status", "==", "active")
+      .where("subscription.currentPeriodEnd", ">=", todayStart)
+      .where("subscription.currentPeriodEnd", "<", todayEnd)
+      .get();
+
+    console.log(`오늘 결제 대상: ${usersSnap.size}명`);
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const sub = userDoc.data().subscription || {};
+      const billingKey = sub.billingKey;
+      const pendingPlan = sub.pendingPlan || null;
+      const newPlan = pendingPlan || sub.plan || "monthly";
+      const isYearly = newPlan === "yearly";
+      const amount = isYearly ? 29700 : 3300;
+
+      if (!billingKey) {
+        console.warn(`빌링키 없음: ${uid}`);
+        continue;
+      }
+
+      try {
+        // 토스 자동결제 승인 API 호출
+        const orderId = `auto_${uid}_${Date.now()}`;
+        const response = await fetch("https://api.tosspayments.com/v1/billing/" + billingKey, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY.value() + ":").toString("base64")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            customerKey: uid,
+            amount,
+            orderId,
+            orderName: `Cartographic Pro ${isYearly ? "연간" : "월간"}`,
+            customerEmail: userDoc.data().email || "",
+            customerName: userDoc.data().displayName || "고객",
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          console.error(`결제 실패 [${uid}]:`, result);
+          // 결제 실패 시 구독 상태 past_due로 변경
+          await db.collection("users").doc(uid).update({
+            "subscription.status": "past_due",
+            "subscription.lastFailedAt": FieldValue.serverTimestamp(),
+            "subscription.lastFailReason": result.message || "결제 실패",
+          });
+          continue;
+        }
+
+        // 결제 성공 → 다음 결제일 갱신
+        const nextPeriodEnd = new Date(now);
+        if (isYearly) {
+          nextPeriodEnd.setFullYear(nextPeriodEnd.getFullYear() + 1);
+        } else {
+          nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
+        }
+
+        await db.collection("users").doc(uid).update({
+          "subscription.status": "active",
+          "subscription.plan": newPlan,
+          "subscription.currentPeriodEnd": nextPeriodEnd,
+          "subscription.lastPaidAt": FieldValue.serverTimestamp(),
+          "subscription.lastOrderId": orderId,
+          "subscription.pendingPlan": FieldValue.delete(),
+        });
+
+        console.log(`결제 성공 [${uid}]: ${amount}원 → 다음 결제일 ${nextPeriodEnd.toISOString()}`);
+
+      } catch (err) {
+        console.error(`스케줄러 오류 [${uid}]:`, err);
+      }
+    }
+  }
+);
  * 결제 성공 시 구독 갱신 + pendingPlan 처리
  */
 const TOSS_IPS = new Set([
