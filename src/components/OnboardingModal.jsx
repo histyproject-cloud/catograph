@@ -46,6 +46,15 @@ const SLIDES = [
     visual: "world",
     color: "#fbbf24",
   },
+  {
+    id: 5,
+    icon: "⇗",
+    title: "공유하기",
+    subtitle: "독자·협업자와 함께",
+    description: "링크로 공유하면 독자나 협업자가 읽기 전용으로 열람할 수 있어요.\n전체 공유, 탭별 공유, 이미지 저장까지 자유롭게 선택하세요.",
+    visual: "share",
+    color: "#38bdf8",
+  },
 ];
 
 // Mini visual components for each slide
@@ -191,12 +200,41 @@ function WorldVisual() {
   );
 }
 
+function ShareVisual() {
+  const options = [
+    { icon: "🔗", label: "전체 공유", desc: "모든 탭 공유", color: "#38bdf8" },
+    { icon: "📑", label: "탭별 공유", desc: "원하는 탭만", color: "#818cf8" },
+    { icon: "🖼", label: "이미지 저장", desc: "현재 화면 캡처", color: "#34d399" },
+  ];
+  return (
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
+      {options.map((item, i) => (
+        <div key={i} style={{
+          display: "flex", alignItems: "center", gap: 12,
+          background: "rgba(255,255,255,0.04)", borderRadius: 10,
+          padding: "10px 14px",
+          animation: `slideInRight 0.4s ease both`,
+          animationDelay: `${i * 0.1}s`,
+        }}>
+          <span style={{ fontSize: 20 }}>{item.icon}</span>
+          <div>
+            <div style={{ fontSize: 13, color: "#e5e7eb", fontWeight: 600 }}>{item.label}</div>
+            <div style={{ fontSize: 11, color: "#6b7280" }}>{item.desc}</div>
+          </div>
+          <div style={{ marginLeft: "auto", fontSize: 11, background: item.color + "22", color: item.color, borderRadius: 6, padding: "2px 8px" }}>사용 가능</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const VISUALS = {
   welcome: WelcomeVisual,
   timeline: TimelineVisual,
   foreshadowing: ForeshadowingVisual,
   relationship: RelationshipVisual,
   world: WorldVisual,
+  share: ShareVisual,
 };
 
 export default function OnboardingModal({ onClose, onComplete }) {
