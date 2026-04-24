@@ -62,6 +62,7 @@ export default function Pricing({ user }) {
       const planName = yearly ? 'Cartographic Pro 연간' : 'Cartographic Pro 월간';
       const orderId = `order_${user.uid}_${Date.now()}`;
       await payment.requestBillingAuth({
+        method: 'CARD',
         successUrl: `${window.location.origin}/payment/success?orderId=${orderId}&amount=${amount}&yearly=${yearly}`,
         failUrl: `${window.location.origin}/payment/fail`,
         customerEmail: user.email || '',
@@ -160,7 +161,7 @@ export default function Pricing({ user }) {
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, color: 'var(--teal, #2dd4bf)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Enterprise</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}><span style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--text)' }}>맞춤 견적</span></div>
-              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>문의 메일: histy.cartographic@gmail.com</div>
+              <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>30명 이상 팀을 위한 맞춤 견적</div>
             </div>
             <a href="https://mail.google.com/mail/?view=cm&to=histy.cartographic@gmail.com&subject=Cartographic%20Enterprise%20%EB%AC%B8%EC%9D%98"
               target="_blank" rel="noopener noreferrer"
