@@ -4,9 +4,9 @@ import { PRICE } from '../config/plans';
 
 const FEATURES = [
   { text: '캐릭터 무제한 등록' },
-  { text: '세계관 문서 무제한' },
+  { text: '설정집 문서 무제한 등록' },
   { text: '복선 무제한 등록' },
-  { text: '타임라인 이벤트 무제한' },
+  { text: '타임라인 무제한 등록' },
   { text: '프로젝트 무제한 생성' },
   { text: '캐릭터 사진 업로드' },
 ];

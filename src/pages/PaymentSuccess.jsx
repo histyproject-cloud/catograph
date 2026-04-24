@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { db, auth, app } from '../firebase';
 
 export default function PaymentSuccess() {
   const [params] = useSearchParams();
@@ -37,6 +38,7 @@ export default function PaymentSuccess() {
           periodEnd.setMonth(periodEnd.getMonth() + 1);
         }
 
+        // ── Firestore에 구독 정보 저장 ──
         await setDoc(doc(db, 'users', user.uid), {
           subscription: {
             status: 'active',
@@ -50,12 +52,19 @@ export default function PaymentSuccess() {
           }
         }, { merge: true });
 
-        setStatus('done');
+        // ── 빌링키 발급 (토스 서버에 authKey → billingKey 변환) ──
+        try {
+          const functions = getFunctions(app, 'asia-northeast3');
+          const issueBillingKey = httpsCallable(functions, 'issueBillingKey');
+          await issueBillingKey({ authKey, customerKey });
+        } catch (billingErr) {
+          // 빌링키 발급 실패해도 구독은 활성화된 상태 유지
+          // 관리자에게 알림 필요 시 Sentry로 캡처
+          console.error('빌링키 발급 실패 (구독은 정상):', billingErr);
+        }
 
-        // 3초 후 새로고침하며 홈으로 → App.jsx가 Firestore 다시 읽어서 Pro 반영
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 3000);
+        setStatus('done');
+        setTimeout(() => { window.location.href = '/'; }, 3000);
 
       } catch (e) {
         console.error(e);
