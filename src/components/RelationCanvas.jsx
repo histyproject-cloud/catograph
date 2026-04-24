@@ -187,6 +187,16 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
             <marker id="arr-selected" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
               <path d="M0,0 L5,2.5 L0,5 Z" fill="#8b7cf8" />
             </marker>
+            {/* 양방향 시작점용 (auto-start-reverse) */}
+            <marker id="arr-start" markerWidth="5" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+              <path d="M0,0 L5,2.5 L0,5 Z" fill="rgba(255,255,255,0.25)" />
+            </marker>
+            <marker id="arr-start-hover" markerWidth="5" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+              <path d="M0,0 L5,2.5 L0,5 Z" fill="rgba(248,113,113,0.9)" />
+            </marker>
+            <marker id="arr-start-selected" markerWidth="5" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+              <path d="M0,0 L5,2.5 L0,5 Z" fill="#8b7cf8" />
+            </marker>
           </defs>
 
           {(() => {
@@ -282,7 +292,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                   stroke={lineColor}
                   strokeWidth={isHovered || isSelected ? 2 : 1.5}
                   markerEnd={isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`}
-                  markerStart={isMerged ? (isSelected ? 'url(#arr-selected)' : isHovered ? 'url(#arr-hover)' : `url(#${markerId})`) : undefined}
+                  markerStart={isMerged ? (isSelected ? 'url(#arr-start-selected)' : isHovered ? 'url(#arr-start-hover)' : 'url(#arr-start)') : undefined}
                 />
                 {/* 개별 라벨 — 선 옆에 */}
                 {rel.label && (
