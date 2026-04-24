@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { isPro } from '../config/plans';
 
 const TOSS_CLIENT_KEY = process.env.REACT_APP_TOSS_CLIENT_KEY;
@@ -8,9 +10,41 @@ export default function Pricing({ user }) {
   const navigate = useNavigate();
   const [yearly, setYearly] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [reserving, setReserving] = useState(false);
   const userIsPro = isPro(user);
   const userPlan = user?.subscription?.plan || null; // 'monthly' | 'yearly' | null
+  const pendingPlan = user?.subscription?.pendingPlan || null; // 예약된 플랜
+  const currentPeriodEnd = user?.subscription?.currentPeriodEnd?.toDate?.() || null;
   const isCurrentPlan = (planType) => userIsPro && userPlan === planType;
+
+  // 현재 구독 중이고, 보고 있는 플랜이 현재 플랜과 다른 경우 → 전환 예약 가능
+  const canReserve = (planType) => userIsPro && userPlan !== planType && userPlan !== null;
+  const isReserved = (planType) => pendingPlan === planType;
+
+  const formatDate = (date) => {
+    if (!date) return '';
+    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+  };
+
+  const handleReservePlan = async (planType) => {
+    if (!user || reserving) return;
+    const confirmMsg = planType === 'yearly'
+      ? `${formatDate(currentPeriodEnd)}부터 연간 플랜(29,900원/년)으로 전환할까요?`
+      : `${formatDate(currentPeriodEnd)}부터 월간 플랜(3,300원/월)으로 전환할까요?`;
+    if (!window.confirm(confirmMsg)) return;
+    setReserving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        'subscription.pendingPlan': planType,
+      });
+      alert(`다음 결제일(${formatDate(currentPeriodEnd)})부터 ${planType === 'yearly' ? '연간' : '월간'} 플랜으로 전환됩니다.`);
+    } catch (e) {
+      console.error(e);
+      alert('전환 예약 중 오류가 발생했어요. 다시 시도해 주세요.');
+    } finally {
+      setReserving(false);
+    }
+  };
 
   const FREE_FEATURES = ['프로젝트 1개 생성 가능','캐릭터 최대 10명 등록','설정집 문서 최대 3개 등록','복선 최대 10개 등록','타임라인 최대 20개 등록','공유 링크 (읽기 전용) 전송 가능'];
   const PRO_FEATURES = ['프로젝트 무제한 생성','캐릭터 무제한 등록','설정집 문서 무제한 등록','복선 무제한 등록','타임라인 무제한 등록','공유 링크 (읽기 전용) 전송 가능','우선 고객 지원'];
@@ -88,11 +122,35 @@ export default function Pricing({ user }) {
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}</div>
             </div>
             <button className={`btn ${isCurrentPlan(yearly ? 'yearly' : 'monthly') ? '' : 'btn-primary'}`}
-              style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, cursor: isCurrentPlan(yearly ? 'yearly' : 'monthly') ? 'default' : 'pointer' }}
-              onClick={() => !isCurrentPlan(yearly ? 'yearly' : 'monthly') && handlePayment()}
-              disabled={isCurrentPlan(yearly ? 'yearly' : 'monthly') || paying}>
-              {isCurrentPlan(yearly ? 'yearly' : 'monthly') ? '✦ 현재 플랜' : paying ? '처리 중...' : '30일 무료로 시작하기'}
+              style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: isReserved(yearly ? 'yearly' : 'monthly') || canReserve(yearly ? 'yearly' : 'monthly') ? 8 : 24, cursor: isCurrentPlan(yearly ? 'yearly' : 'monthly') ? 'default' : 'pointer' }}
+              onClick={() => {
+                if (isCurrentPlan(yearly ? 'yearly' : 'monthly')) return;
+                if (canReserve(yearly ? 'yearly' : 'monthly')) {
+                  handleReservePlan(yearly ? 'yearly' : 'monthly');
+                } else {
+                  handlePayment();
+                }
+              }}
+              disabled={isCurrentPlan(yearly ? 'yearly' : 'monthly') || paying || reserving || isReserved(yearly ? 'yearly' : 'monthly')}>
+              {isCurrentPlan(yearly ? 'yearly' : 'monthly')
+                ? '✦ 현재 플랜'
+                : isReserved(yearly ? 'yearly' : 'monthly')
+                  ? '✓ 전환 예약됨'
+                  : canReserve(yearly ? 'yearly' : 'monthly')
+                    ? (reserving ? '처리 중...' : `다음 결제일부터 전환`)
+                    : (paying ? '처리 중...' : '30일 무료로 시작하기')}
             </button>
+            {/* 예약 안내 문구 */}
+            {isReserved(yearly ? 'yearly' : 'monthly') && (
+              <p style={{ fontSize: 11, color: 'var(--accent)', textAlign: 'center', marginBottom: 16 }}>
+                {formatDate(currentPeriodEnd)}부터 적용돼요
+              </p>
+            )}
+            {canReserve(yearly ? 'yearly' : 'monthly') && !isReserved(yearly ? 'yearly' : 'monthly') && (
+              <p style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 16 }}>
+                현재 기간 종료 후 전환 ({formatDate(currentPeriodEnd)})
+              </p>
+            )}
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
               {PRO_FEATURES.map((f, i) => (<div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}><span style={{ color: 'var(--accent)', fontSize: 14 }}>✦</span><span style={{ fontSize: 13, color: 'var(--text)' }}>{f}</span></div>))}
             </div>
