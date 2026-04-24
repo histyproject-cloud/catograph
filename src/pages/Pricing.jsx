@@ -162,7 +162,8 @@ export default function Pricing({ user }) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}><span style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--text)' }}>맞춤 견적</span></div>
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>30명 이상 팀을 위한 맞춤 견적</div>
             </div>
-            <a href="mailto:histy.cartographic@gmail.com?subject=Cartographic%20Enterprise%20%EB%AC%B8%EC%9D%98"
+            <a href="https://mail.google.com/mail/?view=cm&to=histy.cartographic@gmail.com&subject=Cartographic%20Enterprise%20%EB%AC%B8%EC%9D%98"
+              target="_blank" rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: 24, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', color: 'var(--text)', textDecoration: 'none', background: 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>문의하기 →</a>
