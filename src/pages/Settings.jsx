@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, app } from '../firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { isPro, getSubscriptionLabel } from '../config/plans';
 
@@ -14,7 +14,7 @@ export default function Settings({ user, onShowOnboarding }) {
     if (!window.confirm('정말 탈퇴하시겠어요? 모든 데이터가 삭제되며 복구할 수 없습니다.')) return;
     setDeletingAccount(true);
     try {
-      const functions = getFunctions(undefined, 'asia-northeast3');
+      const functions = getFunctions(app, 'asia-northeast3');
       const deleteAccount = httpsCallable(functions, 'deleteAccount');
       await deleteAccount();
       navigate('/login');
