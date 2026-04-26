@@ -736,7 +736,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
         <button className="btn btn-ghost" style={{ fontSize: 13, padding: '0 12px', height: 36 }} onClick={onClose}>← 목록</button>
         <div style={{ flex: 1 }} />
         <button className="btn btn-danger" style={{ fontSize: 13, height: 36, padding: '0 14px' }}
-          onClick={() => { if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
+          onClick={() => { if (window.confirm(`'${c.name}' 삭제할까요?`)) { onDelete(c.id); onClose(); } }}>삭제</button>
         <button className="btn btn-primary" style={{ fontSize: 13, height: 36, padding: '0 18px' }} onClick={save}>
           {saved ? '✓ 저장됨' : '저장'}
         </button>
