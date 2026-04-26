@@ -63,9 +63,16 @@ export default function Project({ user }) {
     return true;
   };
 
-  const { characters, addCharacter, updateCharacter, deleteCharacter } = useCharacters(projectId);
-  const { relations, addRelation, updateRelation, deleteRelation } = useRelations(projectId);
-  const { foreshadows, addForeshadow, updateForeshadow, deleteForeshadow } = useForeshadows(projectId);
+  const { characters, setCharacters, addCharacter, updateCharacter, deleteCharacter } = useCharacters(projectId);
+  const { relations, setRelations, addRelation, updateRelation, deleteRelation } = useRelations(projectId);
+  const { foreshadows, setForeshadows, addForeshadow, updateForeshadow, deleteForeshadow } = useForeshadows(projectId);
+
+  // 캐릭터 삭제 후 relations·foreshadows state도 동기화
+  const handleDeleteCharacter = async (charId) => {
+    const { deletedRelIds, updatedFsMap } = await deleteCharacter(charId);
+    setRelations(prev => prev.filter(r => !deletedRelIds.includes(r.id)));
+    setForeshadows(prev => prev.map(f => updatedFsMap[f.id] !== undefined ? { ...f, charIds: updatedFsMap[f.id] } : f));
+  };
   const { docs: worldDocs, addWorldDoc, updateWorldDoc, deleteWorldDoc } = useWorldDocs(projectId);
   const { events, addEvent, updateEvent, deleteEvent } = useTimelineEvents(projectId);
   const { fanworks, addFanwork, updateFanwork, deleteFanwork } = useFanworks(projectId);
@@ -273,7 +280,7 @@ export default function Project({ user }) {
             />
           )}
           {activeTab === 'characters' && (
-            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={deleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} reorderMode={reorderMode}
+            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={handleDeleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} reorderMode={reorderMode}
               onSaveOrder={(ordered) => ordered.forEach((c, i) => updateCharacter(c.id, { order: i }))} />
           )}
           {activeTab === 'world' && (

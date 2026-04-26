@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   onSnapshot, query, where, serverTimestamp, getDocs, writeBatch
@@ -16,6 +16,13 @@ async function deleteInBatches(db, refs) {
   }
 }
 
+// 정렬 헬퍼
+const sortByOrder = (a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0);
+
+// ──────────────────────────────────────────────
+// useProjects: 대시보드용 — onSnapshot 유지
+// (프로젝트 목록은 다른 탭 생성/삭제 즉시 반영 필요)
+// ──────────────────────────────────────────────
 export function useProjects(userId) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +47,6 @@ export function useProjects(userId) {
     for (const col of collections) {
       const snap = await getDocs(query(collection(db, col), where('projectId', '==', id)));
 
-      // 캐릭터 사진 Storage 정리
       if (col === 'characters') {
         await Promise.all(snap.docs.map(async (d) => {
           if (d.data().photoURL) {
@@ -52,10 +58,7 @@ export function useProjects(userId) {
       snap.docs.forEach(d => allRefs.push(d.ref));
     }
 
-    // 프로젝트 문서 포함
     allRefs.push(doc(db, 'projects', id));
-
-    // 400개씩 청크로 삭제 (500개 제한 대응)
     await deleteInBatches(db, allRefs);
   };
 
@@ -64,122 +67,254 @@ export function useProjects(userId) {
   return { projects, loading, createProject, deleteProject, updateProject };
 }
 
+// ──────────────────────────────────────────────
+// useCharacters: getDocs 최초 로드 + 낙관적 업데이트
+// ──────────────────────────────────────────────
 export function useCharacters(projectId) {
   const [characters, setCharacters] = useState([]);
-  useEffect(() => {
+
+  const load = useCallback(() => {
     if (!projectId) return;
     const q = query(collection(db, 'characters'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setCharacters(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
+    getDocs(q).then(snap =>
+      setCharacters(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
+    );
   }, [projectId]);
 
-  const addCharacter = (data) => addDoc(collection(db, 'characters'), { ...data, projectId, position: data.position || { x: 80 + Math.random() * 300, y: 80 + Math.random() * 200 }, tags: data.tags || [], order: Date.now(), createdAt: serverTimestamp() });
-  const updateCharacter = (id, data) => updateDoc(doc(db, 'characters', id), data);
+  useEffect(() => { load(); }, [load]);
 
-  // 캐릭터 삭제 시 연결된 relations, foreshadow charIds 자동 정리
+  const addCharacter = async (data) => {
+    const payload = {
+      ...data, projectId,
+      position: data.position || { x: 80 + Math.random() * 300, y: 80 + Math.random() * 200 },
+      tags: data.tags || [],
+      order: Date.now(),
+      createdAt: serverTimestamp(),
+    };
+    const docRef = await addDoc(collection(db, 'characters'), payload);
+    setCharacters(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+    return docRef;
+  };
+
+  const updateCharacter = async (id, data) => {
+    await updateDoc(doc(db, 'characters', id), data);
+    setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+  };
+
+  // 캐릭터 삭제: 연결된 relations·foreshadows도 Firestore 정리
+  // 반환값: { deletedRelIds, updatedFsIds } — 호출자가 다른 훅 state 갱신 가능
   const deleteCharacter = async (charId) => {
     const batch = writeBatch(db);
 
-    // 0. Storage 사진 삭제 (없으면 무시)
     try { await deleteObject(ref(storage, `characters/${charId}/photo`)); } catch { /* 없으면 무시 */ }
 
-    // 1. 캐릭터 삭제
     batch.delete(doc(db, 'characters', charId));
 
-    // 2. 연결된 관계선 삭제
     const relQ = query(collection(db, 'relations'), where('projectId', '==', projectId));
     const relSnap = await getDocs(relQ);
+    const deletedRelIds = [];
     relSnap.docs.forEach(d => {
       const r = d.data();
-      if (r.fromId === charId || r.toId === charId) batch.delete(d.ref);
+      if (r.fromId === charId || r.toId === charId) {
+        batch.delete(d.ref);
+        deletedRelIds.push(d.id);
+      }
     });
 
-    // 3. 복선에서 charId 제거
     const fsQ = query(collection(db, 'foreshadows'), where('projectId', '==', projectId));
     const fsSnap = await getDocs(fsQ);
+    const updatedFsMap = {};
     fsSnap.docs.forEach(d => {
       const f = d.data();
       if (f.charIds?.includes(charId)) {
-        batch.update(d.ref, { charIds: f.charIds.filter(id => id !== charId) });
+        const newIds = f.charIds.filter(id => id !== charId);
+        batch.update(d.ref, { charIds: newIds });
+        updatedFsMap[d.id] = newIds;
       }
     });
 
     await batch.commit();
+    setCharacters(prev => prev.filter(c => c.id !== charId));
+    return { deletedRelIds, updatedFsMap };
   };
 
-  return { characters, addCharacter, updateCharacter, deleteCharacter };
+  return { characters, setCharacters, addCharacter, updateCharacter, deleteCharacter, refreshCharacters: load };
 }
 
+// ──────────────────────────────────────────────
+// useRelations: getDocs 최초 로드 + 낙관적 업데이트
+// ──────────────────────────────────────────────
 export function useRelations(projectId) {
   const [relations, setRelations] = useState([]);
-  useEffect(() => {
+
+  const load = useCallback(() => {
     if (!projectId) return;
     const q = query(collection(db, 'relations'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setRelations(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    getDocs(q).then(snap => setRelations(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, [projectId]);
 
-  const addRelation = (fromId, toId, label = '', color = '') => addDoc(collection(db, 'relations'), { projectId, fromId, toId, label, color, createdAt: serverTimestamp() });
-  const updateRelation = (id, data) => updateDoc(doc(db, 'relations', id), data);
-  const deleteRelation = (id) => deleteDoc(doc(db, 'relations', id));
+  useEffect(() => { load(); }, [load]);
 
-  return { relations, addRelation, updateRelation, deleteRelation };
+  const addRelation = async (fromId, toId, label = '', color = '') => {
+    const payload = { projectId, fromId, toId, label, color, createdAt: serverTimestamp() };
+    const docRef = await addDoc(collection(db, 'relations'), payload);
+    setRelations(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }]);
+    return docRef;
+  };
+
+  const updateRelation = async (id, data) => {
+    await updateDoc(doc(db, 'relations', id), data);
+    setRelations(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+  };
+
+  const deleteRelation = async (id) => {
+    await deleteDoc(doc(db, 'relations', id));
+    setRelations(prev => prev.filter(r => r.id !== id));
+  };
+
+  return { relations, setRelations, addRelation, updateRelation, deleteRelation, refreshRelations: load };
 }
 
+// ──────────────────────────────────────────────
+// useForeshadows: getDocs 최초 로드 + 낙관적 업데이트
+// ──────────────────────────────────────────────
 export function useForeshadows(projectId) {
   const [foreshadows, setForeshadows] = useState([]);
-  useEffect(() => {
+
+  const load = useCallback(() => {
     if (!projectId) return;
     const q = query(collection(db, 'foreshadows'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setForeshadows(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
+    getDocs(q).then(snap =>
+      setForeshadows(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
+    );
   }, [projectId]);
 
-  const addForeshadow = (data) => addDoc(collection(db, 'foreshadows'), { ...data, projectId, createdAt: serverTimestamp() });
-  const updateForeshadow = (id, data) => updateDoc(doc(db, 'foreshadows', id), data);
-  const deleteForeshadow = (id) => deleteDoc(doc(db, 'foreshadows', id));
+  useEffect(() => { load(); }, [load]);
 
-  return { foreshadows, addForeshadow, updateForeshadow, deleteForeshadow };
+  const addForeshadow = async (data) => {
+    const payload = { ...data, projectId, createdAt: serverTimestamp() };
+    const docRef = await addDoc(collection(db, 'foreshadows'), payload);
+    setForeshadows(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+    return docRef;
+  };
+
+  const updateForeshadow = async (id, data) => {
+    await updateDoc(doc(db, 'foreshadows', id), data);
+    setForeshadows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+  };
+
+  const deleteForeshadow = async (id) => {
+    await deleteDoc(doc(db, 'foreshadows', id));
+    setForeshadows(prev => prev.filter(f => f.id !== id));
+  };
+
+  return { foreshadows, setForeshadows, addForeshadow, updateForeshadow, deleteForeshadow, refreshForeshadows: load };
 }
 
+// ──────────────────────────────────────────────
+// useWorldDocs: getDocs 최초 로드 + 낙관적 업데이트
+// ──────────────────────────────────────────────
 export function useWorldDocs(projectId) {
   const [docs, setDocs] = useState([]);
-  useEffect(() => {
+
+  const load = useCallback(() => {
     if (!projectId) return;
     const q = query(collection(db, 'worldDocs'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
+    getDocs(q).then(snap =>
+      setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
+    );
   }, [projectId]);
 
-  const addWorldDoc = (title) => addDoc(collection(db, 'worldDocs'), { projectId, title, content: '', createdAt: serverTimestamp() });
-  const updateWorldDoc = (id, data) => updateDoc(doc(db, 'worldDocs', id), data);
-  const deleteWorldDoc = (id) => deleteDoc(doc(db, 'worldDocs', id));
+  useEffect(() => { load(); }, [load]);
 
-  return { docs, addWorldDoc, updateWorldDoc, deleteWorldDoc };
+  const addWorldDoc = async (title) => {
+    const payload = { projectId, title, content: '', createdAt: serverTimestamp() };
+    const docRef = await addDoc(collection(db, 'worldDocs'), payload);
+    setDocs(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+    return docRef;
+  };
+
+  const updateWorldDoc = async (id, data) => {
+    await updateDoc(doc(db, 'worldDocs', id), data);
+    setDocs(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
+  };
+
+  const deleteWorldDoc = async (id) => {
+    await deleteDoc(doc(db, 'worldDocs', id));
+    setDocs(prev => prev.filter(d => d.id !== id));
+  };
+
+  return { docs, addWorldDoc, updateWorldDoc, deleteWorldDoc, refreshWorldDocs: load };
 }
 
+// ──────────────────────────────────────────────
+// useTimelineEvents: getDocs 최초 로드 + 낙관적 업데이트
+// ──────────────────────────────────────────────
 export function useTimelineEvents(projectId) {
   const [events, setEvents] = useState([]);
-  useEffect(() => {
+
+  const load = useCallback(() => {
     if (!projectId) return;
     const q = query(collection(db, 'timelineEvents'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
+    getDocs(q).then(snap =>
+      setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
+    );
   }, [projectId]);
 
-  const addEvent = (data) => addDoc(collection(db, 'timelineEvents'), { ...data, projectId, createdAt: serverTimestamp() });
-  const updateEvent = (id, data) => updateDoc(doc(db, 'timelineEvents', id), data);
-  const deleteEvent = (id) => deleteDoc(doc(db, 'timelineEvents', id));
+  useEffect(() => { load(); }, [load]);
 
-  return { events, addEvent, updateEvent, deleteEvent };
+  const addEvent = async (data) => {
+    const payload = { ...data, projectId, createdAt: serverTimestamp() };
+    const docRef = await addDoc(collection(db, 'timelineEvents'), payload);
+    setEvents(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+    return docRef;
+  };
+
+  const updateEvent = async (id, data) => {
+    await updateDoc(doc(db, 'timelineEvents', id), data);
+    setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+  };
+
+  const deleteEvent = async (id) => {
+    await deleteDoc(doc(db, 'timelineEvents', id));
+    setEvents(prev => prev.filter(e => e.id !== id));
+  };
+
+  return { events, addEvent, updateEvent, deleteEvent, refreshEvents: load };
 }
 
+// ──────────────────────────────────────────────
+// useFanworks: getDocs 최초 로드 + 낙관적 업데이트
+// ──────────────────────────────────────────────
 export function useFanworks(projectId) {
   const [fanworks, setFanworks] = useState([]);
-  useEffect(() => {
+
+  const load = useCallback(() => {
     if (!projectId) return;
     const q = query(collection(db, 'fanworks'), where('projectId', '==', projectId));
-    return onSnapshot(q, snap => setFanworks(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? a.createdAt?.seconds ?? 0) - (b.order ?? b.createdAt?.seconds ?? 0))));
+    getDocs(q).then(snap =>
+      setFanworks(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
+    );
   }, [projectId]);
 
-  const addFanwork = (data) => addDoc(collection(db, 'fanworks'), { ...data, projectId, createdAt: serverTimestamp() });
-  const updateFanwork = (id, data) => updateDoc(doc(db, 'fanworks', id), data);
-  const deleteFanwork = (id) => deleteDoc(doc(db, 'fanworks', id));
+  useEffect(() => { load(); }, [load]);
 
-  return { fanworks, addFanwork, updateFanwork, deleteFanwork };
+  const addFanwork = async (data) => {
+    const payload = { ...data, projectId, createdAt: serverTimestamp() };
+    const docRef = await addDoc(collection(db, 'fanworks'), payload);
+    setFanworks(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+    return docRef;
+  };
+
+  const updateFanwork = async (id, data) => {
+    await updateDoc(doc(db, 'fanworks', id), data);
+    setFanworks(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+  };
+
+  const deleteFanwork = async (id) => {
+    await deleteDoc(doc(db, 'fanworks', id));
+    setFanworks(prev => prev.filter(f => f.id !== id));
+  };
+
+  return { fanworks, addFanwork, updateFanwork, deleteFanwork, refreshFanworks: load };
 }
