@@ -5,16 +5,24 @@ import { auth, app } from '../firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { isPro, getSubscriptionLabel } from '../config/plans';
 
+const fmt = (ts) => {
+  if (!ts?.toDate) return '';
+  const d = ts.toDate();
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+};
+
 export default function Settings({ user, onShowOnboarding, theme, onToggleTheme }) {
   const navigate = useNavigate();
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [cancellingSubscription, setCancellingSubscription] = useState(false);
+  const [cancellingPlan, setCancellingPlan] = useState(false);
+
+  const functions = getFunctions(app, 'asia-northeast3');
 
   const handleDeleteAccount = async () => {
     if (!window.confirm('정말 탈퇴하시겠어요? 모든 데이터가 삭제되며 복구할 수 없습니다.')) return;
     setDeletingAccount(true);
     try {
-      const functions = getFunctions(app, 'asia-northeast3');
       const deleteAccount = httpsCallable(functions, 'deleteAccount');
       await deleteAccount();
       navigate('/login');
@@ -26,8 +34,46 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
     }
   };
 
+  // 구독 해지: 빌링키 해제 + status → cancelled (기간까지 Pro 유지)
+  const handleCancelSubscription = async () => {
+    if (!window.confirm(
+      '구독을 해지하시겠어요?\n해지 후에도 현재 결제 기간 만료일까지는 Pro를 이용할 수 있어요.'
+    )) return;
+    setCancellingSubscription(true);
+    try {
+      const cancelSubscription = httpsCallable(functions, 'cancelSubscription');
+      await cancelSubscription();
+      alert('구독이 해지됐어요. 기간 만료일까지 계속 이용하실 수 있어요.');
+    } catch (e) {
+      console.error(e);
+      alert('해지 처리 중 오류가 발생했어요. 이메일로 문의해 주세요.');
+    } finally {
+      setCancellingSubscription(false);
+    }
+  };
+
+  // 플랜 전환 예약 취소
+  const handleCancelPendingPlan = async () => {
+    if (!window.confirm('플랜 전환 예약을 취소하시겠어요?')) return;
+    setCancellingPlan(true);
+    try {
+      const cancelPendingPlan = httpsCallable(functions, 'cancelPendingPlan');
+      await cancelPendingPlan();
+      alert('전환 예약이 취소됐어요.');
+    } catch (e) {
+      console.error(e);
+      alert('취소 중 오류가 발생했어요.');
+    } finally {
+      setCancellingPlan(false);
+    }
+  };
+
   const pro = isPro(user);
   const planLabel = getSubscriptionLabel(user);
+  const sub = user?.subscription || {};
+  const isPastDue = sub.status === 'past_due';
+  const isCancelled = sub.status === 'cancelled' && pro;
+  const isActive = sub.status === 'active';
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -54,26 +100,81 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
           </div>
         </section>
 
+        {/* 결제 실패 배너 */}
+        {isPastDue && (
+          <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid var(--coral, #f87171)', borderRadius: 'var(--radius-lg)', padding: '14px 18px', marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--coral, #f87171)', marginBottom: 4 }}>⚠️ 결제에 실패했어요</div>
+            <div style={{ fontSize: 13, color: 'var(--coral, #f87171)', opacity: 0.9 }}>
+              등록된 카드의 한도·유효기간을 확인해 주세요. 문제가 지속되면{' '}
+              <strong>histy.cartographic@gmail.com</strong> 으로 문의해 주세요.
+            </div>
+          </div>
+        )}
+
         {/* 플랜 */}
-        <section style={{ background: 'var(--bg2)', border: `1px solid ${pro ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: pro ? 16 : 0 }}>
+        <section style={{ background: 'var(--bg2)', border: `1px solid ${pro ? 'var(--accent)' : isPastDue ? 'var(--coral, #f87171)' : 'var(--border)'}`, borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (isActive || isCancelled) ? 16 : 0 }}>
             <div>
               <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4 }}>현재 플랜</div>
               <div style={{ fontSize: 18, fontWeight: 600, color: pro ? 'var(--accent)' : 'var(--text)' }}>
                 {pro ? '✦ Pro' : 'Free'}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{planLabel}</div>
+              <div style={{ fontSize: 12, color: isPastDue ? 'var(--coral, #f87171)' : 'var(--text3)', marginTop: 2 }}>{planLabel}</div>
             </div>
-            {!pro && (
+            {!pro && !isPastDue && (
               <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 16px', height: 36 }}
                 onClick={() => navigate('/pricing')}>
                 업그레이드
               </button>
             )}
+            {isPastDue && (
+              <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 16px', height: 36 }}
+                onClick={() => navigate('/pricing')}>
+                결제 수단 변경
+              </button>
+            )}
           </div>
-          {pro && (
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, fontSize: 13, color: 'var(--text3)' }}>
-              구독 관련 문의는 <strong style={{ color: 'var(--text2)' }}>histy.cartographic@gmail.com</strong> 으로 연락해 주세요.
+
+          {/* 활성 구독 관리 */}
+          {isActive && (
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              {/* pendingPlan 예약 안내 */}
+              {sub.pendingPlan && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, color: 'var(--text2)' }}>
+                    {fmt(sub.currentPeriodEnd)}부터{' '}
+                    <strong>{sub.pendingPlan === 'yearly' ? '연간' : '월간'}</strong> 플랜으로 전환 예약됨
+                  </span>
+                  <button className="btn btn-ghost" style={{ fontSize: 11, height: 28, padding: '0 10px', flexShrink: 0 }}
+                    onClick={handleCancelPendingPlan} disabled={cancellingPlan}>
+                    {cancellingPlan ? '처리 중...' : '예약 취소'}
+                  </button>
+                </div>
+              )}
+              {/* 구독 해지 */}
+              <button
+                style={{ fontSize: 13, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 16px', cursor: 'pointer', transition: 'all 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--coral, #f87171)'; e.currentTarget.style.borderColor = 'var(--coral, #f87171)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                onClick={handleCancelSubscription} disabled={cancellingSubscription}>
+                {cancellingSubscription ? '처리 중...' : '구독 해지'}
+              </button>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
+                해지 후에도 {fmt(sub.currentPeriodEnd)}까지 Pro를 이용할 수 있어요.
+              </div>
+            </div>
+          )}
+
+          {/* 해지 예정 상태 */}
+          {isCancelled && (
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 12 }}>
+                {fmt(sub.currentPeriodEnd)} 이후 자동으로 무료 플랜으로 전환돼요.
+              </div>
+              <button className="btn btn-primary" style={{ fontSize: 13, height: 36, padding: '0 16px' }}
+                onClick={() => navigate('/pricing')}>
+                구독 재개하기
+              </button>
             </div>
           )}
         </section>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, app } from '../firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { isPro } from '../config/plans';
 
 const TOSS_CLIENT_KEY = process.env.REACT_APP_TOSS_CLIENT_KEY;
@@ -11,15 +12,19 @@ export default function Pricing({ user }) {
   const [yearly, setYearly] = useState(false);
   const [paying, setPaying] = useState(false);
   const [reserving, setReserving] = useState(false);
+  const [cancellingPlan, setCancellingPlan] = useState(false);
   const userIsPro = isPro(user);
   const userPlan = user?.subscription?.plan || null; // 'monthly' | 'yearly' | null
-  const pendingPlan = user?.subscription?.pendingPlan || null; // 예약된 플랜
+  const pendingPlan = user?.subscription?.pendingPlan || null;
   const currentPeriodEnd = user?.subscription?.currentPeriodEnd?.toDate?.() || null;
-  const isCurrentPlan = (planType) => userIsPro && userPlan === planType;
-
-  // 현재 구독 중이고, 보고 있는 플랜이 현재 플랜과 다른 경우 → 전환 예약 가능
-  const canReserve = (planType) => userIsPro && userPlan !== planType && userPlan !== null;
+  const isPastDue = user?.subscription?.status === 'past_due';
+  const isCancelled = user?.subscription?.status === 'cancelled';
+  // 해지 예정이거나 past_due면 전환 예약 불가
+  const isCurrentPlan = (planType) => userIsPro && userPlan === planType && !isCancelled;
+  const canReserve = (planType) => userIsPro && !isCancelled && !isPastDue && userPlan !== planType && userPlan !== null;
   const isReserved = (planType) => pendingPlan === planType;
+
+  const fns = getFunctions(app, 'asia-northeast3');
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -28,7 +33,6 @@ export default function Pricing({ user }) {
 
   const handleReservePlan = async (planType) => {
     if (!user || reserving) return;
-    // 유효한 플랜 값만 허용
     if (planType !== 'monthly' && planType !== 'yearly') return;
     const confirmMsg = planType === 'yearly'
       ? `${formatDate(currentPeriodEnd)}부터 연간 플랜(29,900원/년)으로 전환할까요?`
@@ -36,16 +40,29 @@ export default function Pricing({ user }) {
     if (!window.confirm(confirmMsg)) return;
     setReserving(true);
     try {
-      // Firestore rules에 의해 본인 uid 문서만 쓰기 가능 (타인 조작 차단)
-      await updateDoc(doc(db, 'users', user.uid), {
-        'subscription.pendingPlan': planType,
-      });
+      await updateDoc(doc(db, 'users', user.uid), { 'subscription.pendingPlan': planType });
       alert(`다음 결제일(${formatDate(currentPeriodEnd)})부터 ${planType === 'yearly' ? '연간' : '월간'} 플랜으로 전환됩니다.`);
     } catch (e) {
       console.error(e);
       alert('전환 예약 중 오류가 발생했어요. 다시 시도해 주세요.');
     } finally {
       setReserving(false);
+    }
+  };
+
+  // 플랜 전환 예약 취소
+  const handleCancelPendingPlan = async () => {
+    if (!window.confirm('플랜 전환 예약을 취소하시겠어요?')) return;
+    setCancellingPlan(true);
+    try {
+      const cancelPendingPlan = httpsCallable(fns, 'cancelPendingPlan');
+      await cancelPendingPlan();
+      alert('전환 예약이 취소됐어요.');
+    } catch (e) {
+      console.error(e);
+      alert('취소 중 오류가 발생했어요.');
+    } finally {
+      setCancellingPlan(false);
     }
   };
 
@@ -88,6 +105,28 @@ export default function Pricing({ user }) {
       </header>
 
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '60px 20px 80px' }}>
+        {/* 결제 실패 배너 */}
+        {isPastDue && (
+          <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid var(--coral, #f87171)', borderRadius: 'var(--radius-lg)', padding: '14px 18px', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--coral, #f87171)', marginBottom: 2 }}>⚠️ 결제에 실패했어요</div>
+              <div style={{ fontSize: 13, color: 'var(--coral, #f87171)', opacity: 0.9 }}>등록된 카드를 확인하거나 새 카드를 등록해 주세요.</div>
+            </div>
+            <button className="btn btn-primary" style={{ flexShrink: 0, fontSize: 13 }} onClick={handlePayment} disabled={paying}>
+              {paying ? '처리 중...' : '카드 재등록'}
+            </button>
+          </div>
+        )}
+
+        {/* 해지 예정 배너 */}
+        {isCancelled && userIsPro && (
+          <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', padding: '14px 18px', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ fontSize: 13, color: 'var(--accent)' }}>
+              구독이 해지 예정이에요. {formatDate(currentPeriodEnd)}까지 Pro를 이용할 수 있어요.
+            </div>
+          </div>
+        )}
+
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', marginBottom: 12 }}>요금제</h1>
           <p style={{ color: 'var(--text2)', fontSize: 15, marginBottom: 28 }}>처음 30일은 Pro 플랜을 무료로 체험해보세요</p>
@@ -143,11 +182,18 @@ export default function Pricing({ user }) {
                     ? (reserving ? '처리 중...' : `다음 결제일부터 전환`)
                     : (paying ? '처리 중...' : '30일 무료로 시작하기')}
             </button>
-            {/* 예약 안내 문구 */}
+            {/* 예약 안내 문구 + 예약 취소 */}
             {isReserved(yearly ? 'yearly' : 'monthly') && (
-              <p style={{ fontSize: 11, color: 'var(--accent)', textAlign: 'center', marginBottom: 16 }}>
-                {formatDate(currentPeriodEnd)}부터 적용돼요
-              </p>
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <p style={{ fontSize: 11, color: 'var(--accent)', marginBottom: 4 }}>
+                  {formatDate(currentPeriodEnd)}부터 적용돼요
+                </p>
+                <button
+                  style={{ fontSize: 11, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={handleCancelPendingPlan} disabled={cancellingPlan}>
+                  {cancellingPlan ? '처리 중...' : '예약 취소'}
+                </button>
+              </div>
             )}
             {canReserve(yearly ? 'yearly' : 'monthly') && !isReserved(yearly ? 'yearly' : 'monthly') && (
               <p style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 16 }}>

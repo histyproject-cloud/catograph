@@ -23,18 +23,19 @@ export const LIMIT_MESSAGES = {
 };
 
 // ── Pro 여부 체크 ──
-// Firestore users/{uid} 문서의 subscription 필드 기준
-// subscription: {
-//   status: 'active' | 'trial' | 'cancelled' | 'expired',
-//   trialEndsAt: Timestamp,
-//   currentPeriodEnd: Timestamp,
-// }
+// subscription.status:
+//   'active'    → 정상 구독 (currentPeriodEnd 이전까지 Pro)
+//   'trial'     → 무료 체험 (trialEndsAt 이전까지 Pro)
+//   'cancelled' → 해지됨, 단 currentPeriodEnd 이전까지는 Pro 유지
+//   'past_due'  → 결제 실패 (Pro 아님)
+//   'expired'   → 만료 (Pro 아님)
 export function isPro(user) {
   if (!user?.subscription) return false;
   const { status, currentPeriodEnd, trialEndsAt } = user.subscription;
   const now = Date.now();
 
-  if (status === 'active') {
+  if (status === 'active' || status === 'cancelled') {
+    // cancelled여도 기간 만료 전까지는 Pro 유지
     if (!currentPeriodEnd?.toMillis) return false;
     return currentPeriodEnd.toMillis() > now;
   }
@@ -48,14 +49,29 @@ export function isPro(user) {
 // ── 구독 상태 텍스트 ──
 export function getSubscriptionLabel(user) {
   if (!user?.subscription) return '무료 플랜';
-  const { status, trialEndsAt, currentPeriodEnd } = user.subscription;
+  const { status, plan, trialEndsAt, currentPeriodEnd } = user.subscription;
   const now = Date.now();
+
+  const fmt = (ts) => {
+    if (!ts?.toDate) return '';
+    const d = ts.toDate();
+    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+  };
 
   if (status === 'trial' && trialEndsAt?.toMillis?.() > now) {
     const daysLeft = Math.ceil((trialEndsAt.toMillis() - now) / 86400000);
     return `무료 체험 중 (${daysLeft}일 남음)`;
   }
-  if (status === 'active') return 'Pro 플랜';
-  if (status === 'cancelled') return '구독 취소됨';
+  if (status === 'active') {
+    const planName = plan === 'yearly' ? '연간' : '월간';
+    return `Pro ${planName} · 다음 결제일 ${fmt(currentPeriodEnd)}`;
+  }
+  if (status === 'cancelled') {
+    if (currentPeriodEnd?.toMillis?.() > now) {
+      return `해지 예정 · ${fmt(currentPeriodEnd)}까지 이용 가능`;
+    }
+    return '구독 만료됨';
+  }
+  if (status === 'past_due') return '결제 실패 — 카드를 확인해 주세요';
   return '무료 플랜';
 }

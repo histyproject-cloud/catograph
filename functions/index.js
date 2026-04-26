@@ -261,6 +261,69 @@ exports.billingScheduler = onSchedule(
 );
 
 /**
+ * 구독 해지 함수
+ * 빌링키 해제 + Firestore status → cancelled (기간 만료 전까지 Pro 유지)
+ */
+exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  }
+
+  const uid = request.auth.uid;
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) {
+    throw new HttpsError("not-found", "사용자를 찾을 수 없습니다.");
+  }
+
+  const sub = userDoc.data()?.subscription || {};
+
+  if (!["active"].includes(sub.status)) {
+    throw new HttpsError("failed-precondition", "해지할 수 있는 활성 구독이 없습니다.");
+  }
+
+  const billingKey = sub.billingKey;
+  if (billingKey) {
+    try {
+      await fetch(`https://api.tosspayments.com/v1/billing/authorizations/${billingKey}/cancel`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY.value() + ":").toString("base64")}`,
+        },
+      });
+      console.log(`빌링키 해제 완료: ${uid}`);
+    } catch {
+      console.warn(`빌링키 해제 실패 (계속 진행): ${uid}`);
+    }
+  }
+
+  // status → cancelled, billingKey 삭제, pendingPlan 삭제
+  // currentPeriodEnd는 유지 → isPro()가 기간까지 true 반환
+  await db.collection("users").doc(uid).update({
+    "subscription.status": "cancelled",
+    "subscription.cancelledAt": FieldValue.serverTimestamp(),
+    "subscription.billingKey": FieldValue.delete(),
+    "subscription.pendingPlan": FieldValue.delete(),
+  });
+
+  return { success: true };
+});
+
+/**
+ * 플랜 전환 예약 취소
+ * pendingPlan 필드 삭제
+ */
+exports.cancelPendingPlan = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  }
+  const uid = request.auth.uid;
+  await db.collection("users").doc(uid).update({
+    "subscription.pendingPlan": FieldValue.delete(),
+  });
+  return { success: true };
+});
+
+/**
  * 토스페이먼츠 웹훅 수신
  * 결제 성공 시 구독 갱신 + pendingPlan 처리
  */
@@ -294,6 +357,14 @@ exports.tossWebhook = onRequest(
         const customerKey = data.customerKey;
         const incomingOrderId = data.orderId;
         if (!customerKey) { res.status(200).send("ok"); return; }
+
+        // billingScheduler가 직접 결제하고 Firestore 업데이트까지 처리하는 orderId → 웹훅은 스킵
+        // (auto_ prefix = 스케줄러 생성 orderId, 이중 처리 방지)
+        if (incomingOrderId?.startsWith("auto_")) {
+          console.log(`스케줄러 처리 orderId 스킵: ${incomingOrderId}`);
+          res.status(200).send("ok");
+          return;
+        }
 
         // customerKey = uid로 유저 조회
         const userRef = db.collection("users").doc(customerKey);
