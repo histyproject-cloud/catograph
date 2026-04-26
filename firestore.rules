@@ -2,9 +2,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 유저 문서: 본인만 읽기/쓰기 가능
+    // 유저 문서
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid;
+
+      // 클라이언트 업데이트: subscription 필드를 건드릴 경우 pendingPlan만 허용
+      // (status, billingKey, currentPeriodEnd, plan 등은 Cloud Function만 쓸 수 있음)
+      allow update: if request.auth != null && request.auth.uid == uid
+        && (
+          // subscription 필드를 아예 건드리지 않는 경우 (프로필, 동의 등)
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription'])
+          ||
+          // subscription 하위에서 pendingPlan('monthly'|'yearly')만 변경 허용
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscription'])
+            && request.resource.data.subscription.diff(resource.data.subscription)
+                .affectedKeys().hasOnly(['pendingPlan'])
+            && request.resource.data.subscription.pendingPlan is string
+            && request.resource.data.subscription.pendingPlan in ['monthly', 'yearly']
+          )
+        );
     }
 
     match /projects/{projectId} {
