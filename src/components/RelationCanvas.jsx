@@ -131,12 +131,18 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
   };
 
   const onTouchEndCanvas = (char) => (e) => {
+    // 카드에서 호출된 경우 버블링 차단 — 캔버스 핸들러가 null char로 중복 실행되는 것 방지
+    if (char !== null) e.stopPropagation();
+
     // 탭 감지: 300ms 이내 + 10px 이내 이동
     if (touchStartTime.current && touchStartPos.current && e.changedTouches[0]) {
       const elapsed = Date.now() - touchStartTime.current;
       const dx = Math.abs(e.changedTouches[0].clientX - touchStartPos.current.x);
       const dy = Math.abs(e.changedTouches[0].clientY - touchStartPos.current.y);
-      if (elapsed < 300 && dx < 10 && dy < 10 && connectMode) {
+      if (elapsed < 300 && dx < 10 && dy < 10 && connectMode && char !== null) {
+        // 탭 처리 후 상태 초기화 (버블링 방지를 위해 touchStartTime 클리어)
+        touchStartTime.current = null;
+        touchStartPos.current = null;
         onCharClick(char);
         setDragging(null);
         isPanning.current = false;
