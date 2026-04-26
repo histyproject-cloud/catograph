@@ -28,12 +28,15 @@ export default function Pricing({ user }) {
 
   const handleReservePlan = async (planType) => {
     if (!user || reserving) return;
+    // 유효한 플랜 값만 허용
+    if (planType !== 'monthly' && planType !== 'yearly') return;
     const confirmMsg = planType === 'yearly'
       ? `${formatDate(currentPeriodEnd)}부터 연간 플랜(29,900원/년)으로 전환할까요?`
       : `${formatDate(currentPeriodEnd)}부터 월간 플랜(3,300원/월)으로 전환할까요?`;
     if (!window.confirm(confirmMsg)) return;
     setReserving(true);
     try {
+      // Firestore rules에 의해 본인 uid 문서만 쓰기 가능 (타인 조작 차단)
       await updateDoc(doc(db, 'users', user.uid), {
         'subscription.pendingPlan': planType,
       });

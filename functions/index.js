@@ -276,6 +276,7 @@ exports.tossWebhook = onRequest(
       // 정기결제 성공
       if (eventType === "PAYMENT_STATUS_CHANGED" && data?.status === "DONE") {
         const customerKey = data.customerKey;
+        const incomingOrderId = data.orderId;
         if (!customerKey) { res.status(200).send("ok"); return; }
 
         // customerKey = uid로 유저 조회
@@ -284,6 +285,19 @@ exports.tossWebhook = onRequest(
         if (!userSnap.exists) { res.status(200).send("ok"); return; }
 
         const sub = userSnap.data()?.subscription || {};
+
+        // ── idempotency: 이미 처리한 orderId면 스킵 ──
+        if (incomingOrderId && sub.lastOrderId === incomingOrderId) {
+          console.log(`웹훅 중복 수신 스킵: ${incomingOrderId}`);
+          res.status(200).send("ok");
+          return;
+        }
+
+        // ── billingScheduler가 이미 처리했는지 확인 (같은 날 이미 갱신됐으면 스킵) ──
+        // 스케줄러가 먼저 처리하면 lastOrderId가 auto_로 시작하는 orderId로 갱신됨
+        // 웹훅은 billingScheduler가 만든 orderId와 다른 orderId로 들어오므로 구분 가능
+        // → orderId 기반 중복 체크만으로 충분
+
         const pendingPlan = sub.pendingPlan || null;
 
         // pendingPlan이 있으면 플랜 전환, 없으면 현재 플랜 유지
@@ -303,6 +317,7 @@ exports.tossWebhook = onRequest(
           "subscription.plan": newPlan,
           "subscription.currentPeriodEnd": periodEnd,
           "subscription.lastPaidAt": FieldValue.serverTimestamp(),
+          "subscription.lastOrderId": incomingOrderId || FieldValue.delete(),
           "subscription.pendingPlan": FieldValue.delete(), // 예약 초기화
         });
 

@@ -35,8 +35,8 @@ export function isPro(user) {
   const now = Date.now();
 
   if (status === 'active') {
-    if (currentPeriodEnd?.toMillis) return currentPeriodEnd.toMillis() > now;
-    return true;
+    if (!currentPeriodEnd?.toMillis) return false;
+    return currentPeriodEnd.toMillis() > now;
   }
   if (status === 'trial') {
     if (trialEndsAt?.toMillis) return trialEndsAt.toMillis() > now;

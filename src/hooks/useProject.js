@@ -3,7 +3,18 @@ import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   onSnapshot, query, where, serverTimestamp, getDocs, writeBatch
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
+import { ref, deleteObject } from 'firebase/storage';
+
+// Firestore batch 500개 제한 처리 (400개씩 청크)
+async function deleteInBatches(db, refs) {
+  const CHUNK = 400;
+  for (let i = 0; i < refs.length; i += CHUNK) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + CHUNK).forEach((r) => batch.delete(r));
+    await batch.commit();
+  }
+}
 
 export function useProjects(userId) {
   const [projects, setProjects] = useState([]);
@@ -23,18 +34,29 @@ export function useProjects(userId) {
     addDoc(collection(db, 'projects'), { name, ownerId: userId, createdAt: serverTimestamp(), sharedWith: [] });
 
   const deleteProject = async (id) => {
-    const batch = writeBatch(db);
     const collections = ['characters', 'relations', 'foreshadows', 'worldDocs', 'timelineEvents', 'fanworks'];
+    const allRefs = [];
 
-    // 하위 컬렉션 전부 삭제
     for (const col of collections) {
       const snap = await getDocs(query(collection(db, col), where('projectId', '==', id)));
-      snap.docs.forEach(d => batch.delete(d.ref));
+
+      // 캐릭터 사진 Storage 정리
+      if (col === 'characters') {
+        await Promise.all(snap.docs.map(async (d) => {
+          if (d.data().photoURL) {
+            try { await deleteObject(ref(storage, `characters/${d.id}/photo`)); } catch { /* 없으면 무시 */ }
+          }
+        }));
+      }
+
+      snap.docs.forEach(d => allRefs.push(d.ref));
     }
 
-    // 프로젝트 document 삭제
-    batch.delete(doc(db, 'projects', id));
-    await batch.commit();
+    // 프로젝트 문서 포함
+    allRefs.push(doc(db, 'projects', id));
+
+    // 400개씩 청크로 삭제 (500개 제한 대응)
+    await deleteInBatches(db, allRefs);
   };
 
   const updateProject = async (id, data) => updateDoc(doc(db, 'projects', id), data);
@@ -56,6 +78,9 @@ export function useCharacters(projectId) {
   // 캐릭터 삭제 시 연결된 relations, foreshadow charIds 자동 정리
   const deleteCharacter = async (charId) => {
     const batch = writeBatch(db);
+
+    // 0. Storage 사진 삭제 (없으면 무시)
+    try { await deleteObject(ref(storage, `characters/${charId}/photo`)); } catch { /* 없으면 무시 */ }
 
     // 1. 캐릭터 삭제
     batch.delete(doc(db, 'characters', charId));

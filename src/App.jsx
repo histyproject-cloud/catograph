@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
@@ -23,6 +23,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const authUserRef = useRef(null); // Firebase Auth 유저 객체 보관 (onSnapshot 콜백에서 사용)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -32,30 +33,47 @@ export default function App() {
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
+    let unsubFirestore = null;
+
+    const unsubAuth = onAuthStateChanged(auth, async (u) => {
+      // 이전 Firestore 리스너 정리
+      if (unsubFirestore) { unsubFirestore(); unsubFirestore = null; }
+
       if (u) {
-        // Firestore에서 유저 데이터 (subscription 등) 불러와서 합치기
-        const userDoc = await getDoc(doc(db, 'users', u.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
+        authUserRef.current = u;
 
         // 문서 없으면 기본 문서 생성
-        if (!userDoc.exists()) {
-          await setDoc(doc(db, 'users', u.uid), {
-            createdAt: serverTimestamp(),
-          });
+        const userDocSnap = await getDoc(doc(db, 'users', u.uid));
+        if (!userDocSnap.exists()) {
+          await setDoc(doc(db, 'users', u.uid), { createdAt: serverTimestamp() });
         }
 
-        setUser({ ...u, ...userData });
-        // 동의 기록 없으면 동의 모달 먼저
-        if (!userData?.consentAt) {
-          setShowConsent(true);
-        } else if (!userData?.onboardingDone) {
-          setShowOnboarding(true);
-        }
+        // Firestore 실시간 구독 → 결제/구독 변경 시 user state 자동 갱신
+        unsubFirestore = onSnapshot(doc(db, 'users', u.uid), (snap) => {
+          const userData = snap.exists() ? snap.data() : {};
+          const currentAuthUser = authUserRef.current;
+          if (!currentAuthUser) return;
+
+          setUser((prev) => {
+            const next = { ...currentAuthUser, ...userData };
+            // 동의/온보딩 모달은 최초 1회만
+            if (prev === undefined || prev === null) {
+              if (!userData?.consentAt) setShowConsent(true);
+              else if (!userData?.onboardingDone) setShowOnboarding(true);
+            }
+            return next;
+          });
+        });
       } else {
+        authUserRef.current = null;
         setUser(null);
       }
     });
+
+    return () => {
+      unsubAuth();
+      if (unsubFirestore) unsubFirestore();
+    };
   }, []);
 
   const handleOnboardingComplete = async () => {
@@ -103,9 +121,9 @@ export default function App() {
         <Route path="/legal" element={<Legal />} />
         <Route path="/pricing" element={<Pricing user={user} />} />
         <Route path="/settings" element={user ? <Settings user={user} onShowOnboarding={() => setShowOnboarding(true)} theme={theme} onToggleTheme={toggleTheme} /> : <Navigate to="/login" />} />
-        <Route path="*" element={<NotFound />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/fail" element={<PaymentFail />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
     </ErrorBoundary>
