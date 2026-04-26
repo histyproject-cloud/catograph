@@ -29,7 +29,7 @@ async function deleteInBatches(refs) {
  * 회원 탈퇴 함수
  * 호출 시 해당 유저의 모든 Firestore 데이터 + Storage 파일 + Auth 계정 삭제
  */
-exports.deleteAccount = onCall({ cors: true }, async (request) => {
+exports.deleteAccount = onCall({ cors: true, secrets: [TOSS_SECRET_KEY] }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
@@ -92,10 +92,26 @@ exports.deleteAccount = onCall({ cors: true }, async (request) => {
       await deleteInBatches(projectsSnap.docs.map((d) => d.ref));
     }
 
-    // 5. 유저 문서 삭제
+    // 5. 토스페이먼츠 빌링키 해제 (있을 경우)
+    const userDoc = await db.collection("users").doc(uid).get();
+    const billingKey = userDoc.data()?.subscription?.billingKey;
+    if (billingKey) {
+      try {
+        await fetch(`https://api.tosspayments.com/v1/billing/authorizations/${billingKey}/cancel`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY.value() + ":").toString("base64")}`,
+          },
+        });
+      } catch {
+        // 빌링키 해제 실패해도 탈퇴는 계속 진행
+      }
+    }
+
+    // 6. 유저 문서 삭제
     await db.collection("users").doc(uid).delete();
 
-    // 6. Firebase Auth 계정 삭제
+    // 7. Firebase Auth 계정 삭제
     await getAuth().deleteUser(uid);
 
     return { success: true };
@@ -109,7 +125,7 @@ exports.deleteAccount = onCall({ cors: true }, async (request) => {
  * 빌링키 발급 함수
  * 클라이언트에서 authKey 받아서 토스 서버에 billingKey 발급 요청
  */
-exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, async (request) => {
+exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minInstances: 1 }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
@@ -179,7 +195,7 @@ exports.billingScheduler = onSchedule(
       const pendingPlan = sub.pendingPlan || null;
       const newPlan = pendingPlan || sub.plan || "monthly";
       const isYearly = newPlan === "yearly";
-      const amount = isYearly ? 29700 : 3300;
+      const amount = isYearly ? 29900 : 3300;
 
       if (!billingKey) {
         console.warn(`빌링키 없음: ${uid}`);
@@ -255,7 +271,7 @@ const TOSS_IPS = new Set([
 ]);
 
 exports.tossWebhook = onRequest(
-  { secrets: [TOSS_SECRET_KEY], region: "asia-northeast3" },
+  { secrets: [TOSS_SECRET_KEY], region: "asia-northeast3", minInstances: 1 },
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
