@@ -48,10 +48,10 @@ export function useProjects(userId) {
       const snap = await getDocs(query(collection(db, col), where('projectId', '==', id)));
 
       if (col === 'characters') {
+        // photoURL 필드 여부와 무관하게 항상 삭제 시도 (없으면 무시)
+        // → 업로드됐지만 photoURL 미반영된 엣지 케이스까지 커버
         await Promise.all(snap.docs.map(async (d) => {
-          if (d.data().photoURL) {
-            try { await deleteObject(ref(storage, `characters/${d.id}/photo`)); } catch { /* 없으면 무시 */ }
-          }
+          try { await deleteObject(ref(storage, `characters/${d.id}/photo`)); } catch { /* 없으면 무시 */ }
         }));
       }
 

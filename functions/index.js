@@ -61,16 +61,16 @@ exports.deleteAccount = onCall({ cors: true, secrets: [TOSS_SECRET_KEY] }, async
         .where("projectId", "==", projectId)
         .get();
 
+      // photoURL 필드 여부와 무관하게 항상 삭제 시도 (없으면 무시)
+      // → 업로드됐지만 photoURL 미반영된 엣지 케이스까지 커버
       for (const charDoc of charsSnap.docs) {
-        if (charDoc.data().photoURL) {
-          try {
-            await storage
-              .bucket()
-              .file(`characters/${charDoc.id}/photo`)
-              .delete();
-          } catch {
-            // 파일 없으면 무시
-          }
+        try {
+          await storage
+            .bucket()
+            .file(`characters/${charDoc.id}/photo`)
+            .delete();
+        } catch {
+          // 파일 없으면 무시
         }
       }
 
