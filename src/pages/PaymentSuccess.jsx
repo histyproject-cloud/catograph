@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db, auth, app } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, app } from '../firebase';
 
 export default function PaymentSuccess() {
   const [params] = useSearchParams();
@@ -19,43 +19,17 @@ export default function PaymentSuccess() {
 
         if (!authKey || !customerKey) throw new Error('파라미터 없음');
 
-        const user = auth.currentUser;
+        // ── Firebase Auth 세션 복원 대기 (리디렉션 후 currentUser가 null일 수 있음) ──
+        const user = await new Promise((resolve) => {
+          const unsub = onAuthStateChanged(auth, (u) => { unsub(); resolve(u); });
+        });
         if (!user) throw new Error('로그인 필요');
 
-        // ── 중복 실행 방지: 이미 같은 orderId로 처리된 경우 스킵 ──
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data()?.subscription?.orderId === orderId) {
-          setStatus('done');
-          setTimeout(() => { window.location.href = '/'; }, 3000);
-          return;
-        }
-
-        const now = new Date();
-        const periodEnd = new Date(now);
-        if (yearly) {
-          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-        } else {
-          periodEnd.setMonth(periodEnd.getMonth() + 1);
-        }
-
-        // ── 빌링키 발급 먼저 (실패 시 구독 활성화 안 함) ──
+        // ── 빌링키 발급 + 구독 활성화 (Cloud Function에서 통합 처리) ──
+        // 중복 실행 방지(orderId 기반)도 Function 내부에서 처리됨
         const functions = getFunctions(app, 'asia-northeast3');
         const issueBillingKey = httpsCallable(functions, 'issueBillingKey');
-        await issueBillingKey({ authKey, customerKey });
-
-        // ── 빌링키 발급 성공 후 Firestore에 구독 정보 저장 ──
-        await setDoc(doc(db, 'users', user.uid), {
-          subscription: {
-            status: 'active',
-            plan: yearly ? 'yearly' : 'monthly',
-            amount: Number(amount),
-            authKey,
-            customerKey,
-            orderId,
-            startedAt: serverTimestamp(),
-            currentPeriodEnd: periodEnd,
-          }
-        }, { merge: true });
+        await issueBillingKey({ authKey, customerKey, yearly, orderId, amount });
 
         setStatus('done');
         setTimeout(() => { window.location.href = '/'; }, 3000);

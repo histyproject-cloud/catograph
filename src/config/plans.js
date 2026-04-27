@@ -63,6 +63,13 @@ export function getSubscriptionLabel(user) {
     return `무료 체험 중 (${daysLeft}일 남음)`;
   }
   if (status === 'active') {
+    if (plan === 'b2b') {
+      return `B2B 플랜 · ${fmt(currentPeriodEnd)}까지 이용 가능`;
+    }
+    const couponCode = user?.subscription?.couponCode;
+    if (couponCode) {
+      return `체험단 1년권 · ${fmt(currentPeriodEnd)}까지 이용 가능`;
+    }
     const planName = plan === 'yearly' ? '연간' : '월간';
     return `Pro ${planName} · 다음 결제일 ${fmt(currentPeriodEnd)}`;
   }

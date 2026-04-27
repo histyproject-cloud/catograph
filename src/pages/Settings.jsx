@@ -16,6 +16,10 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [cancellingSubscription, setCancellingSubscription] = useState(false);
   const [cancellingPlan, setCancellingPlan] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
 
   const functions = getFunctions(app, 'asia-northeast3');
 
@@ -65,6 +69,24 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
       alert('취소 중 오류가 발생했어요.');
     } finally {
       setCancellingPlan(false);
+    }
+  };
+
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError('');
+    setCouponSuccess('');
+    try {
+      const applyCoupon = httpsCallable(functions, 'applyCoupon');
+      await applyCoupon({ code: couponCode.trim() });
+      setCouponSuccess('1년 무료 이용권이 적용됐어요! 🎉');
+      setCouponCode('');
+    } catch (err) {
+      setCouponError(err.message || '쿠폰 적용에 실패했어요. 코드를 다시 확인해주세요.');
+    } finally {
+      setApplyingCoupon(false);
     }
   };
 
@@ -145,7 +167,7 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
                     {fmt(sub.currentPeriodEnd)}부터{' '}
                     <strong>{sub.pendingPlan === 'yearly' ? '연간' : '월간'}</strong> 플랜으로 전환 예약됨
                   </span>
-                  <button className="btn btn-ghost" style={{ fontSize: 11, height: 28, padding: '0 10px', flexShrink: 0 }}
+                  <button className="btn btn-ghost" style={{ fontSize: 11, height: 28, padding: '0 10px', flexShrink: 0, opacity: cancellingPlan ? 0.5 : 1, cursor: cancellingPlan ? 'not-allowed' : 'pointer' }}
                     onClick={handleCancelPendingPlan} disabled={cancellingPlan}>
                     {cancellingPlan ? '처리 중...' : '예약 취소'}
                   </button>
@@ -153,8 +175,8 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
               )}
               {/* 구독 해지 */}
               <button
-                style={{ fontSize: 13, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 16px', cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--coral, #f87171)'; e.currentTarget.style.borderColor = 'var(--coral, #f87171)'; }}
+                style={{ fontSize: 13, color: cancellingSubscription ? 'var(--text3)' : 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 16px', cursor: cancellingSubscription ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: cancellingSubscription ? 0.5 : 1 }}
+                onMouseEnter={e => { if (!cancellingSubscription) { e.currentTarget.style.color = 'var(--coral, #f87171)'; e.currentTarget.style.borderColor = 'var(--coral, #f87171)'; } }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                 onClick={handleCancelSubscription} disabled={cancellingSubscription}>
                 {cancellingSubscription ? '처리 중...' : '구독 해지'}
@@ -177,6 +199,37 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
               </button>
             </div>
           )}
+        </section>
+
+        {/* 쿠폰 코드 */}
+        <section style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>쿠폰 코드</div>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>체험단 또는 이벤트 쿠폰 코드를 입력하세요.</div>
+          {isActive && sub.plan !== 'coupon_1year' ? (
+            <div style={{ fontSize: 13, color: 'var(--text3)', background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 14px' }}>
+              구독 중에는 쿠폰을 사용할 수 없어요.
+            </div>
+          ) : (
+            <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={couponCode}
+                onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); setCouponSuccess(''); }}
+                placeholder="HISTY-XXXXXXXX"
+                style={{ flex: 1, fontFamily: 'monospace', letterSpacing: '0.05em' }}
+                disabled={applyingCoupon}
+              />
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ fontSize: 13, padding: '0 16px', height: 36, flexShrink: 0, opacity: applyingCoupon ? 0.5 : 1, cursor: applyingCoupon ? 'not-allowed' : 'pointer' }}
+                disabled={applyingCoupon || !couponCode.trim()}
+              >
+                {applyingCoupon ? '확인 중...' : '적용하기'}
+              </button>
+            </form>
+          )}
+          {couponError && <div style={{ fontSize: 12, color: 'var(--coral, #f87171)', marginTop: 8 }}>⚠ {couponError}</div>}
+          {couponSuccess && <div style={{ fontSize: 12, color: 'var(--teal)', marginTop: 8 }}>✓ {couponSuccess}</div>}
         </section>
 
         {/* 테마 */}
@@ -232,8 +285,8 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
                 탈퇴 시 모든 프로젝트, 캐릭터, 복선 등 데이터가 즉시 삭제되며 복구할 수 없습니다.
               </div>
               <button
-                style={{ fontSize: 13, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 16px', cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--coral, #f87171)'; e.currentTarget.style.borderColor = 'var(--coral, #f87171)'; }}
+                style={{ fontSize: 13, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 16px', cursor: deletingAccount ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: deletingAccount ? 0.5 : 1 }}
+                onMouseEnter={e => { if (!deletingAccount) { e.currentTarget.style.color = 'var(--coral, #f87171)'; e.currentTarget.style.borderColor = 'var(--coral, #f87171)'; } }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount}>

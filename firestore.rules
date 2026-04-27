@@ -43,33 +43,50 @@ service cloud.firestore {
 
     match /characters/{id} {
       allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
-      allow write: if isOwner(resource.data.projectId);
       allow create: if isOwner(request.resource.data.projectId);
+      allow update: if isOwner(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isOwner(resource.data.projectId);
     }
     match /relations/{id} {
       allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
-      allow write: if isOwner(resource.data.projectId);
       allow create: if isOwner(request.resource.data.projectId);
+      allow update: if isOwner(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isOwner(resource.data.projectId);
     }
     match /foreshadows/{id} {
       allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
-      allow write: if isOwner(resource.data.projectId);
       allow create: if isOwner(request.resource.data.projectId);
+      allow update: if isOwner(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isOwner(resource.data.projectId);
     }
     match /worldDocs/{id} {
       allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
-      allow write: if isOwner(resource.data.projectId);
       allow create: if isOwner(request.resource.data.projectId);
+      allow update: if isOwner(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isOwner(resource.data.projectId);
     }
     match /timelineEvents/{id} {
       allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
-      allow write: if isOwner(resource.data.projectId);
       allow create: if isOwner(request.resource.data.projectId);
+      allow update: if isOwner(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isOwner(resource.data.projectId);
     }
     match /fanworks/{id} {
       allow read: if isOwner(resource.data.projectId) || isShared(resource.data.projectId);
-      allow write: if isOwner(resource.data.projectId);
       allow create: if isOwner(request.resource.data.projectId);
+      allow update: if isOwner(resource.data.projectId)
+        && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isOwner(resource.data.projectId);
+    }
+
+    // 쿠폰: 클라이언트 접근 완전 차단 (Cloud Functions 전용)
+    match /coupons/{code} {
+      allow read, write: if false;
     }
   }
 }

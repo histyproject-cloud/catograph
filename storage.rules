@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 캐릭터 사진: 로그인한 유저만 업로드/삭제 가능, 읽기는 공유 뷰 고려해 누구나 허용
+    match /characters/{charId}/photo {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

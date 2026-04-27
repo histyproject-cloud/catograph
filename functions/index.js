@@ -122,17 +122,35 @@ exports.deleteAccount = onCall({ cors: true, secrets: [TOSS_SECRET_KEY] }, async
 });
 
 /**
- * 빌링키 발급 함수
- * 클라이언트에서 authKey 받아서 토스 서버에 billingKey 발급 요청
+ * 빌링키 발급 + 구독 활성화 함수
+ * - authKey로 Toss 빌링키 발급
+ * - 구독 정보(status, plan, currentPeriodEnd 등)를 Firestore에 통합 저장
+ * - 클라이언트(PaymentSuccess)에서 직접 subscription 필드를 쓰지 않도록 책임 이전
  */
 exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minInstances: 1 }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
 
-  const { authKey, customerKey } = request.data;
+  const uid = request.auth.uid;
+  const { authKey, customerKey, yearly, orderId, amount } = request.data;
+
   if (!authKey || !customerKey) {
     throw new HttpsError("invalid-argument", "authKey, customerKey가 필요합니다.");
+  }
+
+  // customerKey는 uid와 일치해야 함
+  if (customerKey !== uid) {
+    throw new HttpsError("invalid-argument", "customerKey가 유효하지 않습니다.");
+  }
+
+  // ── 중복 실행 방지: 이미 같은 orderId로 처리된 경우 스킵 ──
+  if (orderId) {
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (userDoc.exists && userDoc.data()?.subscription?.lastOrderId === orderId) {
+      console.log(`issueBillingKey 중복 스킵: ${orderId}`);
+      return { success: true, alreadyProcessed: true };
+    }
   }
 
   try {
@@ -154,16 +172,35 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
       throw new HttpsError("internal", data.message || "빌링키 발급 실패");
     }
 
-    // billingKey를 Firestore에 저장 (uid = customerKey)
-    await db.collection("users").doc(request.auth.uid).update({
-      "subscription.billingKey": data.billingKey,
-      "subscription.cardCompany": data.card?.company || "",
-      "subscription.cardNumber": data.card?.number || "",
-    });
+    // 구독 기간 계산
+    const now = new Date();
+    const periodEnd = new Date(now);
+    if (yearly) {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
 
-    return { success: true, billingKey: data.billingKey };
+    // 빌링키 발급 성공 → subscription 전체를 Cloud Function에서 통합 저장
+    await db.collection("users").doc(uid).set({
+      subscription: {
+        status: "active",
+        plan: yearly ? "yearly" : "monthly",
+        amount: Number(amount) || (yearly ? 29900 : 3300),
+        billingKey: data.billingKey,
+        cardCompany: data.card?.company || "",
+        cardNumber: data.card?.number || "",
+        lastOrderId: orderId || null,
+        startedAt: FieldValue.serverTimestamp(),
+        currentPeriodEnd: periodEnd,
+      }
+    }, { merge: true });
+
+    console.log(`issueBillingKey 완료: ${uid} / ${yearly ? "연간" : "월간"} / ${periodEnd.toISOString()}`);
+    return { success: true };
   } catch (err) {
     console.error("issueBillingKey error:", err);
+    if (err instanceof HttpsError) throw err;
     throw new HttpsError("internal", "빌링키 발급 중 오류가 발생했습니다.");
   }
 });
@@ -306,6 +343,107 @@ exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, 
   });
 
   return { success: true };
+});
+
+/**
+ * 쿠폰 코드 적용
+ * - 유효성 검사 후 subscription 업데이트
+ * - Firestore 트랜잭션으로 동시 사용 방지
+ */
+exports.applyCoupon = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  }
+
+  const uid = request.auth.uid;
+  const code = (request.data?.code || "").toUpperCase().trim();
+  if (!code) {
+    throw new HttpsError("invalid-argument", "쿠폰 코드를 입력해주세요.");
+  }
+
+  const couponRef = db.collection("coupons").doc(code);
+  const userRef = db.collection("users").doc(uid);
+
+  try {
+    const periodEnd = await db.runTransaction(async (transaction) => {
+      const [couponSnap, userSnap] = await Promise.all([
+        transaction.get(couponRef),
+        transaction.get(userRef),
+      ]);
+
+      // ── 쿠폰 존재 여부 ──
+      if (!couponSnap.exists) {
+        throw new HttpsError("not-found", "유효하지 않은 쿠폰 코드예요.");
+      }
+
+      const coupon = couponSnap.data();
+
+      // ── 쿠폰 활성화 여부 ──
+      if (!coupon.isActive) {
+        throw new HttpsError("failed-precondition", "사용할 수 없는 쿠폰 코드예요.");
+      }
+
+      // ── 쿠폰 자체 만료일 ──
+      if (coupon.expiresAt && coupon.expiresAt.toMillis() < Date.now()) {
+        throw new HttpsError("failed-precondition", "기간이 만료된 쿠폰 코드예요.");
+      }
+
+      // ── 총 사용 횟수 ──
+      if (coupon.usedCount >= coupon.maxUses) {
+        throw new HttpsError("failed-precondition", "이미 모든 사용 횟수가 소진된 쿠폰이에요.");
+      }
+
+      // ── 이미 사용한 유저 ──
+      if (coupon.usedBy?.includes(uid)) {
+        throw new HttpsError("already-exists", "이미 사용한 쿠폰 코드예요.");
+      }
+
+      // ── 이미 유효한 구독 중 ──
+      const sub = userSnap.data()?.subscription || {};
+      const isCurrentlyPro =
+        (sub.status === "active" || sub.status === "cancelled") &&
+        sub.currentPeriodEnd?.toMillis?.() > Date.now();
+      if (isCurrentlyPro) {
+        throw new HttpsError(
+          "failed-precondition",
+          "이미 구독 중이에요. 현재 구독이 만료된 후 사용할 수 있어요."
+        );
+      }
+
+      // ── 쿠폰 적용 ──
+      const now = new Date();
+      const end = new Date(now);
+      end.setDate(end.getDate() + (coupon.durationDays || 365));
+
+      transaction.set(
+        userRef,
+        {
+          subscription: {
+            status: "active",
+            plan: "yearly",       // 연간 플랜과 동일하게 표시
+            couponCode: code,     // 쿠폰 사용 여부 구분용
+            currentPeriodEnd: end,
+            startedAt: FieldValue.serverTimestamp(),
+          },
+        },
+        { merge: true }
+      );
+
+      transaction.update(couponRef, {
+        usedCount: FieldValue.increment(1),
+        usedBy: FieldValue.arrayUnion(uid),
+      });
+
+      return end;
+    });
+
+    console.log(`쿠폰 적용 완료: ${uid} / ${code} / ${periodEnd.toISOString()}`);
+    return { success: true };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    console.error("applyCoupon error:", err);
+    throw new HttpsError("internal", "쿠폰 적용 중 오류가 발생했습니다.");
+  }
 });
 
 /**

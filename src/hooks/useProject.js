@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   onSnapshot, query, where, serverTimestamp, getDocs, writeBatch
@@ -48,8 +48,6 @@ export function useProjects(userId) {
       const snap = await getDocs(query(collection(db, col), where('projectId', '==', id)));
 
       if (col === 'characters') {
-        // photoURL 필드 여부와 무관하게 항상 삭제 시도 (없으면 무시)
-        // → 업로드됐지만 photoURL 미반영된 엣지 케이스까지 커버
         await Promise.all(snap.docs.map(async (d) => {
           try { await deleteObject(ref(storage, `characters/${d.id}/photo`)); } catch { /* 없으면 무시 */ }
         }));
@@ -72,16 +70,24 @@ export function useProjects(userId) {
 // ──────────────────────────────────────────────
 export function useCharacters(projectId) {
   const [characters, setCharacters] = useState([]);
+  const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
     if (!projectId) return;
+    cancelledRef.current = false;
     const q = query(collection(db, 'characters'), where('projectId', '==', projectId));
-    getDocs(q).then(snap =>
-      setCharacters(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
-    );
+    getDocs(q)
+      .then(snap => {
+        if (!cancelledRef.current)
+          setCharacters(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder));
+      })
+      .catch(err => console.error('캐릭터 로드 실패:', err));
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    return () => { cancelledRef.current = true; };
+  }, [load]);
 
   const addCharacter = async (data) => {
     const payload = {
@@ -102,7 +108,7 @@ export function useCharacters(projectId) {
   };
 
   // 캐릭터 삭제: 연결된 relations·foreshadows도 Firestore 정리
-  // 반환값: { deletedRelIds, updatedFsIds } — 호출자가 다른 훅 state 갱신 가능
+  // 반환값: { deletedRelIds, updatedFsMap } — 호출자가 다른 훅 state 갱신 가능
   const deleteCharacter = async (charId) => {
     const batch = writeBatch(db);
 
@@ -146,14 +152,24 @@ export function useCharacters(projectId) {
 // ──────────────────────────────────────────────
 export function useRelations(projectId) {
   const [relations, setRelations] = useState([]);
+  const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
     if (!projectId) return;
+    cancelledRef.current = false;
     const q = query(collection(db, 'relations'), where('projectId', '==', projectId));
-    getDocs(q).then(snap => setRelations(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    getDocs(q)
+      .then(snap => {
+        if (!cancelledRef.current)
+          setRelations(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      })
+      .catch(err => console.error('관계 로드 실패:', err));
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    return () => { cancelledRef.current = true; };
+  }, [load]);
 
   const addRelation = async (fromId, toId, label = '', color = '') => {
     const payload = { projectId, fromId, toId, label, color, createdAt: serverTimestamp() };
@@ -180,16 +196,24 @@ export function useRelations(projectId) {
 // ──────────────────────────────────────────────
 export function useForeshadows(projectId) {
   const [foreshadows, setForeshadows] = useState([]);
+  const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
     if (!projectId) return;
+    cancelledRef.current = false;
     const q = query(collection(db, 'foreshadows'), where('projectId', '==', projectId));
-    getDocs(q).then(snap =>
-      setForeshadows(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
-    );
+    getDocs(q)
+      .then(snap => {
+        if (!cancelledRef.current)
+          setForeshadows(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder));
+      })
+      .catch(err => console.error('복선 로드 실패:', err));
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    return () => { cancelledRef.current = true; };
+  }, [load]);
 
   const addForeshadow = async (data) => {
     const payload = { ...data, projectId, createdAt: serverTimestamp() };
@@ -216,16 +240,24 @@ export function useForeshadows(projectId) {
 // ──────────────────────────────────────────────
 export function useWorldDocs(projectId) {
   const [docs, setDocs] = useState([]);
+  const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
     if (!projectId) return;
+    cancelledRef.current = false;
     const q = query(collection(db, 'worldDocs'), where('projectId', '==', projectId));
-    getDocs(q).then(snap =>
-      setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
-    );
+    getDocs(q)
+      .then(snap => {
+        if (!cancelledRef.current)
+          setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder));
+      })
+      .catch(err => console.error('세계관 문서 로드 실패:', err));
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    return () => { cancelledRef.current = true; };
+  }, [load]);
 
   const addWorldDoc = async (title) => {
     const payload = { projectId, title, content: '', createdAt: serverTimestamp() };
@@ -252,16 +284,24 @@ export function useWorldDocs(projectId) {
 // ──────────────────────────────────────────────
 export function useTimelineEvents(projectId) {
   const [events, setEvents] = useState([]);
+  const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
     if (!projectId) return;
+    cancelledRef.current = false;
     const q = query(collection(db, 'timelineEvents'), where('projectId', '==', projectId));
-    getDocs(q).then(snap =>
-      setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
-    );
+    getDocs(q)
+      .then(snap => {
+        if (!cancelledRef.current)
+          setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder));
+      })
+      .catch(err => console.error('타임라인 로드 실패:', err));
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    return () => { cancelledRef.current = true; };
+  }, [load]);
 
   const addEvent = async (data) => {
     const payload = { ...data, projectId, createdAt: serverTimestamp() };
@@ -288,16 +328,24 @@ export function useTimelineEvents(projectId) {
 // ──────────────────────────────────────────────
 export function useFanworks(projectId) {
   const [fanworks, setFanworks] = useState([]);
+  const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
     if (!projectId) return;
+    cancelledRef.current = false;
     const q = query(collection(db, 'fanworks'), where('projectId', '==', projectId));
-    getDocs(q).then(snap =>
-      setFanworks(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder))
-    );
+    getDocs(q)
+      .then(snap => {
+        if (!cancelledRef.current)
+          setFanworks(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(sortByOrder));
+      })
+      .catch(err => console.error('링크 모음 로드 실패:', err));
   }, [projectId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    return () => { cancelledRef.current = true; };
+  }, [load]);
 
   const addFanwork = async (data) => {
     const payload = { ...data, projectId, createdAt: serverTimestamp() };

@@ -13,18 +13,42 @@ export default function Pricing({ user }) {
   const [paying, setPaying] = useState(false);
   const [reserving, setReserving] = useState(false);
   const [cancellingPlan, setCancellingPlan] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
   const userIsPro = isPro(user);
-  const userPlan = user?.subscription?.plan || null; // 'monthly' | 'yearly' | null
+  const userPlan = user?.subscription?.plan || null;
   const pendingPlan = user?.subscription?.pendingPlan || null;
   const currentPeriodEnd = user?.subscription?.currentPeriodEnd?.toDate?.() || null;
   const isPastDue = user?.subscription?.status === 'past_due';
   const isCancelled = user?.subscription?.status === 'cancelled';
-  // 해지 예정이거나 past_due면 전환 예약 불가
+  const isCoupon = !!user?.subscription?.couponCode; // 쿠폰으로 활성화된 유저
+  // 해지 예정, past_due, 쿠폰 유저는 전환 예약 불가
   const isCurrentPlan = (planType) => userIsPro && userPlan === planType && !isCancelled;
-  const canReserve = (planType) => userIsPro && !isCancelled && !isPastDue && userPlan !== planType && userPlan !== null;
+  const canReserve = (planType) => userIsPro && !isCancelled && !isPastDue && !isCoupon && userPlan !== planType && userPlan !== null;
   const isReserved = (planType) => pendingPlan === planType;
 
   const fns = getFunctions(app, 'asia-northeast3');
+
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
+    if (!user) { navigate('/login'); return; }
+    if (!couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError('');
+    setCouponSuccess('');
+    try {
+      const applyCoupon = httpsCallable(fns, 'applyCoupon');
+      await applyCoupon({ code: couponCode.trim() });
+      setCouponSuccess('1년 무료 이용권이 적용됐어요! 🎉');
+      setCouponCode('');
+    } catch (err) {
+      setCouponError(err.message || '쿠폰 적용에 실패했어요. 코드를 다시 확인해주세요.');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -223,7 +247,30 @@ export default function Pricing({ user }) {
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 40, padding: '20px', background: 'var(--bg2)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+        {/* 쿠폰 코드 입력 */}
+        {!userIsPro && (
+          <div style={{ marginTop: 32, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px 24px' }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 12 }}>쿠폰 코드가 있으신가요?</div>
+            <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={couponCode}
+                onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); setCouponSuccess(''); }}
+                placeholder="HISTY-XXXXXXXX"
+                style={{ flex: 1, fontFamily: 'monospace', letterSpacing: '0.05em' }}
+                disabled={applyingCoupon}
+              />
+              <button type="submit" className="btn btn-primary"
+                style={{ fontSize: 13, padding: '0 16px', height: 36, flexShrink: 0, opacity: applyingCoupon ? 0.5 : 1, cursor: applyingCoupon ? 'not-allowed' : 'pointer' }}
+                disabled={applyingCoupon || !couponCode.trim()}>
+                {applyingCoupon ? '확인 중...' : '적용하기'}
+              </button>
+            </form>
+            {couponError && <div style={{ fontSize: 12, color: 'var(--coral, #f87171)', marginTop: 8 }}>⚠ {couponError}</div>}
+            {couponSuccess && <div style={{ fontSize: 12, color: 'var(--teal)', marginTop: 8 }}>✓ {couponSuccess}</div>}
+          </div>
+        )}
+
+        <div style={{ textAlign: 'center', marginTop: 24, padding: '20px', background: 'var(--bg2)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
           <p style={{ fontSize: 13, color: 'var(--text2)' }}>서비스 이용 시작 전 취소 시 전액 환불 · 이용 시작 후 환불 불가 (전자상거래법 제17조 제2항 제5호) · 언제든지 해지 가능</p>
           <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>무료 플랜으로 먼저 체험 후 결제를 권장합니다 · 문의: histy.cartographic@gmail.com</p>
         </div>
