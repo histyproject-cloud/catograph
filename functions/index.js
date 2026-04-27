@@ -1,12 +1,13 @@
-// deploy trigger 2026-04-24
+// deploy trigger 2026-04-27
 const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
 const { getAuth } = require("firebase-admin/auth");
-const { initializeApp } = require("firebase-admin/app");
+const { initializeApp, getApp } = require("firebase-admin/app");
 const { defineSecret } = require("firebase-functions/params");
+const { v1: firestoreV1 } = require("@google-cloud/firestore");
 
 initializeApp();
 setGlobalOptions({ maxInstances: 10, region: "asia-northeast3" });
@@ -344,6 +345,35 @@ exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, 
 
   return { success: true };
 });
+
+/**
+ * 월간 Firestore 자동 백업
+ * 매월 1일 오전 3시(KST)에 GCS 버킷으로 전체 내보내기
+ * 저장 위치: gs://{projectId}.appspot.com/firestore-backups/YYYY-MM/
+ */
+exports.monthlyFirestoreBackup = onSchedule(
+  { schedule: "0 3 1 * *", timeZone: "Asia/Seoul", region: "asia-northeast3" },
+  async () => {
+    const adminClient = new firestoreV1.FirestoreAdminClient();
+    const projectId = process.env.GCLOUD_PROJECT;
+    const databaseName = adminClient.databasePath(projectId, "(default)");
+    const timestamp = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const outputUriPrefix = `gs://${projectId}.appspot.com/firestore-backups/${timestamp}`;
+
+    try {
+      const [operation] = await adminClient.exportDocuments({
+        name: databaseName,
+        outputUriPrefix,
+        collectionIds: [], // 빈 배열 = 전체 컬렉션 백업
+      });
+      console.log(`✅ 월간 백업 시작: ${outputUriPrefix}`);
+      console.log(`   Operation: ${operation.name}`);
+    } catch (err) {
+      console.error("월간 백업 실패:", err);
+      throw err;
+    }
+  }
+);
 
 /**
  * 쿠폰 코드 적용

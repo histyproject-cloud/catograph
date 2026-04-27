@@ -21,55 +21,84 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
 
+  // 커스텀 확인 모달
+  const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm }
+  // 토스트 알림
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+
   const functions = getFunctions(app, 'asia-northeast3');
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('정말 탈퇴하시겠어요? 모든 데이터가 삭제되며 복구할 수 없습니다.')) return;
-    setDeletingAccount(true);
-    try {
-      const deleteAccount = httpsCallable(functions, 'deleteAccount');
-      await deleteAccount();
-      navigate('/login');
-    } catch (e) {
-      console.error(e);
-      alert('탈퇴 처리 중 오류가 발생했어요. 이메일로 문의해 주세요.');
-    } finally {
-      setDeletingAccount(false);
-    }
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const showConfirm = (title, message, onConfirm) => {
+    setConfirmModal({ title, message, onConfirm });
+  };
+
+  const handleDeleteAccount = () => {
+    showConfirm(
+      '회원 탈퇴',
+      '정말 탈퇴하시겠어요?\n모든 데이터가 삭제되며 복구할 수 없습니다.',
+      async () => {
+        setDeletingAccount(true);
+        try {
+          const deleteAccount = httpsCallable(functions, 'deleteAccount');
+          await deleteAccount();
+          await signOut(auth);
+          navigate('/login');
+        } catch (e) {
+          console.error(e);
+          showToast('탈퇴 처리 중 오류가 발생했어요. 이메일로 문의해 주세요.', 'error');
+        } finally {
+          setDeletingAccount(false);
+        }
+      }
+    );
   };
 
   // 구독 해지: 빌링키 해제 + status → cancelled (기간까지 Pro 유지)
-  const handleCancelSubscription = async () => {
-    if (!window.confirm(
-      '구독을 해지하시겠어요?\n해지 후에도 현재 결제 기간 만료일까지는 Pro를 이용할 수 있어요.'
-    )) return;
-    setCancellingSubscription(true);
-    try {
-      const cancelSubscription = httpsCallable(functions, 'cancelSubscription');
-      await cancelSubscription();
-      alert('구독이 해지됐어요. 기간 만료일까지 계속 이용하실 수 있어요.');
-    } catch (e) {
-      console.error(e);
-      alert('해지 처리 중 오류가 발생했어요. 이메일로 문의해 주세요.');
-    } finally {
-      setCancellingSubscription(false);
-    }
+  const handleCancelSubscription = () => {
+    showConfirm(
+      '구독 해지',
+      '구독을 해지하시겠어요?\n해지 후에도 현재 결제 기간 만료일까지는 Pro를 이용할 수 있어요.',
+      async () => {
+        setCancellingSubscription(true);
+        try {
+          const cancelSubscription = httpsCallable(functions, 'cancelSubscription');
+          await cancelSubscription();
+          showToast('구독이 해지됐어요. 기간 만료일까지 계속 이용하실 수 있어요.');
+          setTimeout(() => window.location.reload(), 2000);
+        } catch (e) {
+          console.error(e);
+          showToast('해지 처리 중 오류가 발생했어요. 이메일로 문의해 주세요.', 'error');
+        } finally {
+          setCancellingSubscription(false);
+        }
+      }
+    );
   };
 
   // 플랜 전환 예약 취소
-  const handleCancelPendingPlan = async () => {
-    if (!window.confirm('플랜 전환 예약을 취소하시겠어요?')) return;
-    setCancellingPlan(true);
-    try {
-      const cancelPendingPlan = httpsCallable(functions, 'cancelPendingPlan');
-      await cancelPendingPlan();
-      alert('전환 예약이 취소됐어요.');
-    } catch (e) {
-      console.error(e);
-      alert('취소 중 오류가 발생했어요.');
-    } finally {
-      setCancellingPlan(false);
-    }
+  const handleCancelPendingPlan = () => {
+    showConfirm(
+      '예약 취소',
+      '플랜 전환 예약을 취소하시겠어요?',
+      async () => {
+        setCancellingPlan(true);
+        try {
+          const cancelPendingPlan = httpsCallable(functions, 'cancelPendingPlan');
+          await cancelPendingPlan();
+          showToast('전환 예약이 취소됐어요.');
+        } catch (e) {
+          console.error(e);
+          showToast('취소 중 오류가 발생했어요.', 'error');
+        } finally {
+          setCancellingPlan(false);
+        }
+      }
+    );
   };
 
   const handleApplyCoupon = async (e) => {
@@ -205,7 +234,7 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
         <section style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>쿠폰 코드</div>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>체험단 또는 이벤트 쿠폰 코드를 입력하세요.</div>
-          {isActive && sub.plan !== 'coupon_1year' ? (
+          {isActive ? (
             <div style={{ fontSize: 13, color: 'var(--text3)', background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 14px' }}>
               구독 중에는 쿠폰을 사용할 수 없어요.
             </div>
@@ -297,6 +326,55 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
         </section>
 
       </main>
+
+      {/* ── 커스텀 확인 모달 ── */}
+      {confirmModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+          onClick={() => setConfirmModal(null)}
+        >
+          <div
+            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 28, maxWidth: 360, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>{confirmModal.title}</div>
+            <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 24, whiteSpace: 'pre-line' }}>{confirmModal.message}</div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-ghost"
+                style={{ fontSize: 13, height: 36, padding: '0 16px' }}
+                onClick={() => setConfirmModal(null)}
+              >
+                취소
+              </button>
+              <button
+                className="btn"
+                style={{ fontSize: 13, height: 36, padding: '0 16px', background: 'var(--coral, #f87171)', color: '#fff', border: 'none' }}
+                onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 토스트 알림 ── */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'error' ? 'var(--coral, #f87171)' : 'var(--accent)',
+          color: '#fff', borderRadius: 'var(--radius-lg)', padding: '12px 20px',
+          fontSize: 14, fontWeight: 500, zIndex: 1100,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          animation: 'fadeInUp 0.2s ease',
+          whiteSpace: 'nowrap',
+          maxWidth: 'calc(100vw - 40px)',
+          textAlign: 'center',
+        }}>
+          {toast.type === 'error' ? '⚠ ' : '✓ '}{toast.message}
+        </div>
+      )}
     </div>
   );
 }
