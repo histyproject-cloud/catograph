@@ -323,8 +323,8 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                 {rel.label && (
                   <>
                     <rect
-                      x={lx - rel.label.length * 3.5 - 6} y={ly - 9}
-                      width={rel.label.length * 7 + 12} height={17}
+                      x={lx - rel.label.length * 4.5 - 8} y={ly - 9}
+                      width={rel.label.length * 9 + 16} height={17}
                       rx="4"
                       fill="rgba(12,12,16,0.88)"
                       stroke={rel.color ? rel.color + '55' : 'rgba(255,255,255,0.08)'} strokeWidth="1"
@@ -399,8 +399,8 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
                   {char.name?.[0] || '?'}
                 </div>
               )}
-              <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', color: 'var(--text)', lineHeight: 1.3 }}>{char.name}</div>
-              <div style={{ fontSize: 10, textAlign: 'center', color: 'var(--text3)', marginTop: 2 }}>{char.role}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', color: 'var(--text)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.name}</div>
+              <div style={{ fontSize: 10, textAlign: 'center', color: 'var(--text3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.role}</div>
             </div>
           );
         })}

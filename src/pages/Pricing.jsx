@@ -174,7 +174,7 @@ export default function Pricing({ user }) {
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--coral, #f87171)', marginBottom: 2 }}>⚠️ 결제에 실패했어요</div>
               <div style={{ fontSize: 13, color: 'var(--coral, #f87171)', opacity: 0.9 }}>등록된 카드를 확인하거나 새 카드를 등록해 주세요.</div>
             </div>
-            <button className="btn btn-primary" style={{ flexShrink: 0, fontSize: 13 }} onClick={handlePayment} disabled={paying}>
+            <button className="btn btn-primary" style={{ flexShrink: 0, fontSize: 13, whiteSpace: 'nowrap', minWidth: 90 }} onClick={handlePayment} disabled={paying}>
               {paying ? '처리 중...' : '카드 재등록'}
             </button>
           </div>

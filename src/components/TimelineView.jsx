@@ -162,7 +162,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, minWidth: 36 }}>{ev.episode}화</span>
                     <span className="tag" style={{ background: tc.bg, color: tc.color, fontSize: 10 }}>{tc.label}</span>
-                    <span style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{ev.title}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</span>
                     <span style={{ color: 'var(--text3)', fontSize: 14 }}>{isExpanded ? '▲' : '▼'}</span>
                   </div>
 

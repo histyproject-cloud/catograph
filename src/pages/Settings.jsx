@@ -268,7 +268,7 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
               <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>화면 테마</div>
               <div style={{ fontSize: 13, color: 'var(--text3)' }}>현재 {theme === 'dark' ? '다크' : '라이트'} 모드</div>
             </div>
-            <button className="btn" style={{ fontSize: 13, padding: '0 16px', height: 36 }} onClick={onToggleTheme}>
+            <button className="btn" style={{ fontSize: 13, padding: '0 16px', height: 36, whiteSpace: 'nowrap', flexShrink: 0 }} onClick={onToggleTheme}>
               {theme === 'dark' ? '☀️ 라이트모드로 전환' : '🌙 다크모드로 전환'}
             </button>
           </div>

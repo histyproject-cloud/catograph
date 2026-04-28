@@ -67,7 +67,7 @@ function PanelContent({ character, onUpdate, onClose, foreshadows, onAddForeshad
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.name}</div>
-          <div style={{ color: 'var(--text3)', fontSize: 11 }}>{character.role || '역할 미설정'}</div>
+          <div style={{ color: 'var(--text3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.role || '역할 미설정'}</div>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {!editing && <button className="btn btn-ghost" style={{ fontSize: 12, height: 32, padding: '0 10px' }} onClick={startEdit}>편집</button>}

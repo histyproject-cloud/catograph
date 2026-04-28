@@ -161,7 +161,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
                   <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fw.title}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {fw.author && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{fw.author}</span>}
+                  {fw.author && <span style={{ fontSize: 12, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{fw.author}</span>}
                   {fw.author && <span style={{ color: 'var(--text3)', fontSize: 10 }}>·</span>}
                   <span style={{ fontSize: 11, color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fw.url}</span>
                 </div>

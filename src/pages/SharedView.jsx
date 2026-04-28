@@ -140,7 +140,7 @@ export default function SharedView() {
             </div>
             {selectedDoc ? (
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>{selectedDoc.title}</h2>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedDoc.title}</h2>
                 <p style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{selectedDoc.content || '내용 없음'}</p>
               </div>
             ) : (

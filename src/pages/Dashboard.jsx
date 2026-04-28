@@ -75,7 +75,7 @@ export default function Dashboard({ user }) {
             <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)', padding: 8, minWidth: 210, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100, animation: 'slideUp 0.15s ease' }}>
               <div style={{ padding: '8px 12px 12px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{user.displayName}</div>
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>{user.email}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>{user.email}</div>
                 <div onClick={() => { navigate('/pricing'); setShowProfile(false); }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg3)', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}>
                   <span style={{ fontSize: 10, color: 'var(--text3)' }}>플랜</span>
