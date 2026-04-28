@@ -44,9 +44,13 @@ function PanelContent({ character, onUpdate, onClose, foreshadows, onAddForeshad
   const addFS = async (e) => {
     e.preventDefault();
     if (!fsForm.title.trim()) return;
-    await onAddForeshadow({ ...fsForm, charIds: [character.id] });
-    setFsForm({ title: '', plantedEp: '', resolvedEp: '' });
-    setShowAddFS(false);
+    try {
+      await onAddForeshadow({ ...fsForm, charIds: [character.id] });
+      setFsForm({ title: '', plantedEp: '', resolvedEp: '' });
+      setShowAddFS(false);
+    } catch (err) {
+      console.error('복선 추가 실패:', err);
+    }
   };
 
   return (

@@ -82,11 +82,16 @@ export default function App() {
 
   const handleOnboardingComplete = async () => {
     if (!user) return;
-    await setDoc(doc(db, 'users', user.uid), {
-      onboardingDone: true,
-      onboardingDoneAt: serverTimestamp(),
-    }, { merge: true });
-    setShowOnboarding(false);
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        onboardingDone: true,
+        onboardingDoneAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (err) {
+      console.error('온보딩 완료 저장 실패:', err);
+    } finally {
+      setShowOnboarding(false);
+    }
   };
 
   if (user === undefined) return (

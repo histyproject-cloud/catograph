@@ -13,13 +13,22 @@ function isInAppBrowser() {
 
 export default function Login() {
   const navigate = useNavigate();
+  const [loginError, setLoginError] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
 
   useEffect(() => {
     // 리다이렉트 후 돌아왔을 때 결과 처리
-    getRedirectResult(auth).catch(e => console.error(e));
+    getRedirectResult(auth).catch(e => {
+      console.error(e);
+      if (e.code !== 'auth/no-current-user') {
+        setLoginError('로그인에 실패했어요. 다시 시도해 주세요.');
+      }
+    });
   }, []);
 
   const handleGoogle = async () => {
+    setLoginError('');
+    setLoading(true);
     try {
       if (isInAppBrowser()) {
         // 인앱브라우저면 리다이렉트 방식
@@ -28,7 +37,14 @@ export default function Login() {
         // 일반 브라우저면 팝업 방식
         await signInWithPopup(auth, googleProvider);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+        setLoginError('로그인에 실패했어요. 다시 시도해 주세요.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,10 +60,11 @@ export default function Login() {
             캐릭터 관계도 · 세계관 설정 · 복선 관리<br />
             창작의 모든 것을 한 곳에서
           </p>
-          <button className="btn btn-primary" onClick={handleGoogle} style={{ width: '100%', height: 44, fontSize: 14, gap: 10 }}>
+          <button className="btn btn-primary" onClick={handleGoogle} disabled={loading} style={{ width: '100%', height: 44, fontSize: 14, gap: 10, opacity: loading ? 0.7 : 1 }}>
             <GoogleIcon />
-            Google로 시작하기
+            {loading ? '연결 중...' : 'Google로 시작하기'}
           </button>
+          {loginError && <p style={{ color: 'var(--coral, #f87171)', fontSize: 12, marginTop: 12 }}>{loginError}</p>}
         </div>
         <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 20, letterSpacing: '0.04em' }}>작가와 독자가 함께 만드는 이야기 공간</p>
         <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 8 }}>

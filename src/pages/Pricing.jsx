@@ -17,6 +17,17 @@ export default function Pricing({ user }) {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
+  const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm }
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const showConfirm = (title, message, onConfirm) => {
+    setConfirmModal({ title, message, onConfirm });
+  };
   const userIsPro = isPro(user);
   const userPlan = user?.subscription?.plan || null;
   const pendingPlan = user?.subscription?.pendingPlan || null;
@@ -55,39 +66,47 @@ export default function Pricing({ user }) {
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
   };
 
-  const handleReservePlan = async (planType) => {
+  const handleReservePlan = (planType) => {
     if (!user || reserving) return;
     if (planType !== 'monthly' && planType !== 'yearly') return;
-    const confirmMsg = planType === 'yearly'
-      ? `${formatDate(currentPeriodEnd)}부터 연간 플랜(29,900원/년)으로 전환할까요?`
-      : `${formatDate(currentPeriodEnd)}부터 월간 플랜(3,300원/월)으로 전환할까요?`;
-    if (!window.confirm(confirmMsg)) return;
-    setReserving(true);
-    try {
-      await updateDoc(doc(db, 'users', user.uid), { 'subscription.pendingPlan': planType });
-      alert(`다음 결제일(${formatDate(currentPeriodEnd)})부터 ${planType === 'yearly' ? '연간' : '월간'} 플랜으로 전환됩니다.`);
-    } catch (e) {
-      console.error(e);
-      alert('전환 예약 중 오류가 발생했어요. 다시 시도해 주세요.');
-    } finally {
-      setReserving(false);
-    }
+    const planName = planType === 'yearly' ? '연간 플랜(29,900원/년)' : '월간 플랜(3,300원/월)';
+    showConfirm(
+      '플랜 전환 예약',
+      `${formatDate(currentPeriodEnd)}부터 ${planName}으로 전환할까요?`,
+      async () => {
+        setReserving(true);
+        try {
+          await updateDoc(doc(db, 'users', user.uid), { 'subscription.pendingPlan': planType });
+          showToast(`다음 결제일(${formatDate(currentPeriodEnd)})부터 ${planType === 'yearly' ? '연간' : '월간'} 플랜으로 전환됩니다.`, 'success');
+        } catch (e) {
+          console.error(e);
+          showToast('전환 예약 중 오류가 발생했어요. 다시 시도해 주세요.', 'error');
+        } finally {
+          setReserving(false);
+        }
+      }
+    );
   };
 
   // 플랜 전환 예약 취소
-  const handleCancelPendingPlan = async () => {
-    if (!window.confirm('플랜 전환 예약을 취소하시겠어요?')) return;
-    setCancellingPlan(true);
-    try {
-      const cancelPendingPlan = httpsCallable(fns, 'cancelPendingPlan');
-      await cancelPendingPlan();
-      alert('전환 예약이 취소됐어요.');
-    } catch (e) {
-      console.error(e);
-      alert('취소 중 오류가 발생했어요.');
-    } finally {
-      setCancellingPlan(false);
-    }
+  const handleCancelPendingPlan = () => {
+    showConfirm(
+      '예약 취소',
+      '플랜 전환 예약을 취소하시겠어요?',
+      async () => {
+        setCancellingPlan(true);
+        try {
+          const cancelPendingPlan = httpsCallable(fns, 'cancelPendingPlan');
+          await cancelPendingPlan();
+          showToast('전환 예약이 취소됐어요.', 'success');
+        } catch (e) {
+          console.error(e);
+          showToast('취소 중 오류가 발생했어요.', 'error');
+        } finally {
+          setCancellingPlan(false);
+        }
+      }
+    );
   };
 
   const FREE_FEATURES = ['프로젝트 3개 생성 가능','캐릭터 최대 10명 등록','설정집 문서 최대 5개 등록','복선 최대 15개 등록','타임라인 최대 15개 등록','공유 링크 (읽기 전용) 전송 가능'];
@@ -122,6 +141,25 @@ export default function Pricing({ user }) {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* 커스텀 확인 모달 */}
+      {confirmModal && (
+        <div className="modal-backdrop" onClick={() => setConfirmModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+            <div className="modal-title">{confirmModal.title}</div>
+            <p style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 24, lineHeight: 1.6 }}>{confirmModal.message}</p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setConfirmModal(null)}>취소</button>
+              <button className="btn btn-primary" onClick={() => { const fn = confirmModal.onConfirm; setConfirmModal(null); fn(); }}>확인</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 토스트 알림 */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', background: toast.type === 'error' ? 'var(--coral, #f87171)' : 'var(--accent)', color: '#fff', padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 500, zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', maxWidth: '90vw', textAlign: 'center' }}>
+          {toast.message}
+        </div>
+      )}
       <header style={{ height: 52, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', position: 'sticky', top: 0, zIndex: 10 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => navigate(-1)}>← 뒤로</button>
         <div style={{ width: 1, height: 16, background: 'var(--border)' }} />

@@ -13,6 +13,7 @@ export default function Dashboard({ user }) {
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
   const [upgradeMsg, setUpgradeMsg] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef(null);
@@ -35,10 +36,15 @@ export default function Dashboard({ user }) {
     e.preventDefault();
     if (!newName.trim()) return;
     setCreating(true);
+    setCreateError('');
     try {
       const ref = await createProject(newName.trim());
       navigate('/project/' + ref.id);
-    } catch { setCreating(false); }
+    } catch (err) {
+      console.error('프로젝트 생성 실패:', err);
+      setCreateError('프로젝트 생성에 실패했어요. 다시 시도해 주세요.');
+      setCreating(false);
+    }
   };
 
   return (
@@ -150,8 +156,9 @@ export default function Dashboard({ user }) {
                 <label className="form-label">작품 제목</label>
                 <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="예: 맥베스" style={{ width: '100%' }} autoFocus />
               </div>
+              {createError && <p style={{ fontSize: 12, color: 'var(--coral, #f87171)', marginTop: 8 }}>{createError}</p>}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-                <button type="button" className="btn" onClick={() => setShowNew(false)}>취소</button>
+                <button type="button" className="btn" onClick={() => { setShowNew(false); setCreateError(''); }}>취소</button>
                 <button type="submit" className="btn btn-primary" disabled={creating || !newName.trim()}>{creating ? '생성 중...' : '만들기'}</button>
               </div>
             </form>
