@@ -28,6 +28,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
   const [relMenu, setRelMenu] = useState(null);
   const [editingRelLabel, setEditingRelLabel] = useState('');
   const [editingRelColor, setEditingRelColor] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const REL_COLORS = [
     { value: '', label: '기본', color: 'rgba(255,255,255,0.25)' },
@@ -189,7 +190,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       onWheel={onWheel}
       onTouchMove={onTouchMoveCanvas}
       onTouchEnd={onTouchEndCanvas(null)}
-      onClick={() => setRelMenu(null)}
+      onClick={() => { setRelMenu(null); setConfirmDelete(false); }}
       style={{
         flex: 1, position: 'relative', overflow: 'hidden',
         background: 'var(--bg)',
@@ -476,14 +477,17 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn btn-danger" style={{ fontSize: 11, flex: 1, height: 30 }}
-                onClick={() => { if (window.confirm('이 관계선을 삭제할까요?')) { onDeleteRelation(relMenu.relId); setRelMenu(null); } }}>
-                삭제
-              </button>
-              <button className="btn btn-primary" style={{ fontSize: 11, flex: 1, height: 30 }}
-                onClick={() => { onUpdateRelation(relMenu.relId, { label: editingRelLabel, color: editingRelColor }); setRelMenu(null); }}>
-                저장
-              </button>
+              {confirmDelete ? (
+                <>
+                  <button className="btn" style={{ fontSize: 11, flex: 1, height: 30 }} onClick={() => setConfirmDelete(false)}>취소</button>
+                  <button className="btn btn-danger" style={{ fontSize: 11, flex: 1, height: 30 }} onClick={() => { onDeleteRelation(relMenu.relId); setRelMenu(null); setConfirmDelete(false); }}>정말 삭제</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn btn-danger" style={{ fontSize: 11, flex: 1, height: 30 }} onClick={() => setConfirmDelete(true)}>삭제</button>
+                  <button className="btn btn-primary" style={{ fontSize: 11, flex: 1, height: 30 }} onClick={() => { onUpdateRelation(relMenu.relId, { label: editingRelLabel, color: editingRelColor }); setRelMenu(null); }}>저장</button>
+                </>
+              )}
             </div>
           </div>
         </>

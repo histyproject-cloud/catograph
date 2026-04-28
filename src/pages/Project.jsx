@@ -675,6 +675,7 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
 // ── 캐릭터 상세 전체화면 ──
 function CharacterDetailPage({ character: c, characters, events, relations, foreshadows, onUpdate, onDelete, onClose }) {
   const ac = getAvatarColor(c.name || '?');
+  const [pendingDelete, setPendingDelete] = useState(false);
   const [form, setForm] = useState({
     name: c.name || '', role: c.role || '', age: c.age || '',
     affiliation: c.affiliation || '', ability: c.ability || '',
@@ -748,8 +749,14 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <button className="btn btn-ghost" style={{ fontSize: 13, padding: '0 12px', height: 36 }} onClick={onClose}>← 목록</button>
         <div style={{ flex: 1 }} />
-        <button className="btn btn-danger" style={{ fontSize: 13, height: 36, padding: '0 14px' }}
-          onClick={() => { if (window.confirm(`'${c.name}' 삭제할까요?`)) { onDelete(c.id); onClose(); } }}>삭제</button>
+        {pendingDelete ? (
+          <>
+            <button className="btn" style={{ fontSize: 13, height: 36, padding: '0 14px' }} onClick={() => setPendingDelete(false)}>취소</button>
+            <button className="btn btn-danger" style={{ fontSize: 13, height: 36, padding: '0 14px' }} onClick={() => { onDelete(c.id); onClose(); }}>정말 삭제</button>
+          </>
+        ) : (
+          <button className="btn btn-danger" style={{ fontSize: 13, height: 36, padding: '0 14px' }} onClick={() => setPendingDelete(true)}>삭제</button>
+        )}
         <button className="btn btn-primary" style={{ fontSize: 13, height: 36, padding: '0 18px' }} onClick={save}>
           {saved ? '✓ 저장됨' : '저장'}
         </button>
@@ -916,6 +923,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
 function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
   const ac = getAvatarColor(c.name || '?');
   const [hovered, setHovered] = React.useState(false);
+  const [pendingDelete, setPendingDelete] = React.useState(false);
 
   return (
     <div onClick={() => onSelect(c)}
@@ -969,9 +977,16 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
         )}
       </div>
       {/* 삭제 버튼 - 호버시에만 표시 */}
-      {hovered && (
-        <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px', zIndex: 2 }}
-          onClick={e => { e.stopPropagation(); if (window.confirm(`'${c.name}' 삭제할까요?`)) onDelete(c.id); }}>삭제</button>
+      {(hovered || pendingDelete) && (
+        pendingDelete ? (
+          <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4, zIndex: 2 }}>
+            <button className="btn" style={{ fontSize: 10, height: 24, padding: '0 6px' }} onClick={e => { e.stopPropagation(); setPendingDelete(false); }}>취소</button>
+            <button className="btn btn-danger" style={{ fontSize: 10, height: 24, padding: '0 6px' }} onClick={e => { e.stopPropagation(); onDelete(c.id); }}>삭제</button>
+          </div>
+        ) : (
+          <button className="btn btn-danger" style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, height: 26, padding: '0 8px', zIndex: 2 }}
+            onClick={e => { e.stopPropagation(); setPendingDelete(true); }}>삭제</button>
+        )
       )}
     </div>
   );
@@ -984,6 +999,9 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
   const [content, setContent] = useState('');
   const [saved, setSaved] = useState(true);
   const [orderedDocs, setOrderedDocs] = useState(null);
+  const [pendingDeleteDocId, setPendingDeleteDocId] = useState(null);
+  const [pendingDeleteEditor, setPendingDeleteEditor] = useState(false);
+  const [showUnsaved, setShowUnsaved] = useState(false);
   const displayDocs = orderedDocs || docs;
   const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayDocs, setOrderedDocs);
   const prevReorderModeW = React.useRef(false);
@@ -1013,10 +1031,13 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
 
   const handleDelete = (e, d) => {
     e.stopPropagation();
-    if (window.confirm(`'${d.title}' 삭제할까요?`)) {
-      onDelete(d.id);
-      if (selected?.id === d.id) { setSelected(null); setTitle(''); setContent(''); setSaved(true); }
-    }
+    setPendingDeleteDocId(d.id);
+  };
+
+  const confirmDeleteDoc = (id) => {
+    onDelete(id);
+    if (selected?.id === id) { setSelected(null); setTitle(''); setContent(''); setSaved(true); }
+    setPendingDeleteDocId(null);
   };
 
   // 문서 편집 화면
@@ -1024,7 +1045,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 10px', height: 32 }}
-          onClick={() => { if (!saved && !window.confirm('저장하지 않은 내용이 있어요. 나가시겠어요?')) return; setSelected(null); }}>← 목록</button>
+          onClick={() => { if (!saved) { setShowUnsaved(true); return; } setSelected(null); }}>← 목록</button>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <input value={title} onChange={e => { setTitle(e.target.value); setSaved(false); }}
             style={{ fontSize: 16, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none', fontWeight: 600 }} />
@@ -1036,8 +1057,14 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
           onClick={save} disabled={saved}>
           저장
         </button>
-        <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }}
-          onClick={() => { if (window.confirm(`'${title}' 삭제할까요?`)) { onDelete(selected.id); setSelected(null); } }}>삭제</button>
+        {pendingDeleteEditor ? (
+          <>
+            <button className="btn" style={{ fontSize: 11, height: 28, padding: '0 8px' }} onClick={() => setPendingDeleteEditor(false)}>취소</button>
+            <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 8px' }} onClick={() => { onDelete(selected.id); setSelected(null); setPendingDeleteEditor(false); }}>정말 삭제</button>
+          </>
+        ) : (
+          <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={() => setPendingDeleteEditor(true)}>삭제</button>
+        )}
       </div>
       <textarea value={content} onChange={e => { setContent(e.target.value); setSaved(false); }}
         style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none', padding: '20px' }}
@@ -1079,9 +1106,30 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
                 <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</div>
                 {d.content && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.content.slice(0, 60)}</div>}
               </div>
-              <button className="btn btn-ghost" style={{ fontSize: 11, height: 30, padding: '0 10px', flexShrink: 0 }} onClick={e => handleDelete(e, d)}>삭제</button>
+              {pendingDeleteDocId === d.id ? (
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  <button className="btn" style={{ fontSize: 11, height: 30, padding: '0 8px' }} onClick={e => { e.stopPropagation(); setPendingDeleteDocId(null); }}>취소</button>
+                  <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 8px' }} onClick={e => { e.stopPropagation(); confirmDeleteDoc(d.id); }}>정말 삭제</button>
+                </div>
+              ) : (
+                <button className="btn btn-ghost" style={{ fontSize: 11, height: 30, padding: '0 10px', flexShrink: 0 }} onClick={e => handleDelete(e, d)}>삭제</button>
+              )}
             </div>
           ))}
+        </div>
+      )}
+      {/* 저장 안 된 내용 경고 */}
+      {showUnsaved && (
+        <div className="modal-backdrop">
+          <div style={{ position: 'absolute', inset: 0 }} onClick={() => setShowUnsaved(false)} />
+          <div className="modal" style={{ position: 'relative', zIndex: 1, maxWidth: 340 }}>
+            <div className="modal-title">저장하지 않은 내용이 있어요</div>
+            <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 20 }}>변경 사항을 저장하지 않고 나가시겠어요?</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" style={{ flex: 1 }} onClick={() => setShowUnsaved(false)}>취소</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { setShowUnsaved(false); setSelected(null); }}>나가기</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1257,6 +1305,7 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
 
 function FSCard({ fs, characters, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false);
+  const [pendingDel, setPendingDel] = useState(false);
   const [form, setForm] = useState({
     title: fs.title,
     mentions: fs.mentions || (fs.plantedEp ? [{ ep: fs.plantedEp, note: '' }] : []),
@@ -1366,7 +1415,14 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
               position: 'absolute', top: 3, left: isResolved ? 19 : 3, transition: 'left 0.2s' }} />
           </button>
           <button className="btn btn-ghost" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => setEditing(true)}>수정</button>
-          <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => { if (window.confirm('복선을 삭제할까요?')) onDelete(fs.id); }}>삭제</button>
+          {pendingDel ? (
+            <>
+              <button className="btn" style={{ fontSize: 11, height: 30, padding: '0 8px' }} onClick={() => setPendingDel(false)}>취소</button>
+              <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 8px' }} onClick={() => { onDelete(fs.id); setPendingDel(false); }}>정말 삭제</button>
+            </>
+          ) : (
+            <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => setPendingDel(true)}>삭제</button>
+          )}
         </div>
       </div>
     </div>
@@ -1420,6 +1476,7 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState('');
   const [shareMode, setShareMode] = useState('link'); // 'link' | 'image'
 
   const currentTabUrl = `${window.location.origin}/shared/${projectId}?tab=${activeTab}`;
@@ -1454,10 +1511,11 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
 
   const captureImage = async () => {
     setCapturing(true);
+    setCaptureError('');
     try {
       const html2canvas = (await import('html2canvas')).default;
       const target = document.getElementById('project-main-content');
-      if (!target) { alert('캡처할 화면을 찾을 수 없어요.'); return; }
+      if (!target) { setCaptureError('캡처할 화면을 찾을 수 없어요.'); setCapturing(false); return; }
       const canvas = await html2canvas(target, { backgroundColor: '#0d0d0f', scale: 2, useCORS: true });
       const link = document.createElement('a');
       link.download = `cartographic-${activeTab}-${Date.now()}.png`;
@@ -1465,7 +1523,7 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
       link.click();
     } catch (e) {
       console.error(e);
-      alert('이미지 저장에 실패했어요.');
+      setCaptureError('이미지 저장에 실패했어요.');
     } finally {
       setCapturing(false);
     }
@@ -1558,6 +1616,7 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
               onClick={captureImage} disabled={capturing}>
               {capturing ? '캡처 중...' : '📸 현재 화면 이미지로 저장'}
             </button>
+            {captureError && <p style={{ fontSize: 12, color: 'var(--coral, #f87171)', marginTop: 8 }}>{captureError}</p>}
           </div>
         )}
 

@@ -2,20 +2,22 @@ import React, { useState } from 'react';
 
 function useDragOrder(items, onReorder) {
   const dragItem = React.useRef(null);
-  const dragOver = React.useRef(null);
-  const onDragStart = (idx) => { dragItem.current = idx; };
-  const onDragEnter = (idx) => { dragOver.current = idx; };
+  const [draggingIdx, setDraggingIdx] = React.useState(null);
+  const [dragOverIdx, setDragOverIdx] = React.useState(null);
+  const onDragStart = (idx) => { dragItem.current = idx; setDraggingIdx(idx); };
+  const onDragEnter = (idx) => { setDragOverIdx(idx); };
   const onDragEnd = () => {
-    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
-      dragItem.current = null; dragOver.current = null; return;
+    const from = dragItem.current;
+    const to = dragOverIdx;
+    if (from !== null && to !== null && from !== to) {
+      const next = [...items];
+      const dragged = next.splice(from, 1)[0];
+      next.splice(to, 0, dragged);
+      onReorder(next);
     }
-    const next = [...items];
-    const dragged = next.splice(dragItem.current, 1)[0];
-    next.splice(dragOver.current, 0, dragged);
-    onReorder(next);
-    dragItem.current = null; dragOver.current = null;
+    dragItem.current = null; setDraggingIdx(null); setDragOverIdx(null);
   };
-  return { onDragStart, onDragEnter, onDragEnd };
+  return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx };
 }
 
 export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode }) {
@@ -23,6 +25,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   const [form, setForm] = useState({ title: '', url: '', author: '', type: '그림' });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [customType, setCustomType] = useState('');
   const [editCustomType, setEditCustomType] = useState('');
 
@@ -157,7 +160,14 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
               {/* 버튼 */}
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button className="btn btn-ghost" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => startEdit(fw)}>수정</button>
-                <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => { if (window.confirm('삭제할까요?')) onDelete(fw.id); }}>삭제</button>
+                {pendingDeleteId === fw.id ? (
+                  <>
+                    <button className="btn" style={{ fontSize: 11, height: 30, padding: '0 8px' }} onClick={() => setPendingDeleteId(null)}>취소</button>
+                    <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 8px' }} onClick={() => { onDelete(fw.id); setPendingDeleteId(null); }}>정말?</button>
+                  </>
+                ) : (
+                  <button className="btn btn-danger" style={{ fontSize: 11, height: 30, padding: '0 10px' }} onClick={() => setPendingDeleteId(fw.id)}>삭제</button>
+                )}
               </div>
             </div>
           );

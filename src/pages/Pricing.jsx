@@ -133,7 +133,7 @@ export default function Pricing({ user }) {
       });
     } catch (e) {
       console.error(e);
-      alert('결제 창 열기에 실패했어요. 다시 시도해 주세요.');
+      showToast('결제 창 열기에 실패했어요. 다시 시도해 주세요.', 'error');
     } finally {
       setPaying(false);
     }

@@ -42,6 +42,7 @@ function useDragOrder(items, onReorder) {
 export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [form, setForm] = useState({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
   const [expandedId, setExpandedId] = useState(null);
   const [customType, setCustomType] = useState('');
@@ -191,7 +192,14 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                       )}
                       <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
                         <button className="btn btn-ghost" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); openEdit(ev); }}>편집</button>
-                        <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); if (window.confirm('이벤트를 삭제할까요?')) onDelete(ev.id); }}>삭제</button>
+                        {pendingDeleteId === ev.id ? (
+                          <>
+                            <button className="btn" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); setPendingDeleteId(null); }}>취소</button>
+                            <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); onDelete(ev.id); setPendingDeleteId(null); }}>정말 삭제</button>
+                          </>
+                        ) : (
+                          <button className="btn btn-danger" style={{ fontSize: 11, height: 28, padding: '0 10px' }} onClick={e => { e.stopPropagation(); setPendingDeleteId(ev.id); }}>삭제</button>
+                        )}
                       </div>
                     </div>
                   )}

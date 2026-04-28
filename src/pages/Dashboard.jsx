@@ -203,6 +203,7 @@ function ProjectCard({ project, onClick, onDelete, onRename }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(false);
   const [name, setName] = useState(project.name);
   const menuRef = useRef(null);
 
@@ -218,10 +219,14 @@ function ProjectCard({ project, onClick, onDelete, onRename }) {
     setEditing(false);
   };
 
-  const handleDelete = async (e) => {
+  const handleDelete = (e) => {
     e?.stopPropagation();
     setMenuOpen(false);
-    if (!window.confirm("'" + project.name + "' 삭제할까요?\n모든 캐릭터, 복선 등 데이터가 함께 삭제돼요.")) return;
+    setPendingDelete(true);
+  };
+
+  const confirmDelete = async () => {
+    setPendingDelete(false);
     setDeleting(true);
     try {
       await onDelete();
@@ -275,6 +280,20 @@ function ProjectCard({ project, onClick, onDelete, onRename }) {
           </div>
         )}
       </div>
+      {/* 삭제 확인 모달 */}
+      {pendingDelete && (
+        <div className="modal-backdrop" onClick={e => e.stopPropagation()}>
+          <div style={{ position: 'absolute', inset: 0 }} onClick={() => setPendingDelete(false)} />
+          <div className="modal" style={{ position: 'relative', zIndex: 1, maxWidth: 340 }}>
+            <div className="modal-title">프로젝트 삭제</div>
+            <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 20 }}>'{project.name}'을(를) 삭제할까요?<br />모든 캐릭터, 복선 등 데이터가 함께 삭제돼요.</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" style={{ flex: 1 }} onClick={() => setPendingDelete(false)}>취소</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>삭제</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
