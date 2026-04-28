@@ -49,21 +49,25 @@ export default function App() {
         }
 
         // Firestore 실시간 구독 → 결제/구독 변경 시 user state 자동 갱신
-        unsubFirestore = onSnapshot(doc(db, 'users', u.uid), (snap) => {
-          const userData = snap.exists() ? snap.data() : {};
-          const currentAuthUser = authUserRef.current;
-          if (!currentAuthUser) return;
+        unsubFirestore = onSnapshot(
+          doc(db, 'users', u.uid),
+          (snap) => {
+            const userData = snap.exists() ? snap.data() : {};
+            const currentAuthUser = authUserRef.current;
+            if (!currentAuthUser) return;
 
-          setUser((prev) => {
-            const next = { ...currentAuthUser, ...userData };
-            // 동의/온보딩 모달은 최초 1회만
-            if (prev === undefined || prev === null) {
-              if (!userData?.consentAt) setShowConsent(true);
-              else if (!userData?.onboardingDone) setShowOnboarding(true);
-            }
-            return next;
-          });
-        });
+            setUser((prev) => {
+              const next = { ...currentAuthUser, ...userData };
+              // 동의/온보딩 모달은 최초 1회만
+              if (prev === undefined || prev === null) {
+                if (!userData?.consentAt) setShowConsent(true);
+                else if (!userData?.onboardingDone) setShowOnboarding(true);
+              }
+              return next;
+            });
+          },
+          (err) => { console.error('Firestore 구독 오류:', err); }
+        );
       } else {
         authUserRef.current = null;
         setUser(null);
@@ -102,7 +106,7 @@ export default function App() {
           onComplete={async (data) => {
             setShowConsent(false);
             setUser(u => ({ ...u, ...data, consentAt: new Date() }));
-            if (!user?.onboardingDone) setShowOnboarding(true);
+            if (!data?.onboardingDone) setShowOnboarding(true);
           }}
         />
       )}

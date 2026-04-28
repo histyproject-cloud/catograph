@@ -187,7 +187,7 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
       subscription: {
         status: "active",
         plan: yearly ? "yearly" : "monthly",
-        amount: Number(amount) || (yearly ? 29900 : 3300),
+        amount: yearly ? 29900 : 3300,
         billingKey: data.billingKey,
         cardCompany: data.card?.company || "",
         cardNumber: data.card?.number || "",

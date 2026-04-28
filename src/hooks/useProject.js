@@ -37,30 +37,49 @@ export function useProjects(userId) {
     return unsub;
   }, [userId]);
 
-  const createProject = async (name) =>
-    addDoc(collection(db, 'projects'), { name, ownerId: userId, createdAt: serverTimestamp(), sharedWith: [] });
-
-  const deleteProject = async (id) => {
-    const collections = ['characters', 'relations', 'foreshadows', 'worldDocs', 'timelineEvents', 'fanworks'];
-    const allRefs = [];
-
-    for (const col of collections) {
-      const snap = await getDocs(query(collection(db, col), where('projectId', '==', id)));
-
-      if (col === 'characters') {
-        await Promise.all(snap.docs.map(async (d) => {
-          try { await deleteObject(ref(storage, `characters/${d.id}/photo`)); } catch { /* 없으면 무시 */ }
-        }));
-      }
-
-      snap.docs.forEach(d => allRefs.push(d.ref));
+  const createProject = async (name) => {
+    if (!userId) throw new Error('로그인이 필요합니다.');
+    try {
+      return await addDoc(collection(db, 'projects'), { name, ownerId: userId, createdAt: serverTimestamp(), sharedWith: [] });
+    } catch (err) {
+      console.error('프로젝트 생성 실패:', err);
+      throw err;
     }
-
-    allRefs.push(doc(db, 'projects', id));
-    await deleteInBatches(db, allRefs);
   };
 
-  const updateProject = async (id, data) => updateDoc(doc(db, 'projects', id), data);
+  const deleteProject = async (id) => {
+    try {
+      const collections = ['characters', 'relations', 'foreshadows', 'worldDocs', 'timelineEvents', 'fanworks'];
+      const allRefs = [];
+
+      for (const col of collections) {
+        const snap = await getDocs(query(collection(db, col), where('projectId', '==', id)));
+
+        if (col === 'characters') {
+          await Promise.all(snap.docs.map(async (d) => {
+            try { await deleteObject(ref(storage, `characters/${d.id}/photo`)); } catch { /* 없으면 무시 */ }
+          }));
+        }
+
+        snap.docs.forEach(d => allRefs.push(d.ref));
+      }
+
+      allRefs.push(doc(db, 'projects', id));
+      await deleteInBatches(db, allRefs);
+    } catch (err) {
+      console.error('프로젝트 삭제 실패:', err);
+      throw err;
+    }
+  };
+
+  const updateProject = async (id, data) => {
+    try {
+      return await updateDoc(doc(db, 'projects', id), data);
+    } catch (err) {
+      console.error('프로젝트 업데이트 실패:', err);
+      throw err;
+    }
+  };
 
   return { projects, loading, createProject, deleteProject, updateProject };
 }
@@ -97,14 +116,24 @@ export function useCharacters(projectId) {
       order: Date.now(),
       createdAt: serverTimestamp(),
     };
-    const docRef = await addDoc(collection(db, 'characters'), payload);
-    setCharacters(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
-    return docRef;
+    try {
+      const docRef = await addDoc(collection(db, 'characters'), payload);
+      setCharacters(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+      return docRef;
+    } catch (err) {
+      console.error('캐릭터 추가 실패:', err);
+      throw err;
+    }
   };
 
   const updateCharacter = async (id, data) => {
-    await updateDoc(doc(db, 'characters', id), data);
-    setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+    try {
+      await updateDoc(doc(db, 'characters', id), data);
+      setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+    } catch (err) {
+      console.error('캐릭터 업데이트 실패:', err);
+      throw err;
+    }
   };
 
   // 캐릭터 삭제: 연결된 relations·foreshadows도 Firestore 정리
@@ -173,19 +202,34 @@ export function useRelations(projectId) {
 
   const addRelation = async (fromId, toId, label = '', color = '') => {
     const payload = { projectId, fromId, toId, label, color, createdAt: serverTimestamp() };
-    const docRef = await addDoc(collection(db, 'relations'), payload);
-    setRelations(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }]);
-    return docRef;
+    try {
+      const docRef = await addDoc(collection(db, 'relations'), payload);
+      setRelations(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }]);
+      return docRef;
+    } catch (err) {
+      console.error('관계 추가 실패:', err);
+      throw err;
+    }
   };
 
   const updateRelation = async (id, data) => {
-    await updateDoc(doc(db, 'relations', id), data);
-    setRelations(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+    try {
+      await updateDoc(doc(db, 'relations', id), data);
+      setRelations(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+    } catch (err) {
+      console.error('관계 업데이트 실패:', err);
+      throw err;
+    }
   };
 
   const deleteRelation = async (id) => {
-    await deleteDoc(doc(db, 'relations', id));
-    setRelations(prev => prev.filter(r => r.id !== id));
+    try {
+      await deleteDoc(doc(db, 'relations', id));
+      setRelations(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      console.error('관계 삭제 실패:', err);
+      throw err;
+    }
   };
 
   return { relations, setRelations, addRelation, updateRelation, deleteRelation, refreshRelations: load };
@@ -217,19 +261,34 @@ export function useForeshadows(projectId) {
 
   const addForeshadow = async (data) => {
     const payload = { ...data, projectId, createdAt: serverTimestamp() };
-    const docRef = await addDoc(collection(db, 'foreshadows'), payload);
-    setForeshadows(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
-    return docRef;
+    try {
+      const docRef = await addDoc(collection(db, 'foreshadows'), payload);
+      setForeshadows(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+      return docRef;
+    } catch (err) {
+      console.error('복선 추가 실패:', err);
+      throw err;
+    }
   };
 
   const updateForeshadow = async (id, data) => {
-    await updateDoc(doc(db, 'foreshadows', id), data);
-    setForeshadows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+    try {
+      await updateDoc(doc(db, 'foreshadows', id), data);
+      setForeshadows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+    } catch (err) {
+      console.error('복선 업데이트 실패:', err);
+      throw err;
+    }
   };
 
   const deleteForeshadow = async (id) => {
-    await deleteDoc(doc(db, 'foreshadows', id));
-    setForeshadows(prev => prev.filter(f => f.id !== id));
+    try {
+      await deleteDoc(doc(db, 'foreshadows', id));
+      setForeshadows(prev => prev.filter(f => f.id !== id));
+    } catch (err) {
+      console.error('복선 삭제 실패:', err);
+      throw err;
+    }
   };
 
   return { foreshadows, setForeshadows, addForeshadow, updateForeshadow, deleteForeshadow, refreshForeshadows: load };
@@ -261,19 +320,34 @@ export function useWorldDocs(projectId) {
 
   const addWorldDoc = async (title) => {
     const payload = { projectId, title, content: '', createdAt: serverTimestamp() };
-    const docRef = await addDoc(collection(db, 'worldDocs'), payload);
-    setDocs(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
-    return docRef;
+    try {
+      const docRef = await addDoc(collection(db, 'worldDocs'), payload);
+      setDocs(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+      return docRef;
+    } catch (err) {
+      console.error('세계관 문서 추가 실패:', err);
+      throw err;
+    }
   };
 
   const updateWorldDoc = async (id, data) => {
-    await updateDoc(doc(db, 'worldDocs', id), data);
-    setDocs(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
+    try {
+      await updateDoc(doc(db, 'worldDocs', id), data);
+      setDocs(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
+    } catch (err) {
+      console.error('세계관 문서 업데이트 실패:', err);
+      throw err;
+    }
   };
 
   const deleteWorldDoc = async (id) => {
-    await deleteDoc(doc(db, 'worldDocs', id));
-    setDocs(prev => prev.filter(d => d.id !== id));
+    try {
+      await deleteDoc(doc(db, 'worldDocs', id));
+      setDocs(prev => prev.filter(d => d.id !== id));
+    } catch (err) {
+      console.error('세계관 문서 삭제 실패:', err);
+      throw err;
+    }
   };
 
   return { docs, addWorldDoc, updateWorldDoc, deleteWorldDoc, refreshWorldDocs: load };
@@ -305,19 +379,34 @@ export function useTimelineEvents(projectId) {
 
   const addEvent = async (data) => {
     const payload = { ...data, projectId, createdAt: serverTimestamp() };
-    const docRef = await addDoc(collection(db, 'timelineEvents'), payload);
-    setEvents(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
-    return docRef;
+    try {
+      const docRef = await addDoc(collection(db, 'timelineEvents'), payload);
+      setEvents(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+      return docRef;
+    } catch (err) {
+      console.error('타임라인 이벤트 추가 실패:', err);
+      throw err;
+    }
   };
 
   const updateEvent = async (id, data) => {
-    await updateDoc(doc(db, 'timelineEvents', id), data);
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+    try {
+      await updateDoc(doc(db, 'timelineEvents', id), data);
+      setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+    } catch (err) {
+      console.error('타임라인 이벤트 업데이트 실패:', err);
+      throw err;
+    }
   };
 
   const deleteEvent = async (id) => {
-    await deleteDoc(doc(db, 'timelineEvents', id));
-    setEvents(prev => prev.filter(e => e.id !== id));
+    try {
+      await deleteDoc(doc(db, 'timelineEvents', id));
+      setEvents(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      console.error('타임라인 이벤트 삭제 실패:', err);
+      throw err;
+    }
   };
 
   return { events, addEvent, updateEvent, deleteEvent, refreshEvents: load };
@@ -349,19 +438,34 @@ export function useFanworks(projectId) {
 
   const addFanwork = async (data) => {
     const payload = { ...data, projectId, createdAt: serverTimestamp() };
-    const docRef = await addDoc(collection(db, 'fanworks'), payload);
-    setFanworks(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
-    return docRef;
+    try {
+      const docRef = await addDoc(collection(db, 'fanworks'), payload);
+      setFanworks(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
+      return docRef;
+    } catch (err) {
+      console.error('링크 추가 실패:', err);
+      throw err;
+    }
   };
 
   const updateFanwork = async (id, data) => {
-    await updateDoc(doc(db, 'fanworks', id), data);
-    setFanworks(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+    try {
+      await updateDoc(doc(db, 'fanworks', id), data);
+      setFanworks(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+    } catch (err) {
+      console.error('링크 업데이트 실패:', err);
+      throw err;
+    }
   };
 
   const deleteFanwork = async (id) => {
-    await deleteDoc(doc(db, 'fanworks', id));
-    setFanworks(prev => prev.filter(f => f.id !== id));
+    try {
+      await deleteDoc(doc(db, 'fanworks', id));
+      setFanworks(prev => prev.filter(f => f.id !== id));
+    } catch (err) {
+      console.error('링크 삭제 실패:', err);
+      throw err;
+    }
   };
 
   return { fanworks, addFanwork, updateFanwork, deleteFanwork, refreshFanworks: load };
