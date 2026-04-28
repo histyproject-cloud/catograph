@@ -139,38 +139,43 @@ export function useCharacters(projectId) {
   // 캐릭터 삭제: 연결된 relations·foreshadows도 Firestore 정리
   // 반환값: { deletedRelIds, updatedFsMap } — 호출자가 다른 훅 state 갱신 가능
   const deleteCharacter = async (charId) => {
-    const batch = writeBatch(db);
+    try {
+      const batch = writeBatch(db);
 
-    try { await deleteObject(ref(storage, `characters/${charId}/photo`)); } catch { /* 없으면 무시 */ }
+      try { await deleteObject(ref(storage, `characters/${charId}/photo`)); } catch { /* 없으면 무시 */ }
 
-    batch.delete(doc(db, 'characters', charId));
+      batch.delete(doc(db, 'characters', charId));
 
-    const relQ = query(collection(db, 'relations'), where('projectId', '==', projectId));
-    const relSnap = await getDocs(relQ);
-    const deletedRelIds = [];
-    relSnap.docs.forEach(d => {
-      const r = d.data();
-      if (r.fromId === charId || r.toId === charId) {
-        batch.delete(d.ref);
-        deletedRelIds.push(d.id);
-      }
-    });
+      const relQ = query(collection(db, 'relations'), where('projectId', '==', projectId));
+      const relSnap = await getDocs(relQ);
+      const deletedRelIds = [];
+      relSnap.docs.forEach(d => {
+        const r = d.data();
+        if (r.fromId === charId || r.toId === charId) {
+          batch.delete(d.ref);
+          deletedRelIds.push(d.id);
+        }
+      });
 
-    const fsQ = query(collection(db, 'foreshadows'), where('projectId', '==', projectId));
-    const fsSnap = await getDocs(fsQ);
-    const updatedFsMap = {};
-    fsSnap.docs.forEach(d => {
-      const f = d.data();
-      if (f.charIds?.includes(charId)) {
-        const newIds = f.charIds.filter(id => id !== charId);
-        batch.update(d.ref, { charIds: newIds });
-        updatedFsMap[d.id] = newIds;
-      }
-    });
+      const fsQ = query(collection(db, 'foreshadows'), where('projectId', '==', projectId));
+      const fsSnap = await getDocs(fsQ);
+      const updatedFsMap = {};
+      fsSnap.docs.forEach(d => {
+        const f = d.data();
+        if (f.charIds?.includes(charId)) {
+          const newIds = f.charIds.filter(id => id !== charId);
+          batch.update(d.ref, { charIds: newIds });
+          updatedFsMap[d.id] = newIds;
+        }
+      });
 
-    await batch.commit();
-    setCharacters(prev => prev.filter(c => c.id !== charId));
-    return { deletedRelIds, updatedFsMap };
+      await batch.commit();
+      setCharacters(prev => prev.filter(c => c.id !== charId));
+      return { deletedRelIds, updatedFsMap };
+    } catch (err) {
+      console.error('캐릭터 삭제 실패:', err);
+      throw err;
+    }
   };
 
   return { characters, setCharacters, addCharacter, updateCharacter, deleteCharacter, refreshCharacters: load };
