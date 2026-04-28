@@ -272,8 +272,9 @@ exports.billingScheduler = onSchedule(
           continue;
         }
 
-        // 결제 성공 → 다음 결제일 갱신
-        const nextPeriodEnd = new Date(now);
+        // 결제 성공 → 다음 결제일 갱신 (이전 결제일 기준으로 계산해 drift 방지)
+        const base = sub.currentPeriodEnd?.toDate?.() || now;
+        const nextPeriodEnd = new Date(base);
         if (isYearly) {
           nextPeriodEnd.setFullYear(nextPeriodEnd.getFullYear() + 1);
         } else {
@@ -560,7 +561,9 @@ exports.tossWebhook = onRequest(
         const isYearly = newPlan === "yearly";
 
         const now = new Date();
-        const periodEnd = new Date(now);
+        // 이전 결제일 기준으로 계산해 drift 방지
+        const base = sub.currentPeriodEnd?.toDate?.() || now;
+        const periodEnd = new Date(base);
         if (isYearly) {
           periodEnd.setFullYear(periodEnd.getFullYear() + 1);
         } else {
