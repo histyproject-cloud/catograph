@@ -30,10 +30,14 @@ export function useProjects(userId) {
   useEffect(() => {
     if (!userId) return;
     const q = query(collection(db, 'projects'), where('ownerId', '==', userId));
-    const unsub = onSnapshot(q, snap => {
-      setProjects(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      snap => {
+        setProjects(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      },
+      err => { console.error('프로젝트 목록 구독 오류:', err); setLoading(false); }
+    );
     return unsub;
   }, [userId]);
 

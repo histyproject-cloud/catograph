@@ -29,7 +29,7 @@ export default function PaymentSuccess() {
         // 중복 실행 방지(orderId 기반)도 Function 내부에서 처리됨
         const functions = getFunctions(app, 'asia-northeast3');
         const issueBillingKey = httpsCallable(functions, 'issueBillingKey');
-        await issueBillingKey({ authKey, customerKey, yearly, orderId, amount });
+        await issueBillingKey({ authKey, customerKey, yearly, orderId });
 
         setStatus('done');
         setTimeout(() => { window.location.href = '/'; }, 3000);

@@ -79,7 +79,9 @@ export default function Project({ user }) {
   const selectedCharObj = characters.find(c => c.id === selectedChar?.id) ?? selectedChar;
   
   useEffect(() => {
-    getDoc(doc(db, 'projects', projectId)).then(d => { if (d.exists()) setProject(d.data()); });
+    getDoc(doc(db, 'projects', projectId))
+      .then(d => { if (d.exists()) setProject(d.data()); })
+      .catch(err => console.error('프로젝트 로드 실패:', err));
   }, [projectId]);
 
   const checkLimitRef = React.useRef(checkLimit);
@@ -113,8 +115,12 @@ export default function Project({ user }) {
 
   const handleRenameProject = async () => {
     if (titleInput.trim() && titleInput !== project?.name) {
-      await updateDoc(doc(db, 'projects', projectId), { name: titleInput.trim() });
-      setProject(p => ({ ...p, name: titleInput.trim() }));
+      try {
+        await updateDoc(doc(db, 'projects', projectId), { name: titleInput.trim() });
+        setProject(p => ({ ...p, name: titleInput.trim() }));
+      } catch (err) {
+        console.error('프로젝트 이름 변경 실패:', err);
+      }
     }
     setEditingTitle(false);
   };
