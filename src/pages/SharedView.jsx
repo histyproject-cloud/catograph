@@ -156,16 +156,16 @@ export default function SharedView() {
               <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>복선이 없어요</div>
             ) : (
               <>
-                {foreshadows.filter(f => !f.resolvedEp).length > 0 && (
+                {foreshadows.filter(f => !(f.resolved ?? !!f.resolvedEp)).length > 0 && (
                   <div style={{ marginBottom: 24 }}>
                     <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>미회수</div>
-                    {foreshadows.filter(f => !f.resolvedEp).map(fs => <FSRow key={fs.id} fs={fs} characters={characters} />)}
+                    {foreshadows.filter(f => !(f.resolved ?? !!f.resolvedEp)).map(fs => <FSRow key={fs.id} fs={fs} characters={characters} />)}
                   </div>
                 )}
-                {foreshadows.filter(f => f.resolvedEp).length > 0 && (
+                {foreshadows.filter(f => f.resolved ?? !!f.resolvedEp).length > 0 && (
                   <div>
                     <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>회수 완료</div>
-                    {foreshadows.filter(f => f.resolvedEp).map(fs => <FSRow key={fs.id} fs={fs} characters={characters} />)}
+                    {foreshadows.filter(f => f.resolved ?? !!f.resolvedEp).map(fs => <FSRow key={fs.id} fs={fs} characters={characters} />)}
                   </div>
                 )}
               </>

@@ -20,7 +20,7 @@ function useDragOrder(items, onReorder) {
   return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx };
 }
 
-export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode }) {
+export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', url: '', author: '', type: '그림' });
   const [editId, setEditId] = useState(null);
@@ -37,8 +37,17 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
     return () => document.removeEventListener('fanworks:add', handler);
   }, []);
   const [orderedFanworks, setOrderedFanworks] = React.useState(null);
+  const prevReorderMode = React.useRef(false);
   const displayFanworks = orderedFanworks || fanworks;
   const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx } = useDragOrder(displayFanworks, setOrderedFanworks);
+
+  React.useEffect(() => {
+    if (reorderMode && !prevReorderMode.current) setOrderedFanworks([...fanworks]);
+    if (!reorderMode && prevReorderMode.current && orderedFanworks) {
+      onSaveOrder?.(orderedFanworks);
+    }
+    prevReorderMode.current = reorderMode;
+  }, [reorderMode]);
 
   const handleAdd = async (e) => {
     e.preventDefault();

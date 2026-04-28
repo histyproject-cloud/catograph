@@ -526,7 +526,7 @@ export default function Project({ user }) {
                   <>
                     {matchedChars.length > 0 && <><SectionLabel label="캐릭터" count={matchedChars.length} />{matchedChars.map(c => <ResultItem key={c.id} icon="👤" title={c.name} sub={c.role} onClick={() => handleSetActiveTab('characters')} />)}</>}
                     {matchedEvents.length > 0 && <><SectionLabel label="타임라인" count={matchedEvents.length} />{matchedEvents.map(e => <ResultItem key={e.id} icon="◷" title={e.title} sub={e.episode ? `${e.episode}화` : ''} onClick={() => handleSetActiveTab('timeline')} />)}</>}
-                    {matchedFS.length > 0 && <><SectionLabel label="복선" count={matchedFS.length} />{matchedFS.map(f => <ResultItem key={f.id} icon="⟡" title={f.title} sub={f.resolved ? '회수 완료' : '미회수'} onClick={() => handleSetActiveTab('foreshadow')} />)}</>}
+                    {matchedFS.length > 0 && <><SectionLabel label="복선" count={matchedFS.length} />{matchedFS.map(f => <ResultItem key={f.id} icon="⟡" title={f.title} sub={(f.resolved ?? !!f.resolvedEp) ? '회수 완료' : '미회수'} onClick={() => handleSetActiveTab('foreshadow')} />)}</>}
                     {matchedDocs.length > 0 && <><SectionLabel label="설정집" count={matchedDocs.length} />{matchedDocs.map(d => <ResultItem key={d.id} icon="⊞" title={d.title} sub={d.content?.slice(0, 40)} onClick={() => handleSetActiveTab('world')} />)}</>}
                     {matchedFanworks.length > 0 && <><SectionLabel label="링크" count={matchedFanworks.length} />{matchedFanworks.map(f => <ResultItem key={f.id} icon="✦" title={f.title} sub={f.author} onClick={() => handleSetActiveTab('fanworks')} />)}</>}
                   </>
@@ -1158,8 +1158,8 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
     setShowAdd(false);
   };
 
-  const openRaw = foreshadows.filter(f => !f.resolved);
-  const closedRaw = foreshadows.filter(f => f.resolved);
+  const openRaw = foreshadows.filter(f => !(f.resolved ?? !!f.resolvedEp));
+  const closedRaw = foreshadows.filter(f => f.resolved ?? !!f.resolvedEp);
   const open = orderedOpen || openRaw;
   const closed = orderedClosed || closedRaw;
   const dragOpen = useDragOrder(open, setOrderedOpen);
