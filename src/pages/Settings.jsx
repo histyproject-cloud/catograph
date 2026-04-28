@@ -250,7 +250,7 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ fontSize: 13, padding: '0 16px', height: 36, flexShrink: 0, opacity: applyingCoupon ? 0.5 : 1, cursor: applyingCoupon ? 'not-allowed' : 'pointer' }}
+                style={{ fontSize: 13, padding: '0 16px', height: 36, flexShrink: 0, whiteSpace: 'nowrap', minWidth: 80, opacity: applyingCoupon ? 0.5 : 1, cursor: applyingCoupon ? 'not-allowed' : 'pointer' }}
                 disabled={applyingCoupon || !couponCode.trim()}
               >
                 {applyingCoupon ? '확인 중...' : '적용하기'}
