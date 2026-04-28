@@ -234,7 +234,7 @@ export default function Project({ user }) {
             <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-lg)', padding: 8, minWidth: 210, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100 }}>
               <div style={{ padding: '8px 12px 12px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{user?.displayName}</div>
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>{user?.email}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>{user?.email}</div>
                 <div onClick={() => { navigate('/pricing'); setShowProfile(false); }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg3)', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}>
                   <span style={{ fontSize: 10, color: 'var(--text3)' }}>플랜</span>
@@ -351,7 +351,7 @@ export default function Project({ user }) {
             <button
               onClick={() => { setConnectMode(v => !v); setConnectFrom(null); }}
               style={{
-                width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                width: 48, height: 48, borderRadius: '50%', cursor: 'pointer',
                 background: connectMode ? 'var(--accent)' : 'var(--bg2)',
                 border: `1.5px solid ${connectMode ? 'var(--accent)' : 'var(--border2)'}`,
                 color: connectMode ? '#fff' : 'var(--text2)',
@@ -969,7 +969,7 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
       {/* 하단 이름 + 역할 */}
       <div style={{ textAlign: 'center', marginTop: 12, width: '100%' }}>
         <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-        {c.role && <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>{c.role}</div>}
+        {c.role && <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.role}</div>}
         {c.tags?.length > 0 && (
           <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
             {c.tags.slice(0, 2).map((t, i) => <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text3)', fontSize: 10 }}>{t}</span>)}
@@ -1017,6 +1017,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
   const save = () => { if (selected) { onUpdate(selected.id, { title, content }); setSaved(true); } };
   const addNew = async () => {
     const ref = await onAdd('새 문서');
+    if (!ref) return; // 제한 초과 등으로 생성 안 된 경우
     selectDoc({ id: ref.id, title: '새 문서', content: '' });
   };
 

@@ -269,7 +269,7 @@ export function useForeshadows(projectId) {
   }, [load]);
 
   const addForeshadow = async (data) => {
-    const payload = { ...data, projectId, createdAt: serverTimestamp() };
+    const payload = { ...data, projectId, order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'foreshadows'), payload);
       setForeshadows(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
@@ -328,7 +328,7 @@ export function useWorldDocs(projectId) {
   }, [load]);
 
   const addWorldDoc = async (title) => {
-    const payload = { projectId, title, content: '', createdAt: serverTimestamp() };
+    const payload = { projectId, title, content: '', order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'worldDocs'), payload);
       setDocs(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
@@ -387,7 +387,7 @@ export function useTimelineEvents(projectId) {
   }, [load]);
 
   const addEvent = async (data) => {
-    const payload = { ...data, projectId, createdAt: serverTimestamp() };
+    const payload = { ...data, projectId, order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'timelineEvents'), payload);
       setEvents(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
@@ -446,7 +446,7 @@ export function useFanworks(projectId) {
   }, [load]);
 
   const addFanwork = async (data) => {
-    const payload = { ...data, projectId, createdAt: serverTimestamp() };
+    const payload = { ...data, projectId, order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'fanworks'), payload);
       setFanworks(prev => [...prev, { id: docRef.id, ...payload, createdAt: null }].sort(sortByOrder));
