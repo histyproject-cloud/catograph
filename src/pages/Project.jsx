@@ -1270,8 +1270,8 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
                 <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
                   {form.mentions.map((m, i) => (
                     <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                      <input value={m.ep} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: e.target.value } : x) }))}
-                        placeholder="화수" style={{ width: 70 }} />
+                      <input value={m.ep} onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: v } : x) })); }}
+                        placeholder="화수" inputMode="numeric" style={{ width: 70 }} />
                       <input value={m.note} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, note: e.target.value } : x) }))}
                         placeholder="어떻게 언급되었나요?" style={{ flex: 1 }} />
                       <button type="button" className="btn btn-ghost" style={{ padding: '0 8px', height: 40, fontSize: 16 }}
@@ -1336,8 +1336,8 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
         <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
           {form.mentions.map((m, i) => (
             <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-              <input value={m.ep} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: e.target.value } : x) }))}
-                placeholder="화수" style={{ width: 70 }} />
+              <input value={m.ep} onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, ep: v } : x) })); }}
+                placeholder="화수" inputMode="numeric" style={{ width: 70 }} />
               <input value={m.note} onChange={e => setForm(f => ({ ...f, mentions: f.mentions.map((x, j) => j === i ? { ...x, note: e.target.value } : x) }))}
                 placeholder="어떻게 언급되었나요?" style={{ flex: 1 }} />
               <button type="button" className="btn btn-ghost" style={{ padding: '0 8px', height: 40, fontSize: 16 }}
