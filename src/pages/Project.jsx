@@ -1157,6 +1157,9 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
     await onAdd(form);
     setForm({ title: '', mentions: [], resolved: false, charIds: [] });
     setShowAdd(false);
+    // 재정렬 로컬 state 초기화 → 새 항목이 즉시 목록에 보이도록
+    setOrderedOpen(null);
+    setOrderedClosed(null);
   };
 
   const openRaw = foreshadows.filter(f => !(f.resolved ?? !!f.resolvedEp));
@@ -1173,9 +1176,13 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
     }
     if (!reorderMode && prevReorderModeF.current) {
       if (orderedOpen) onSaveOrder?.([...orderedOpen, ...(orderedClosed || closedRaw)]);
+      // 저장 후 로컬 state 초기화 → 부모 state(낙관적 업데이트)가 이미 최신이므로
+      // openRaw/closedRaw 기반으로 다시 렌더링하면 순서가 즉시 반영됨
+      setOrderedOpen(null);
+      setOrderedClosed(null);
     }
     prevReorderModeF.current = reorderMode;
-  }, [reorderMode]);
+  }, [reorderMode]); // eslint-disable-line
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
