@@ -88,5 +88,12 @@ service cloud.firestore {
     match /coupons/{code} {
       allow read, write: if false;
     }
+
+    // 결제 이력: 본인 것만 읽기 가능, 쓰기는 Cloud Functions 전용
+    // (전자상거래법 5년 보관 의무용 — 영수증·환불·분쟁 추적)
+    match /payments/{paymentId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow write: if false;
+    }
   }
 }

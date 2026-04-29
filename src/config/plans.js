@@ -66,9 +66,18 @@ export function getSubscriptionLabel(user) {
     if (plan === 'b2b') {
       return `B2B 플랜 · ${fmt(currentPeriodEnd)}까지 이용 가능`;
     }
+    // 쿠폰 사용 — couponLabel(서버에서 저장) 우선, 없으면 couponDays 기반 자동 생성
     const couponCode = user?.subscription?.couponCode;
-    if (couponCode) {
-      return `체험단 1년권 · ${fmt(currentPeriodEnd)}까지 이용 가능`;
+    if (couponCode || plan === 'coupon') {
+      const couponLabel = user?.subscription?.couponLabel;
+      const couponDays = user?.subscription?.couponDays;
+      let label = couponLabel;
+      if (!label && couponDays) {
+        if (couponDays >= 365) label = `${Math.floor(couponDays / 365)}년 무료 이용권`;
+        else if (couponDays >= 30) label = `${Math.floor(couponDays / 30)}개월 무료 이용권`;
+        else label = `${couponDays}일 무료 이용권`;
+      }
+      return `${label || '쿠폰 이용권'} · ${fmt(currentPeriodEnd)}까지 이용 가능`;
     }
     const planName = plan === 'yearly' ? '연간' : '월간';
     return `Pro ${planName} · 다음 결제일 ${fmt(currentPeriodEnd)}`;

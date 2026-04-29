@@ -204,6 +204,19 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
       }
     }, { merge: true });
 
+    // 결제 이력 기록 (첫 결제 / 카드 재등록)
+    await db.collection("payments").add({
+      uid,
+      type: "billing_key_issued",
+      orderId: orderId || null,
+      amount: yearly ? 29900 : 3300,
+      plan: yearly ? "yearly" : "monthly",
+      cardCompany: data.card?.company || "",
+      cardNumber: data.card?.number || "",
+      currentPeriodEnd: periodEnd,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
     console.log(`issueBillingKey 완료: ${uid} / ${yearly ? "연간" : "월간"} / ${periodEnd.toISOString()}`);
     return { success: true };
   } catch (err) {
@@ -224,10 +237,11 @@ exports.billingScheduler = onSchedule(
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // 오늘 결제일인 active 유저 조회
+    // currentPeriodEnd가 오늘 또는 그 이전인 active 유저 조회
+    // (스케줄러 실패로 누락된 과거 결제일까지 catch — 결제 성공 시
+    //  currentPeriodEnd가 미래로 갱신되므로 다음 실행에선 자동 제외됨)
     const usersSnap = await db.collection("users")
       .where("subscription.status", "==", "active")
-      .where("subscription.currentPeriodEnd", ">=", todayStart)
       .where("subscription.currentPeriodEnd", "<", todayEnd)
       .get();
 
@@ -243,7 +257,23 @@ exports.billingScheduler = onSchedule(
       const amount = isYearly ? 29900 : 3300;
 
       if (!billingKey) {
-        console.warn(`빌링키 없음: ${uid}`);
+        // 빌링키 없음 = 쿠폰 사용자가 만료일에 도달
+        // → 구독 상태를 'expired'로 변경 (Free 플랜으로 자동 전환)
+        if (sub.couponCode) {
+          await db.collection("users").doc(uid).update({
+            "subscription.status": "expired",
+            "subscription.expiredAt": FieldValue.serverTimestamp(),
+          });
+          await db.collection("payments").add({
+            uid,
+            type: "coupon_expired",
+            couponCode: sub.couponCode,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+          console.log(`쿠폰 만료 처리: ${uid} (${sub.couponCode})`);
+        } else {
+          console.warn(`빌링키 없음: ${uid}`);
+        }
         continue;
       }
 
@@ -276,6 +306,17 @@ exports.billingScheduler = onSchedule(
             "subscription.lastFailedAt": FieldValue.serverTimestamp(),
             "subscription.lastFailReason": result.message || "결제 실패",
           });
+          // 결제 이력 기록 (실패)
+          await db.collection("payments").add({
+            uid,
+            type: "auto_billing_failed",
+            orderId,
+            amount,
+            plan: newPlan,
+            errorMessage: result.message || "결제 실패",
+            errorCode: result.code || "",
+            createdAt: FieldValue.serverTimestamp(),
+          });
           continue;
         }
 
@@ -298,6 +339,21 @@ exports.billingScheduler = onSchedule(
           // 이전 결제 실패 흔적 정리
           "subscription.lastFailedAt": FieldValue.delete(),
           "subscription.lastFailReason": FieldValue.delete(),
+        });
+
+        // 결제 이력 기록 (성공)
+        await db.collection("payments").add({
+          uid,
+          type: "auto_billing",
+          orderId,
+          amount,
+          plan: newPlan,
+          paymentKey: result.paymentKey || "",
+          method: result.method || "CARD",
+          approvedAt: result.approvedAt || null,
+          receiptUrl: result.receipt?.url || "",
+          nextPeriodEnd,
+          createdAt: FieldValue.serverTimestamp(),
         });
 
         console.log(`결제 성공 [${uid}]: ${amount}원 → 다음 결제일 ${nextPeriodEnd.toISOString()}`);
@@ -354,6 +410,15 @@ exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, 
     "subscription.cancelledAt": FieldValue.serverTimestamp(),
     "subscription.billingKey": FieldValue.delete(),
     "subscription.pendingPlan": FieldValue.delete(),
+  });
+
+  // 결제 이력 기록 (해지)
+  await db.collection("payments").add({
+    uid,
+    type: "subscription_cancelled",
+    plan: sub.plan || "monthly",
+    currentPeriodEnd: sub.currentPeriodEnd || null,
+    createdAt: FieldValue.serverTimestamp(),
   });
 
   return { success: true };
@@ -458,13 +523,16 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       const end = new Date(now);
       end.setDate(end.getDate() + (coupon.durationDays || 365));
 
+      const couponDays = coupon.durationDays || 365;
       transaction.set(
         userRef,
         {
           subscription: {
             status: "active",
-            plan: "yearly",       // 연간 플랜과 동일하게 표시
-            couponCode: code,     // 쿠폰 사용 여부 구분용
+            plan: "coupon",       // 쿠폰 전용 plan으로 구분 (yearly/monthly와 별개)
+            couponCode: code,     // 쿠폰 코드
+            couponDays,           // 쿠폰 기간 (일수) — 라벨 동적 표시용
+            couponLabel: coupon.label || `${couponDays}일권`, // 표시용 라벨
             currentPeriodEnd: end,
             startedAt: FieldValue.serverTimestamp(),
             // ── 이전 결제/해지 잔존 필드 정리 ──
@@ -491,6 +559,15 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       });
 
       return end;
+    });
+
+    // 결제 이력 기록 (쿠폰)
+    await db.collection("payments").add({
+      uid,
+      type: "coupon_applied",
+      couponCode: code,
+      currentPeriodEnd: periodEnd,
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     console.log(`쿠폰 적용 완료: ${uid} / ${code} / ${periodEnd.toISOString()}`);
@@ -605,6 +682,21 @@ exports.tossWebhook = onRequest(
           // 이전 결제 실패 흔적 정리
           "subscription.lastFailedAt": FieldValue.delete(),
           "subscription.lastFailReason": FieldValue.delete(),
+        });
+
+        // 결제 이력 기록 (웹훅 경유)
+        await db.collection("payments").add({
+          uid: customerKey,
+          type: "webhook_payment",
+          orderId: incomingOrderId || null,
+          amount: data.totalAmount || (newPlan === "yearly" ? 29900 : 3300),
+          plan: newPlan,
+          paymentKey: data.paymentKey || "",
+          method: data.method || "CARD",
+          approvedAt: data.approvedAt || null,
+          receiptUrl: data.receipt?.url || "",
+          nextPeriodEnd: periodEnd,
+          createdAt: FieldValue.serverTimestamp(),
         });
 
         console.log(`구독 갱신 완료: ${customerKey} → ${newPlan}`);
