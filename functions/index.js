@@ -183,6 +183,7 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
     }
 
     // 빌링키 발급 성공 → subscription 전체를 Cloud Function에서 통합 저장
+    // 재구독/카드재등록 시 이전 상태(쿠폰, 해지, 결제실패)가 남지 않도록 명시적으로 정리
     await db.collection("users").doc(uid).set({
       subscription: {
         status: "active",
@@ -194,6 +195,12 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
         lastOrderId: orderId || null,
         startedAt: FieldValue.serverTimestamp(),
         currentPeriodEnd: periodEnd,
+        // ── 이전 상태 잔존 필드 정리 ──
+        cancelledAt: FieldValue.delete(),
+        lastFailedAt: FieldValue.delete(),
+        lastFailReason: FieldValue.delete(),
+        pendingPlan: FieldValue.delete(),
+        couponCode: FieldValue.delete(),
       }
     }, { merge: true });
 
@@ -288,6 +295,9 @@ exports.billingScheduler = onSchedule(
           "subscription.lastPaidAt": FieldValue.serverTimestamp(),
           "subscription.lastOrderId": orderId,
           "subscription.pendingPlan": FieldValue.delete(),
+          // 이전 결제 실패 흔적 정리
+          "subscription.lastFailedAt": FieldValue.delete(),
+          "subscription.lastFailReason": FieldValue.delete(),
         });
 
         console.log(`결제 성공 [${uid}]: ${amount}원 → 다음 결제일 ${nextPeriodEnd.toISOString()}`);
@@ -316,7 +326,9 @@ exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, 
 
   const sub = userDoc.data()?.subscription || {};
 
-  if (!["active"].includes(sub.status)) {
+  // active(정상) 또는 past_due(결제 실패) 상태에서만 해지 가능
+  // → past_due 사용자도 직접 해지할 수 있어야 함
+  if (!["active", "past_due"].includes(sub.status)) {
     throw new HttpsError("failed-precondition", "해지할 수 있는 활성 구독이 없습니다.");
   }
 
@@ -455,6 +467,19 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
             couponCode: code,     // 쿠폰 사용 여부 구분용
             currentPeriodEnd: end,
             startedAt: FieldValue.serverTimestamp(),
+            // ── 이전 결제/해지 잔존 필드 정리 ──
+            // (쿠폰은 이전 구독이 만료된 후에만 적용 가능하므로
+            //  billingKey 등은 살아있으면 안 됨)
+            billingKey: FieldValue.delete(),
+            cardCompany: FieldValue.delete(),
+            cardNumber: FieldValue.delete(),
+            lastOrderId: FieldValue.delete(),
+            lastPaidAt: FieldValue.delete(),
+            cancelledAt: FieldValue.delete(),
+            lastFailedAt: FieldValue.delete(),
+            lastFailReason: FieldValue.delete(),
+            pendingPlan: FieldValue.delete(),
+            amount: FieldValue.delete(),
           },
         },
         { merge: true }
@@ -577,6 +602,9 @@ exports.tossWebhook = onRequest(
           "subscription.lastPaidAt": FieldValue.serverTimestamp(),
           "subscription.lastOrderId": incomingOrderId || FieldValue.delete(),
           "subscription.pendingPlan": FieldValue.delete(), // 예약 초기화
+          // 이전 결제 실패 흔적 정리
+          "subscription.lastFailedAt": FieldValue.delete(),
+          "subscription.lastFailReason": FieldValue.delete(),
         });
 
         console.log(`구독 갱신 완료: ${customerKey} → ${newPlan}`);
