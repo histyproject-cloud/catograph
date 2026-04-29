@@ -173,52 +173,135 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
       throw new HttpsError("internal", data.message || "빌링키 발급 실패");
     }
 
-    // 구독 기간 계산
+    // ── 신규 사용자 vs 재구독 판별 ──
+    // 다음 중 하나라도 해당하면 "재구독자" → 즉시 결제 (trial 없음)
+    //   - hasUsedTrial: true  (이미 무료 체험을 받은 적 있음)
+    //   - couponCode 사용 이력  (쿠폰 사용자)
+    //   - lastPaidAt 존재  (한 번이라도 결제한 적 있음)
+    //   - cancelledAt 존재  (해지 후 재구독)
+    const userDocSnap = await db.collection("users").doc(uid).get();
+    const existingSub = userDocSnap.data()?.subscription || {};
+    const isReturning =
+      existingSub.hasUsedTrial === true
+      || !!existingSub.couponCode
+      || !!existingSub.lastPaidAt
+      || !!existingSub.cancelledAt;
+
     const now = new Date();
-    const periodEnd = new Date(now);
-    if (yearly) {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    const amountFinal = yearly ? 29900 : 3300;
+    let periodEnd, status, trialEndsAt = null;
+    let immediatePayment = null; // 재구독자 즉시 결제 결과
+
+    if (isReturning) {
+      // ── 재구독자: 즉시 결제 1회 호출 ──
+      const chargeOrderId = `recurring_${uid}_${Date.now()}`;
+      const chargeRes = await fetch(
+        `https://api.tosspayments.com/v1/billing/${data.billingKey}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY.value() + ":").toString("base64")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            customerKey: uid,
+            amount: amountFinal,
+            orderId: chargeOrderId,
+            orderName: `Cartographic Pro ${yearly ? "연간" : "월간"}`,
+            customerEmail: userDocSnap.data()?.email || "",
+            customerName: userDocSnap.data()?.displayName || "고객",
+          }),
+        }
+      );
+      const chargeResult = await chargeRes.json();
+      if (!chargeRes.ok) {
+        console.error("재구독 즉시 결제 실패:", chargeResult);
+        // 빌링키 자체는 발급 됐으므로 cancel 시도
+        try {
+          await fetch(`https://api.tosspayments.com/v1/billing/authorizations/${data.billingKey}/cancel`, {
+            method: "DELETE",
+            headers: { Authorization: `Basic ${Buffer.from(TOSS_SECRET_KEY.value() + ":").toString("base64")}` },
+          });
+        } catch {}
+        throw new HttpsError("internal", chargeResult.message || "결제에 실패했어요. 카드를 확인해 주세요.");
+      }
+      immediatePayment = { ...chargeResult, orderId: chargeOrderId };
+      periodEnd = new Date(now);
+      if (yearly) periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+      else periodEnd.setMonth(periodEnd.getMonth() + 1);
+      status = "active";
     } else {
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      // ── 신규 사용자: 30일 무료 체험 ──
+      // 빌링키만 발급, 즉시 청구 없음. 30일 후 billingScheduler가 첫 결제.
+      periodEnd = new Date(now);
+      periodEnd.setDate(periodEnd.getDate() + 30); // trial 종료 = 첫 결제일
+      trialEndsAt = periodEnd;
+      status = "trial";
     }
 
     // 빌링키 발급 성공 → subscription 전체를 Cloud Function에서 통합 저장
-    // 재구독/카드재등록 시 이전 상태(쿠폰, 해지, 결제실패)가 남지 않도록 명시적으로 정리
     await db.collection("users").doc(uid).set({
       subscription: {
-        status: "active",
+        status,
         plan: yearly ? "yearly" : "monthly",
-        amount: yearly ? 29900 : 3300,
+        amount: amountFinal,
         billingKey: data.billingKey,
         cardCompany: data.card?.company || "",
         cardNumber: data.card?.number || "",
         lastOrderId: orderId || null,
         startedAt: FieldValue.serverTimestamp(),
         currentPeriodEnd: periodEnd,
+        trialEndsAt: trialEndsAt || FieldValue.delete(),
+        hasUsedTrial: true, // 한번이라도 발급 받으면 영구 마킹 (재구독 판별용)
+        // 재구독자만 첫 결제 정보 저장
+        ...(immediatePayment ? { lastPaidAt: FieldValue.serverTimestamp() } : {}),
         // ── 이전 상태 잔존 필드 정리 ──
         cancelledAt: FieldValue.delete(),
         lastFailedAt: FieldValue.delete(),
         lastFailReason: FieldValue.delete(),
         pendingPlan: FieldValue.delete(),
         couponCode: FieldValue.delete(),
+        couponDays: FieldValue.delete(),
+        couponLabel: FieldValue.delete(),
       }
     }, { merge: true });
 
-    // 결제 이력 기록 (첫 결제 / 카드 재등록)
-    await db.collection("payments").add({
-      uid,
-      type: "billing_key_issued",
-      orderId: orderId || null,
-      amount: yearly ? 29900 : 3300,
-      plan: yearly ? "yearly" : "monthly",
-      cardCompany: data.card?.company || "",
-      cardNumber: data.card?.number || "",
-      currentPeriodEnd: periodEnd,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    // 결제 이력 기록
+    if (isReturning) {
+      // 재구독자 — 즉시 결제 성공
+      await db.collection("payments").add({
+        uid,
+        type: "recurring_first_payment",
+        orderId: immediatePayment.orderId,
+        amount: amountFinal,
+        plan: yearly ? "yearly" : "monthly",
+        paymentKey: immediatePayment.paymentKey || "",
+        method: immediatePayment.method || "CARD",
+        approvedAt: immediatePayment.approvedAt || null,
+        receiptUrl: immediatePayment.receipt?.url || "",
+        cardCompany: data.card?.company || "",
+        cardNumber: data.card?.number || "",
+        currentPeriodEnd: periodEnd,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    } else {
+      // 신규 사용자 — trial 시작
+      await db.collection("payments").add({
+        uid,
+        type: "trial_started",
+        orderId: orderId || null,
+        amount: 0,
+        plan: yearly ? "yearly" : "monthly",
+        isTrial: true,
+        trialEndsAt,
+        cardCompany: data.card?.company || "",
+        cardNumber: data.card?.number || "",
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
 
-    console.log(`issueBillingKey 완료: ${uid} / ${yearly ? "연간" : "월간"} / ${periodEnd.toISOString()}`);
-    return { success: true };
+    console.log(`issueBillingKey 완료: ${uid} / ${isReturning ? "재구독(즉시결제)" : "신규(30일 trial)"} / ${yearly ? "연간" : "월간"} / ${periodEnd.toISOString()}`);
+    return { success: true, isTrial: !isReturning };
   } catch (err) {
     console.error("issueBillingKey error:", err);
     if (err instanceof HttpsError) throw err;
@@ -237,13 +320,22 @@ exports.billingScheduler = onSchedule(
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // currentPeriodEnd가 오늘 또는 그 이전인 active 유저 조회
+    // currentPeriodEnd가 오늘 또는 그 이전인 active/trial 유저 조회
+    // - active: 정기 결제일 도래
+    // - trial: 무료 체험 종료 → 첫 결제
     // (스케줄러 실패로 누락된 과거 결제일까지 catch — 결제 성공 시
     //  currentPeriodEnd가 미래로 갱신되므로 다음 실행에선 자동 제외됨)
-    const usersSnap = await db.collection("users")
-      .where("subscription.status", "==", "active")
-      .where("subscription.currentPeriodEnd", "<", todayEnd)
-      .get();
+    const [activeSnap, trialSnap] = await Promise.all([
+      db.collection("users")
+        .where("subscription.status", "==", "active")
+        .where("subscription.currentPeriodEnd", "<", todayEnd)
+        .get(),
+      db.collection("users")
+        .where("subscription.status", "==", "trial")
+        .where("subscription.currentPeriodEnd", "<", todayEnd)
+        .get(),
+    ]);
+    const usersSnap = { docs: [...activeSnap.docs, ...trialSnap.docs], size: activeSnap.size + trialSnap.size };
 
     console.log(`오늘 결제 대상: ${usersSnap.size}명`);
 
@@ -382,9 +474,11 @@ exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, 
 
   const sub = userDoc.data()?.subscription || {};
 
-  // active(정상) 또는 past_due(결제 실패) 상태에서만 해지 가능
-  // → past_due 사용자도 직접 해지할 수 있어야 함
-  if (!["active", "past_due"].includes(sub.status)) {
+  // active / trial / past_due 상태에서 해지 가능
+  // - active: 정상 구독 해지
+  // - trial: 무료 체험 해지 (자동 결제 방지)
+  // - past_due: 결제 실패 후 해지
+  if (!["active", "trial", "past_due"].includes(sub.status)) {
     throw new HttpsError("failed-precondition", "해지할 수 있는 활성 구독이 없습니다.");
   }
 
@@ -506,15 +600,17 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
         throw new HttpsError("already-exists", "이미 사용한 쿠폰 코드예요.");
       }
 
-      // ── 이미 유효한 구독 중 ──
+      // ── 이미 유효한 구독 중 (active / trial / cancelled-기간내) ──
       const sub = userSnap.data()?.subscription || {};
       const isCurrentlyPro =
-        (sub.status === "active" || sub.status === "cancelled") &&
+        (sub.status === "active" || sub.status === "trial" || sub.status === "cancelled") &&
         sub.currentPeriodEnd?.toMillis?.() > Date.now();
       if (isCurrentlyPro) {
         throw new HttpsError(
           "failed-precondition",
-          "이미 구독 중이에요. 현재 구독이 만료된 후 사용할 수 있어요."
+          sub.status === "trial"
+            ? "무료 체험 중에는 쿠폰을 사용할 수 없어요. 체험 종료 후 다시 시도해 주세요."
+            : "이미 구독 중이에요. 현재 구독이 만료된 후 사용할 수 있어요."
         );
       }
 

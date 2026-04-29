@@ -35,6 +35,13 @@ export default function Pricing({ user }) {
   const isPastDue = user?.subscription?.status === 'past_due';
   const isCancelled = user?.subscription?.status === 'cancelled';
   const isCoupon = !!user?.subscription?.couponCode; // 쿠폰으로 활성화된 유저
+  // ── 재구독자 판별: trial 받은 적 있거나, 결제·쿠폰 이력 있으면 즉시 결제 ──
+  const hasUsedTrial =
+    user?.subscription?.hasUsedTrial === true
+    || !!user?.subscription?.lastPaidAt
+    || !!user?.subscription?.couponCode
+    || !!user?.subscription?.cancelledAt;
+  const showTrialBenefit = !!user && !hasUsedTrial; // 신규 사용자만 30일 무료 안내
   // 해지 예정, past_due, 쿠폰 유저는 전환 예약 불가
   const isCurrentPlan = (planType) => userIsPro && userPlan === planType && !isCancelled;
   const canReserve = (planType) => userIsPro && !isCancelled && !isPastDue && !isCoupon && userPlan !== planType && userPlan !== null;
@@ -113,30 +120,39 @@ export default function Pricing({ user }) {
   const PRO_FEATURES = ['프로젝트 무제한 생성','캐릭터 무제한 등록','설정집 문서 무제한 등록','복선 무제한 등록','타임라인 무제한 등록','공유 링크 (읽기 전용) 전송 가능','우선 고객 지원'];
   const ENTERPRISE_FEATURES = ['30명 이상 팀을 위한 플랜','Pro 기능 전체 포함','인당 요금 할인','우선 기술 지원 (SLA)','맞춤 계약 및 세금계산서'];
 
-  const handlePayment = async () => {
+  // 결제 시작 — 결제 직전 명시적 동의 모달 표시 후 진행
+  const handlePayment = () => {
     if (!user) { navigate('/login'); return; }
     if (paying) return;
-    setPaying(true);
-    try {
-      const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
-      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
-      const payment = tossPayments.payment({ customerKey: user.uid });
-      const amount = yearly ? 29900 : 3300;
-      const planName = yearly ? 'Cartographic Pro 연간' : 'Cartographic Pro 월간';
-      const orderId = `order_${user.uid}_${Date.now()}`;
-      await payment.requestBillingAuth({
-        method: 'CARD',
-        successUrl: `${window.location.origin}/payment/success?orderId=${orderId}&amount=${amount}&yearly=${yearly}`,
-        failUrl: `${window.location.origin}/payment/fail`,
-        customerEmail: user.email || '',
-        customerName: user.displayName || '고객',
-      });
-    } catch (e) {
-      console.error(e);
-      showToast('결제 창 열기에 실패했어요. 다시 시도해 주세요.', 'error');
-    } finally {
-      setPaying(false);
-    }
+    const amount = yearly ? 29900 : 3300;
+    const planLabel = yearly ? '연간 (29,900원)' : '월간 (3,300원)';
+    showConfirm(
+      showTrialBenefit ? '30일 무료 체험 시작' : '구독 결제 안내',
+      showTrialBenefit
+        ? `Pro ${planLabel} 플랜으로 30일 무료 체험을 시작합니다.\n\n체험 기간 30일 후 등록하신 카드로 자동 결제됩니다.\n언제든지 [마이페이지 > 구독 해지]에서 해지 가능합니다.`
+        : `Pro ${planLabel} 플랜으로 구독을 시작합니다.\n\n오늘 ${amount.toLocaleString()}원이 즉시 결제되며, 다음 결제는 ${yearly ? '1년' : '1개월'} 후 자동 진행됩니다.\n(이전에 무료 체험을 사용하셨거나 구독 이력이 있어 즉시 결제됩니다.)`,
+      async () => {
+        setPaying(true);
+        try {
+          const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
+          const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+          const payment = tossPayments.payment({ customerKey: user.uid });
+          const orderId = `order_${user.uid}_${Date.now()}`;
+          await payment.requestBillingAuth({
+            method: 'CARD',
+            successUrl: `${window.location.origin}/payment/success?orderId=${orderId}&amount=${amount}&yearly=${yearly}`,
+            failUrl: `${window.location.origin}/payment/fail`,
+            customerEmail: user.email || '',
+            customerName: user.displayName || '고객',
+          });
+        } catch (e) {
+          console.error(e);
+          showToast('결제 창 열기에 실패했어요. 다시 시도해 주세요.', 'error');
+        } finally {
+          setPaying(false);
+        }
+      }
+    );
   };
 
   return (
@@ -191,7 +207,11 @@ export default function Pricing({ user }) {
 
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', marginBottom: 12 }}>요금제</h1>
-          <p style={{ color: 'var(--text2)', fontSize: 15, marginBottom: 28 }}>처음 30일은 Pro 플랜을 무료로 체험해보세요</p>
+          <p style={{ color: 'var(--text2)', fontSize: 15, marginBottom: 28 }}>
+            {showTrialBenefit
+              ? '처음 30일은 Pro 플랜을 무료로 체험해보세요'
+              : '필요한 플랜을 선택하세요'}
+          </p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 99, padding: '6px 8px' }}>
             <button onClick={() => setYearly(false)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: !yearly ? 'var(--accent)' : 'transparent', color: !yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}>월간</button>
             <button onClick={() => setYearly(true)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: yearly ? 'var(--accent)' : 'transparent', color: yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -216,7 +236,9 @@ export default function Pricing({ user }) {
 
           {/* Pro */}
           <div style={{ background: 'var(--bg2)', border: '2px solid var(--accent)', borderRadius: 'var(--radius-xl)', padding: 28, position: 'relative' }}>
-            <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '3px 14px', borderRadius: 99, whiteSpace: 'nowrap' }}>30일 무료 체험</div>
+            {showTrialBenefit && (
+              <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '3px 14px', borderRadius: 99, whiteSpace: 'nowrap' }}>30일 무료 체험</div>
+            )}
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Pro</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -242,7 +264,7 @@ export default function Pricing({ user }) {
                   ? '✓ 전환 예약됨'
                   : canReserve(yearly ? 'yearly' : 'monthly')
                     ? (reserving ? '처리 중...' : `다음 결제일부터 전환`)
-                    : (paying ? '처리 중...' : '30일 무료로 시작하기')}
+                    : (paying ? '처리 중...' : (showTrialBenefit ? '30일 무료로 시작하기' : '구독 시작하기'))}
             </button>
             {/* 예약 안내 문구 + 예약 취소 */}
             {isReserved(yearly ? 'yearly' : 'monthly') && (

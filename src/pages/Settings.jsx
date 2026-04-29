@@ -125,6 +125,9 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
   const isPastDue = sub.status === 'past_due';
   const isCancelled = sub.status === 'cancelled' && pro;
   const isActive = sub.status === 'active';
+  const isTrial = sub.status === 'trial';
+  // 해지 가능: active, trial 모두 가능 (past_due는 별도 안내)
+  const canCancel = isActive || isTrial;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -186,9 +189,15 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
             )}
           </div>
 
-          {/* 활성 구독 관리 */}
-          {isActive && (
+          {/* 활성/체험 구독 관리 */}
+          {canCancel && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              {/* trial 안내 */}
+              {isTrial && (
+                <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12, fontSize: 12, color: 'var(--text2)' }}>
+                  💡 무료 체험 중이에요. {fmt(sub.currentPeriodEnd)}부터 자동 결제가 시작됩니다.
+                </div>
+              )}
               {/* pendingPlan 예약 안내 */}
               {sub.pendingPlan && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12 }}>
@@ -211,7 +220,9 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
                 {cancellingSubscription ? '처리 중...' : '구독 해지'}
               </button>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-                해지 후에도 {fmt(sub.currentPeriodEnd)}까지 Pro를 이용할 수 있어요.
+                {isTrial
+                  ? `해지 시 ${fmt(sub.currentPeriodEnd)}까지 무료 체험을 이용하고, 자동 결제는 진행되지 않아요.`
+                  : `해지 후에도 ${fmt(sub.currentPeriodEnd)}까지 Pro를 이용할 수 있어요.`}
               </div>
             </div>
           )}
@@ -234,9 +245,9 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
         <section style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>쿠폰 코드</div>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>체험단 또는 이벤트 쿠폰 코드를 입력하세요.</div>
-          {isActive ? (
+          {(isActive || isTrial) ? (
             <div style={{ fontSize: 13, color: 'var(--text3)', background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 14px' }}>
-              구독 중에는 쿠폰을 사용할 수 없어요.
+              {isTrial ? '무료 체험 중에는 쿠폰을 사용할 수 없어요.' : '구독 중에는 쿠폰을 사용할 수 없어요.'}
             </div>
           ) : (
             <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: 8 }}>
