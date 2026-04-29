@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { onAuthStateChanged } from 'firebase/auth';
 import { auth, app } from '../firebase';
 
 export default function PaymentSuccess() {
@@ -19,10 +18,11 @@ export default function PaymentSuccess() {
 
         if (!authKey || !customerKey) throw new Error('파라미터 없음');
 
-        // ── Firebase Auth 세션 복원 대기 (리디렉션 후 currentUser가 null일 수 있음) ──
-        const user = await new Promise((resolve) => {
-          const unsub = onAuthStateChanged(auth, (u) => { unsub(); resolve(u); });
-        });
+        // ── Firebase Auth 세션 복원 대기 ──
+        // authStateReady()는 초기 auth 상태가 확정될 때까지 기다림
+        // (리디렉션 후 첫 onAuthStateChanged가 null로 오는 race condition 방지)
+        await auth.authStateReady();
+        const user = auth.currentUser;
         if (!user) throw new Error('로그인 필요');
 
         // ── 빌링키 발급 + 구독 활성화 (Cloud Function에서 통합 처리) ──
