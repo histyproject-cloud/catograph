@@ -211,7 +211,7 @@ export default function Legal() {
       <footer style={{ borderTop: '1px solid var(--border)', padding: '24px 20px', background: 'var(--bg2)' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', fontSize: 11, color: 'var(--text3)', lineHeight: 2 }}>
           <p>상호명: 히스티 · 대표자: 우연우 · 사업자등록번호: 162-18-02499 · 통신판매번호: 2026-서울광진-0758</p>
-          <p>주소: 서울특별시 광진구 구의강변로 11 · 전화: 010-5629-4236 · 이메일: histy.cartographic@gmail.com</p>
+          <p>주소: 서울특별시 광진구 구의강변로 11 · 전화: 070-4509-0356 · 이메일: histy.cartographic@gmail.com</p>
           <p style={{ marginTop: 8 }}>© 2026 Histy. All rights reserved.</p>
         </div>
       </footer>
