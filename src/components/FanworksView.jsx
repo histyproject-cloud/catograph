@@ -70,9 +70,17 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   };
 
   const handleOpen = (url) => {
-    let u = url;
-    if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'https://' + u;
-    window.open(u, '_blank', 'noopener,noreferrer');
+    // javascript:/data: 프로토콜 등을 통한 XSS 차단
+    try {
+      const trimmed = (url || '').trim();
+      if (!trimmed) return;
+      const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : 'https://' + trimmed;
+      const u = new URL(withScheme);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
+      window.open(u.href, '_blank', 'noopener,noreferrer');
+    } catch {
+      // 유효하지 않은 URL은 무시 (silent fail)
+    }
   };
 
   const TYPE_COLORS = {

@@ -724,8 +724,10 @@ exports.tossWebhook = onRequest(
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
-    // 토스 IP 검증
-    const clientIp = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.ip;
+    // 토스 IP 검증 (X-Forwarded-For 우선, 없으면 X-Real-IP, 없으면 req.ip)
+    const xff = req.headers["x-forwarded-for"]?.split(",")[0]?.trim();
+    const xri = req.headers["x-real-ip"]?.trim();
+    const clientIp = xff || xri || req.ip;
     if (!TOSS_IPS.has(clientIp)) {
       console.warn("허용되지 않은 IP:", clientIp);
       res.status(403).send("Forbidden");
