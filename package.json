@@ -19,6 +19,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "prebuild": "node -e \"const fs=require('fs');if(!fs.existsSync('.env')){console.error('\\n[ERROR] .env 파일이 없습니다. 빌드를 중단합니다.\\n  worktree에서 작업 중이라면 메인 레포의 .env를 복사하세요:\\n  cp ../../../.env .env\\n');process.exit(1)}var c=fs.readFileSync('.env','utf8');var req=['REACT_APP_FIREBASE_API_KEY','REACT_APP_FIREBASE_AUTH_DOMAIN','REACT_APP_FIREBASE_PROJECT_ID','REACT_APP_FIREBASE_APP_ID'];var missing=req.filter(k=>!new RegExp('^'+k+'=.+','m').test(c));if(missing.length){console.error('\\n[ERROR] .env에 필수 변수 누락: '+missing.join(', ')+'\\n');process.exit(1)}console.log('[OK] .env 검증 통과')\"",
     "build": "react-scripts build"
   },
   "browserslist": {
