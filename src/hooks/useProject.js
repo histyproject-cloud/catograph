@@ -6,6 +6,14 @@ import {
 import { db, storage } from '../firebase';
 import { ref, deleteObject } from 'firebase/storage';
 
+// 유효한 Firestore 문서 ID 검증
+// (사용자 데이터 보호: undefined/null/빈 문자열로 인한 cross-project 데이터 영향 방지)
+function assertId(value, name) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`유효하지 않은 ${name}입니다.`);
+  }
+}
+
 // Firestore batch 500개 제한 처리 (400개씩 청크)
 async function deleteInBatches(db, refs) {
   const CHUNK = 400;
@@ -52,6 +60,7 @@ export function useProjects(userId) {
   };
 
   const deleteProject = async (id) => {
+    assertId(id, 'projectId');
     try {
       const collections = ['characters', 'relations', 'foreshadows', 'worldDocs', 'timelineEvents', 'fanworks'];
       const allRefs = [];
@@ -77,6 +86,7 @@ export function useProjects(userId) {
   };
 
   const updateProject = async (id, data) => {
+    assertId(id, 'projectId');
     try {
       return await updateDoc(doc(db, 'projects', id), data);
     } catch (err) {
@@ -113,6 +123,7 @@ export function useCharacters(projectId) {
   }, [load]);
 
   const addCharacter = async (data) => {
+    assertId(projectId, 'projectId');
     const payload = {
       ...data, projectId,
       position: data.position || { x: 80 + Math.random() * 300, y: 80 + Math.random() * 200 },
@@ -131,6 +142,7 @@ export function useCharacters(projectId) {
   };
 
   const updateCharacter = async (id, data) => {
+    assertId(id, 'characterId');
     try {
       await updateDoc(doc(db, 'characters', id), data);
       setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
@@ -143,6 +155,8 @@ export function useCharacters(projectId) {
   // 캐릭터 삭제: 연결된 relations·foreshadows도 Firestore 정리
   // 반환값: { deletedRelIds, updatedFsMap } — 호출자가 다른 훅 state 갱신 가능
   const deleteCharacter = async (charId) => {
+    assertId(projectId, 'projectId');
+    assertId(charId, 'characterId');
     try {
       const batch = writeBatch(db);
 
@@ -210,6 +224,9 @@ export function useRelations(projectId) {
   }, [load]);
 
   const addRelation = async (fromId, toId, label = '', color = '') => {
+    assertId(projectId, 'projectId');
+    assertId(fromId, 'fromId');
+    assertId(toId, 'toId');
     const payload = { projectId, fromId, toId, label, color, createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'relations'), payload);
@@ -222,6 +239,7 @@ export function useRelations(projectId) {
   };
 
   const updateRelation = async (id, data) => {
+    assertId(id, 'relationId');
     try {
       await updateDoc(doc(db, 'relations', id), data);
       setRelations(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
@@ -232,6 +250,7 @@ export function useRelations(projectId) {
   };
 
   const deleteRelation = async (id) => {
+    assertId(id, 'relationId');
     try {
       await deleteDoc(doc(db, 'relations', id));
       setRelations(prev => prev.filter(r => r.id !== id));
@@ -269,6 +288,7 @@ export function useForeshadows(projectId) {
   }, [load]);
 
   const addForeshadow = async (data) => {
+    assertId(projectId, 'projectId');
     const payload = { ...data, projectId, order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'foreshadows'), payload);
@@ -281,6 +301,7 @@ export function useForeshadows(projectId) {
   };
 
   const updateForeshadow = async (id, data) => {
+    assertId(id, 'foreshadowId');
     try {
       await updateDoc(doc(db, 'foreshadows', id), data);
       setForeshadows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
@@ -291,6 +312,7 @@ export function useForeshadows(projectId) {
   };
 
   const deleteForeshadow = async (id) => {
+    assertId(id, 'foreshadowId');
     try {
       await deleteDoc(doc(db, 'foreshadows', id));
       setForeshadows(prev => prev.filter(f => f.id !== id));
@@ -328,6 +350,7 @@ export function useWorldDocs(projectId) {
   }, [load]);
 
   const addWorldDoc = async (title) => {
+    assertId(projectId, 'projectId');
     const payload = { projectId, title, content: '', order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'worldDocs'), payload);
@@ -340,6 +363,7 @@ export function useWorldDocs(projectId) {
   };
 
   const updateWorldDoc = async (id, data) => {
+    assertId(id, 'worldDocId');
     try {
       await updateDoc(doc(db, 'worldDocs', id), data);
       setDocs(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
@@ -350,6 +374,7 @@ export function useWorldDocs(projectId) {
   };
 
   const deleteWorldDoc = async (id) => {
+    assertId(id, 'worldDocId');
     try {
       await deleteDoc(doc(db, 'worldDocs', id));
       setDocs(prev => prev.filter(d => d.id !== id));
@@ -387,6 +412,7 @@ export function useTimelineEvents(projectId) {
   }, [load]);
 
   const addEvent = async (data) => {
+    assertId(projectId, 'projectId');
     const payload = { ...data, projectId, order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'timelineEvents'), payload);
@@ -399,6 +425,7 @@ export function useTimelineEvents(projectId) {
   };
 
   const updateEvent = async (id, data) => {
+    assertId(id, 'eventId');
     try {
       await updateDoc(doc(db, 'timelineEvents', id), data);
       setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
@@ -409,6 +436,7 @@ export function useTimelineEvents(projectId) {
   };
 
   const deleteEvent = async (id) => {
+    assertId(id, 'eventId');
     try {
       await deleteDoc(doc(db, 'timelineEvents', id));
       setEvents(prev => prev.filter(e => e.id !== id));
@@ -446,6 +474,7 @@ export function useFanworks(projectId) {
   }, [load]);
 
   const addFanwork = async (data) => {
+    assertId(projectId, 'projectId');
     const payload = { ...data, projectId, order: Date.now(), createdAt: serverTimestamp() };
     try {
       const docRef = await addDoc(collection(db, 'fanworks'), payload);
@@ -458,6 +487,7 @@ export function useFanworks(projectId) {
   };
 
   const updateFanwork = async (id, data) => {
+    assertId(id, 'fanworkId');
     try {
       await updateDoc(doc(db, 'fanworks', id), data);
       setFanworks(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
@@ -468,6 +498,7 @@ export function useFanworks(projectId) {
   };
 
   const deleteFanwork = async (id) => {
+    assertId(id, 'fanworkId');
     try {
       await deleteDoc(doc(db, 'fanworks', id));
       setFanworks(prev => prev.filter(f => f.id !== id));

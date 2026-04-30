@@ -563,6 +563,25 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
     throw new HttpsError("invalid-argument", "쿠폰 코드를 입력해주세요.");
   }
 
+  // ── Brute force 방어: 1시간 내 5회 시도 제한 ──
+  // (성공/실패 무관하게 모든 시도 기록 — 코드 추측 공격 차단)
+  const ATTEMPT_LIMIT = 5;
+  const ATTEMPT_WINDOW_MS = 60 * 60 * 1000;
+  const attemptRef = db.collection("_system").doc(`coupon_attempts_${uid}`);
+  await db.runTransaction(async (t) => {
+    const snap = await t.get(attemptRef);
+    const attempts = snap.data()?.attempts || [];
+    const now = Date.now();
+    const recent = attempts.filter((ts) => now - ts < ATTEMPT_WINDOW_MS);
+    if (recent.length >= ATTEMPT_LIMIT) {
+      throw new HttpsError(
+        "resource-exhausted",
+        "쿠폰 시도 횟수가 너무 많아요. 1시간 후 다시 시도해 주세요."
+      );
+    }
+    t.set(attemptRef, { attempts: [...recent, now] }, { merge: true });
+  });
+
   const couponRef = db.collection("coupons").doc(code);
   const userRef = db.collection("users").doc(uid);
 
@@ -757,6 +776,16 @@ exports.tossWebhook = onRequest(
         // pendingPlan이 있으면 플랜 전환, 없으면 현재 플랜 유지
         const newPlan = pendingPlan || sub.plan || "monthly";
         const isYearly = newPlan === "yearly";
+
+        // 결제 금액 재검증 (위조·중간자 방어)
+        // — 토스 응답이 변조되더라도 plan별 expected amount와 다르면 거부
+        const expectedAmount = isYearly ? 29900 : 3300;
+        if (typeof data.totalAmount === "number" && data.totalAmount !== expectedAmount) {
+          const maskedUid = customerKey ? `${customerKey.slice(0, 8)}****` : "unknown";
+          console.error(`결제 금액 불일치 [${maskedUid}] plan=${newPlan} 기대=${expectedAmount} 수신=${data.totalAmount} orderId=${incomingOrderId}`);
+          res.status(400).send("Invalid amount");
+          return;
+        }
 
         const now = new Date();
         // 이전 결제일 기준으로 계산해 drift 방지

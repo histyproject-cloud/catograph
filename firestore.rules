@@ -95,5 +95,11 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == resource.data.uid;
       allow write: if false;
     }
+
+    // 시스템 내부 메타데이터 (쿠폰 brute force 시도 기록 등)
+    // Cloud Functions 전용 — 클라이언트 접근 완전 차단
+    match /_system/{docId} {
+      allow read, write: if false;
+    }
   }
 }
