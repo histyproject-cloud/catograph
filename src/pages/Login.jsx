@@ -15,6 +15,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [loginError, setLoginError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [agreed, setAgreed] = React.useState(false);
 
   useEffect(() => {
     // 리다이렉트 후 돌아왔을 때 결과 처리
@@ -27,6 +28,10 @@ export default function Login() {
   }, []);
 
   const handleGoogle = async () => {
+    if (!agreed) {
+      setLoginError('이용약관과 개인정보처리방침에 동의해 주세요.');
+      return;
+    }
     setLoginError('');
     setLoading(true);
     try {
@@ -60,18 +65,33 @@ export default function Login() {
             캐릭터 관계도 · 세계관 설정 · 복선 관리<br />
             창작의 모든 것을 한 곳에서
           </p>
-          <button className="btn btn-primary" onClick={handleGoogle} disabled={loading} style={{ width: '100%', height: 44, fontSize: 14, gap: 10, opacity: loading ? 0.7 : 1 }}>
+          <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text2)', marginBottom: 14, textAlign: 'left', cursor: 'pointer', alignItems: 'flex-start' }}>
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={e => setAgreed(e.target.checked)}
+              style={{ marginTop: 3, cursor: 'pointer', accentColor: 'var(--accent)', flexShrink: 0 }}
+            />
+            <span style={{ lineHeight: 1.6 }}>
+              <span style={{ color: 'var(--accent)' }}>(필수)</span>{' '}
+              <span
+                style={{ textDecoration: 'underline' }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate('/legal'); }}
+              >이용약관</span>,{' '}
+              <span
+                style={{ textDecoration: 'underline' }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate('/legal'); }}
+              >개인정보처리방침</span>{' '}
+              및 개인정보의 국외 이전(미국, Firebase)에 동의합니다.
+            </span>
+          </label>
+          <button className="btn btn-primary" onClick={handleGoogle} disabled={loading || !agreed} style={{ width: '100%', height: 44, fontSize: 14, gap: 10, opacity: (loading || !agreed) ? 0.5 : 1, cursor: (loading || !agreed) ? 'not-allowed' : 'pointer' }}>
             <GoogleIcon />
             {loading ? '연결 중...' : 'Google로 시작하기'}
           </button>
           {loginError && <p style={{ color: 'var(--coral, #f87171)', fontSize: 12, marginTop: 12 }}>{loginError}</p>}
         </div>
         <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 20, letterSpacing: '0.04em' }}>작가와 독자가 함께 만드는 이야기 공간</p>
-        <p style={{ color: 'var(--text3)', fontSize: 11, marginTop: 8 }}>
-          <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/legal')}>개인정보처리방침</span>
-          {' · '}
-          <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/legal')}>이용약관</span>
-        </p>
       </div>
     </div>
   );
