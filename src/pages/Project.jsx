@@ -26,7 +26,18 @@ export default function Project({ user }) {
   const [activeTab, setActiveTab] = useState('relation');
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
-  const handleSetActiveTab = (tab) => { setActiveTab(tab); setReorderMode(false); setSelectedChar(null); };
+  // unsaved 상태 추적 — 탭 이동 가드 (#9)
+  const [worldUnsaved, setWorldUnsaved] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+  const applyTabChange = (tab) => { setActiveTab(tab); setReorderMode(false); setSelectedChar(null); };
+  const handleSetActiveTab = (tab) => {
+    if (tab === activeTab) return;
+    if (worldUnsaved && activeTab === 'world') {
+      setPendingTab(tab);
+      return;
+    }
+    applyTabChange(tab);
+  };
   const [selectedChar, setSelectedChar] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [connectMode, setConnectMode] = useState(false);
@@ -299,7 +310,8 @@ export default function Project({ user }) {
           )}
           {activeTab === 'world' && (
             <WorldView docs={worldDocs} onAdd={(title) => { if (checkLimit(worldDocs.length, 'worldDocs')) return addWorldDoc(title); }} onUpdate={updateWorldDoc} onDelete={deleteWorldDoc} reorderMode={reorderMode}
-              onSaveOrder={(ordered) => ordered.forEach((d, i) => updateWorldDoc(d.id, { order: i }))} />
+              onSaveOrder={(ordered) => ordered.forEach((d, i) => updateWorldDoc(d.id, { order: i }))}
+              onUnsavedChange={setWorldUnsaved} />
           )}
           {activeTab === 'foreshadow' && (
             <ForeshadowView foreshadows={foreshadows} characters={characters} reorderMode={reorderMode}
@@ -550,6 +562,25 @@ export default function Project({ user }) {
 
       {/* 업그레이드 모달 */}
       <UpgradeModal message={upgradeMsg} onClose={() => setUpgradeMsg(null)} />
+      {/* 탭 이동 시 unsaved 가드 모달 (#9) — 현재 설정집 탭 unsaved에 한정 */}
+      {pendingTab && (
+        <div className="modal-backdrop">
+          <div style={{ position: 'absolute', inset: 0 }} onClick={() => setPendingTab(null)} />
+          <div className="modal" style={{ position: 'relative', zIndex: 1, maxWidth: 360 }}>
+            <div className="modal-title">저장하지 않은 변경사항이 있어요</div>
+            <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 20 }}>
+              현재 탭의 변경사항이 저장되지 않았어요. 그래도 다른 탭으로 이동하시겠어요?
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" style={{ flex: 1 }} onClick={() => setPendingTab(null)}>취소</button>
+              <button className="btn btn-danger" style={{ flex: 1 }}
+                onClick={() => { const t = pendingTab; setPendingTab(null); setWorldUnsaved(false); applyTabChange(t); }}>
+                이동하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
@@ -1018,7 +1049,7 @@ function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
 }
 
 // ── 세계관 ──
-function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
+function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder, onUnsavedChange }) {
   const [selected, setSelected] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -1027,6 +1058,12 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
   const [pendingDeleteDocId, setPendingDeleteDocId] = useState(null);
   const [pendingDeleteEditor, setPendingDeleteEditor] = useState(false);
   const [showUnsaved, setShowUnsaved] = useState(false);
+
+  // 부모(Project.jsx)에 unsaved 상태 전파 — 탭 이동 가드용
+  // selected가 없으면(리스트 화면) saved 무관하게 false 처리
+  React.useEffect(() => {
+    onUnsavedChange?.(selected ? !saved : false);
+  }, [saved, selected, onUnsavedChange]);
   const displayDocs = orderedDocs || docs;
   const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(displayDocs, setOrderedDocs);
   const prevReorderModeW = React.useRef(false);
@@ -1068,7 +1105,7 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
 
   // 문서 편집 화면
   if (selected) return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 10px', height: 32 }}
           onClick={() => { if (!saved) { setShowUnsaved(true); return; } setSelected(null); }}>← 목록</button>
@@ -1095,6 +1132,20 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }
       <textarea value={content} onChange={e => { setContent(e.target.value); setSaved(false); }}
         style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, resize: 'none', outline: 'none', padding: '20px' }}
         placeholder="설정을 자유롭게 작성하세요..." />
+      {/* 저장 안 된 채 ← 목록 누를 때 모달 (편집 화면에서도 보이도록 — #8 fix) */}
+      {showUnsaved && (
+        <div className="modal-backdrop">
+          <div style={{ position: 'absolute', inset: 0 }} onClick={() => setShowUnsaved(false)} />
+          <div className="modal" style={{ position: 'relative', zIndex: 1, maxWidth: 340 }}>
+            <div className="modal-title">저장하지 않은 내용이 있어요</div>
+            <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 20 }}>변경 사항을 저장하지 않고 나가시겠어요?</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" style={{ flex: 1 }} onClick={() => setShowUnsaved(false)}>취소</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { setShowUnsaved(false); setSaved(true); setSelected(null); }}>나가기</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
