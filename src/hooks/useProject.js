@@ -14,6 +14,16 @@ function assertId(value, name) {
   }
 }
 
+// projectId 형식 가드 — invalid 형식이면 query 자체를 시작하지 않음
+// (e.g., '__invalid__' 같은 Firestore reserved 패턴, 너무 짧거나 긴 값)
+// QA R1에서 발견된 회귀 fix: invalid URL 진입 시 6개 collection의 permission-denied console.error 차단
+function isValidProjectId(value) {
+  return typeof value === 'string'
+    && value.length >= 10
+    && value.length <= 100
+    && !/^__.+__$/.test(value);
+}
+
 // Firestore batch 500개 제한 처리 (400개씩 청크)
 async function deleteInBatches(db, refs) {
   const CHUNK = 400;
@@ -106,7 +116,7 @@ export function useCharacters(projectId) {
   const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
-    if (!projectId) return;
+    if (!projectId || !isValidProjectId(projectId)) return;
     cancelledRef.current = false;
     const q = query(collection(db, 'characters'), where('projectId', '==', projectId));
     getDocs(q)
@@ -208,7 +218,7 @@ export function useRelations(projectId) {
   const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
-    if (!projectId) return;
+    if (!projectId || !isValidProjectId(projectId)) return;
     cancelledRef.current = false;
     const q = query(collection(db, 'relations'), where('projectId', '==', projectId));
     getDocs(q)
@@ -272,7 +282,7 @@ export function useForeshadows(projectId) {
   const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
-    if (!projectId) return;
+    if (!projectId || !isValidProjectId(projectId)) return;
     cancelledRef.current = false;
     const q = query(collection(db, 'foreshadows'), where('projectId', '==', projectId));
     getDocs(q)
@@ -334,7 +344,7 @@ export function useWorldDocs(projectId) {
   const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
-    if (!projectId) return;
+    if (!projectId || !isValidProjectId(projectId)) return;
     cancelledRef.current = false;
     const q = query(collection(db, 'worldDocs'), where('projectId', '==', projectId));
     getDocs(q)
@@ -396,7 +406,7 @@ export function useTimelineEvents(projectId) {
   const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
-    if (!projectId) return;
+    if (!projectId || !isValidProjectId(projectId)) return;
     cancelledRef.current = false;
     const q = query(collection(db, 'timelineEvents'), where('projectId', '==', projectId));
     getDocs(q)
@@ -458,7 +468,7 @@ export function useFanworks(projectId) {
   const cancelledRef = useRef(false);
 
   const load = useCallback(() => {
-    if (!projectId) return;
+    if (!projectId || !isValidProjectId(projectId)) return;
     cancelledRef.current = false;
     const q = query(collection(db, 'fanworks'), where('projectId', '==', projectId));
     getDocs(q)

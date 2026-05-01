@@ -93,10 +93,25 @@ export default function Project({ user }) {
   const selectedCharObj = characters.find(c => c.id === selectedChar?.id) ?? selectedChar;
   
   useEffect(() => {
+    // 형식 가드 — invalid projectId(예: __invalid__, 빈 값, 이상한 길이)로 진입한 경우 즉시 대시보드로
+    // (없는 프로젝트를 빈 화면으로 보여주면 사용자가 자기 빈 프로젝트로 착각할 수 있음)
+    if (!projectId || projectId.length < 10 || projectId.length > 100 || /^__.+__$/.test(projectId)) {
+      navigate('/', { replace: true });
+      return;
+    }
+    let cancelled = false;
     getDoc(doc(db, 'projects', projectId))
-      .then(d => { if (d.exists()) setProject(d.data()); })
-      .catch(err => console.error('프로젝트 로드 실패:', err));
-  }, [projectId]);
+      .then(d => {
+        if (cancelled) return;
+        if (d.exists()) setProject(d.data());
+        else navigate('/', { replace: true });
+      })
+      .catch(err => {
+        console.error('프로젝트 로드 실패:', err);
+        if (!cancelled) navigate('/', { replace: true });
+      });
+    return () => { cancelled = true; };
+  }, [projectId, navigate]);
 
   const checkLimitRef = React.useRef(checkLimit);
   React.useEffect(() => { checkLimitRef.current = checkLimit; });
@@ -1581,6 +1596,13 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
   const [capturing, setCapturing] = useState(false);
   const [captureError, setCaptureError] = useState('');
   const [shareMode, setShareMode] = useState('link'); // 'link' | 'image'
+
+  // ESC로 모달 닫기 (검색 모달과 일관성, B2-09a 회귀 fix)
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
 
   const currentTabUrl = `${window.location.origin}/shared/${projectId}?tab=${activeTab}`;
   const shareUrl = shareTab === 'all'

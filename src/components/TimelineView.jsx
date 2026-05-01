@@ -71,10 +71,13 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim() || !form.episode) return;
+    // 화수 1~999 범위 검증 (b1922e10 회귀 fix — input clamp 우회한 fill/paste 차단)
+    const ep = Number(form.episode);
+    if (!Number.isFinite(ep) || ep < 1 || ep > 999) return;
     if (editTarget) {
-      await onUpdate(editTarget.id, { ...form, episode: Number(form.episode) });
+      await onUpdate(editTarget.id, { ...form, episode: ep });
     } else {
-      await onAdd({ ...form, episode: Number(form.episode) });
+      await onAdd({ ...form, episode: ep });
     }
     setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
     setShowAdd(false);
@@ -236,7 +239,23 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
               <div className="form-row">
                 <div className="form-group" style={{ maxWidth: 100 }}>
                   <label className="form-label">화수 *</label>
-                  <input type="number" value={form.episode} onChange={e => setForm(f => ({ ...f, episode: e.target.value }))} style={{ width: '100%' }} placeholder="예: 3화" autoFocus />
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={form.episode}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === '') return setForm(f => ({ ...f, episode: '' }));
+                      const n = Number(v);
+                      if (!Number.isFinite(n)) return;
+                      // 1~999로 clamp (b1922e10 회귀 fix)
+                      setForm(f => ({ ...f, episode: String(Math.min(999, Math.max(1, Math.floor(n)))) }));
+                    }}
+                    style={{ width: '100%' }}
+                    placeholder="예: 3화"
+                    autoFocus
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">유형</label>
