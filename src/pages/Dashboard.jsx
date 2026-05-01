@@ -275,8 +275,8 @@ function ProjectCard({ project, onClick, onDelete, onRename }) {
 
         {menuOpen && (
           <div style={{ position: 'absolute', top: 32, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: 4, minWidth: 130, boxShadow: '0 8px 20px rgba(0,0,0,0.4)', zIndex: 50, animation: 'fadeIn 0.1s ease' }}>
-            <MenuItem onClick={() => { setEditing(true); setMenuOpen(false); }}>✏️ 제목 수정</MenuItem>
-            <MenuItem color="var(--coral)" onClick={handleDelete}>🗑️ 삭제</MenuItem>
+            <MenuItem onClick={() => { setEditing(true); setMenuOpen(false); }}>제목 수정</MenuItem>
+            <MenuItem color="var(--coral)" onClick={handleDelete}>삭제</MenuItem>
           </div>
         )}
       </div>
