@@ -1622,7 +1622,7 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
             </div>
             <button className="btn btn-primary" style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
               onClick={captureImage} disabled={capturing}>
-              {capturing ? '캡처 중...' : '📸 현재 화면 이미지로 저장'}
+              {capturing ? '캡처 중...' : '현재 화면 이미지로 저장'}
             </button>
             {captureError && <p style={{ fontSize: 12, color: 'var(--coral, #f87171)', marginTop: 8 }}>{captureError}</p>}
           </div>
