@@ -28,6 +28,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [customType, setCustomType] = useState('');
   const [editCustomType, setEditCustomType] = useState('');
+  const [formError, setFormError] = useState('');
 
   const TYPES = ['그림', '소설', '영상'];
 
@@ -51,9 +52,17 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.url.trim()) return;
+    // silent-fail-prevention: 검증 실패 시 inline 메시지로 안내
+    if (!form.title.trim()) { setFormError('제목을 입력해주세요'); return; }
+    if (!form.url.trim()) { setFormError('URL을 입력해주세요'); return; }
     let url = form.url.trim();
+    // javascript: / data: 차단 (XSS 방어)
+    if (/^\s*(javascript|data|vbscript):/i.test(url)) {
+      setFormError('javascript:/data: URL은 사용할 수 없어요');
+      return;
+    }
     if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+    setFormError('');
     await onAdd({ ...form, url });
     setForm({ title: '', url: '', author: '', type: '그림' });
     setShowAdd(false);
@@ -228,9 +237,14 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
                   )}
                 </div>
               </div>
+              {formError && (
+                <div style={{ color: '#ef4444', fontSize: 13, marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6 }}>
+                  ⚠ {formError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-                <button type="button" className="btn" onClick={() => setShowAdd(false)}>취소</button>
-                <button type="submit" className="btn btn-primary" disabled={!form.title.trim() || !form.url.trim()}>추가</button>
+                <button type="button" className="btn" onClick={() => { setShowAdd(false); setFormError(''); }}>취소</button>
+                <button type="submit" className="btn btn-primary">추가</button>
               </div>
             </form>
           </div>

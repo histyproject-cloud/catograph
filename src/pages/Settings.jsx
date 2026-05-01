@@ -103,7 +103,8 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
-    if (!couponCode.trim()) return;
+    // silent-fail-prevention: 빈 코드도 disabled 안 걸고 메시지로 안내
+    if (!couponCode.trim()) { setCouponError('쿠폰 코드를 입력해주세요'); return; }
     setApplyingCoupon(true);
     setCouponError('');
     setCouponSuccess('');
@@ -262,7 +263,7 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
                 type="submit"
                 className="btn btn-primary"
                 style={{ fontSize: 13, padding: '0 16px', height: 36, flexShrink: 0, whiteSpace: 'nowrap', minWidth: 80, opacity: applyingCoupon ? 0.5 : 1, cursor: applyingCoupon ? 'not-allowed' : 'pointer' }}
-                disabled={applyingCoupon || !couponCode.trim()}
+                disabled={applyingCoupon}
               >
                 {applyingCoupon ? '확인 중...' : '적용하기'}
               </button>

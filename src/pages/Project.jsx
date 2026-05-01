@@ -691,7 +691,7 @@ const CharacterList = forwardRef(function CharacterList({ characters, onSelect, 
           <div style={{ border: '1px dashed var(--border2)', borderRadius: 'var(--radius-lg)', padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.3 }}>✦</div>
             <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>아직 추가된 캐릭터가 없어요</p>
-            <button className="btn btn-primary" onClick={() => document.dispatchEvent(new CustomEvent('character:add'))}>첫 캐릭터 추가하기</button>
+            <button className="btn btn-primary" onClick={openNewCharInternal}>첫 캐릭터 추가하기</button>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
@@ -839,9 +839,18 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
     onUpdate(c.id, { photoURL: '' });
   };
 
+  const [formError, setFormError] = useState('');
   const save = async () => {
+    // silent-fail-prevention: 이름 빈 경우 inline 메시지로 안내 + 메시지 위치로 자동 스크롤
+    if (!form.name.trim()) {
+      setFormError('이름을 입력해주세요');
+      setTimeout(() => {
+        document.querySelector('[data-char-error]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+      return;
+    }
+    setFormError('');
     if (isNew) {
-      if (!form.name.trim()) return;
       await onAdd(form);
       onClose();
     } else {
@@ -1041,6 +1050,21 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
           </div>
         </CharField>
       )}
+
+      {/* silent-fail-prevention: 검증 실패 메시지 (페이지 끝에 표시) */}
+      {formError && (
+        <div data-char-error style={{ color: '#ef4444', fontSize: 13, marginTop: 24, padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8 }}>
+          ⚠ {formError}
+        </div>
+      )}
+
+      {/* 페이지 끝 저장 버튼 — 페이지가 길어 상단 저장 버튼이 안 보일 때를 위한 fallback */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, gap: 8 }}>
+        <button className="btn btn-ghost" style={{ fontSize: 13, height: 40, padding: '0 16px' }} onClick={onClose}>← 목록</button>
+        <button className="btn btn-primary" style={{ fontSize: 13, height: 40, padding: '0 24px' }} onClick={save}>
+          {isNew ? '추가' : saved ? '✓ 저장됨' : '저장'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1146,8 +1170,16 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder, 
     prevReorderModeW.current = reorderMode;
   }, [reorderMode]);
 
-  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); setSaved(true); };
-  const save = () => { if (selected) { onUpdate(selected.id, { title, content }); setSaved(true); } };
+  const [worldError, setWorldError] = useState('');
+  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); setSaved(true); setWorldError(''); };
+  const save = () => {
+    if (!selected) return;
+    // silent-fail-prevention: 제목 빈 경우 inline 메시지로 안내
+    if (!title.trim()) { setWorldError('제목을 입력해주세요'); return; }
+    setWorldError('');
+    onUpdate(selected.id, { title, content });
+    setSaved(true);
+  };
   const addNew = async () => {
     const ref = await onAdd('새 문서');
     if (!ref) return; // 제한 초과 등으로 생성 안 된 경우
@@ -1186,9 +1218,13 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder, 
           <span style={{ fontSize: 10, color: saved ? 'var(--text3)' : 'var(--accent)' }}>
             {saved ? '저장됨' : '저장되지 않은 변경사항이 있어요'}
           </span>
+          {worldError && (
+            <span style={{ fontSize: 11, color: '#ef4444', marginTop: 2 }}>⚠ {worldError}</span>
+          )}
         </div>
         <button className="btn btn-primary" style={{ fontSize: 12, height: 32, padding: '0 14px' }}
-          onClick={save} disabled={saved}>
+          onClick={save} disabled={saved}
+          title={worldError || (saved ? '이미 저장됨' : '저장')}>
           저장
         </button>
         {pendingDeleteEditor ? (
@@ -1291,20 +1327,22 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
   const [orderedOpen, setOrderedOpen] = useState(null);
   const [orderedClosed, setOrderedClosed] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
-    const handler = () => setShowAdd(true);
+    const handler = () => { setFormError(''); setShowAdd(true); };
     document.addEventListener('foreshadow:add', handler);
     return () => document.removeEventListener('foreshadow:add', handler);
   }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!form.title.trim()) return;
+    // silent-fail-prevention: 제목 빈 경우 inline 메시지로 안내
+    if (!form.title.trim()) { setFormError('복선 내용을 입력해주세요'); return; }
+    setFormError('');
     await onAdd(form);
     setForm({ title: '', mentions: [], resolved: false, charIds: [] });
     setShowAdd(false);
-    // 재정렬 로컬 state 초기화 → 새 항목이 즉시 목록에 보이도록
     setOrderedOpen(null);
     setOrderedClosed(null);
   };
@@ -1465,8 +1503,13 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
                   </span>
                 </div>
               </div>
+              {formError && (
+                <div style={{ color: '#ef4444', fontSize: 13, marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6 }}>
+                  ⚠ {formError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-                <button type="button" className="btn" onClick={() => setShowAdd(false)}>취소</button>
+                <button type="button" className="btn" onClick={() => { setShowAdd(false); setFormError(''); }}>취소</button>
                 <button type="submit" className="btn btn-primary">추가</button>
               </div>
             </form>
@@ -1607,8 +1650,14 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
 function AddCharModal({ onClose, onAdd }) {
   const [form, setForm] = useState({ name: '', role: '', age: '', affiliation: '', ability: '', description: '', tags: [] });
   const [newTag, setNewTag] = useState('');
-  const f = key => ({ value: form[key], onChange: e => setForm(p => ({ ...p, [key]: e.target.value })) });
+  const [formError, setFormError] = useState('');
+  const f = key => ({ value: form[key], onChange: e => { setForm(p => ({ ...p, [key]: e.target.value })); if (formError) setFormError(''); } });
   const addTag = e => { e.preventDefault(); if (!newTag.trim()) return; setForm(p => ({ ...p, tags: [...p.tags, newTag.trim()] })); setNewTag(''); };
+  const handleAdd = () => {
+    if (!form.name.trim()) { setFormError('이름을 입력해주세요'); return; }
+    setFormError('');
+    onAdd(form);
+  };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -1634,9 +1683,14 @@ function AddCharModal({ onClose, onAdd }) {
             <button type="submit" className="btn" style={{ height: 40, padding: '0 12px' }}>+</button>
           </form>
         </div>
+        {formError && (
+          <div style={{ color: '#ef4444', fontSize: 13, marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6 }}>
+            ⚠ {formError}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
           <button className="btn" onClick={onClose}>취소</button>
-          <button className="btn btn-primary" onClick={() => { if (form.name.trim()) onAdd(form); }} disabled={!form.name.trim()}>추가</button>
+          <button className="btn btn-primary" onClick={handleAdd}>추가</button>
         </div>
       </div>
     </div>

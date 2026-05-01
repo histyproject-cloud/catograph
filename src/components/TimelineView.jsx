@@ -58,8 +58,9 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
   const [customType, setCustomType] = useState('');
   // #12 — 복선을 새로 연결할 때 해당 복선의 언급 화수에도 추가할지 묻는 모달
   const [pendingMentionFS, setPendingMentionFS] = useState(null); // { fs, ep }
+  const [formError, setFormError] = useState('');
 
-  const openAdd = () => { setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' }); setEditTarget(null); setShowAdd(true); };
+  const openAdd = () => { setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' }); setEditTarget(null); setFormError(''); setShowAdd(true); };
 
   React.useEffect(() => {
     const handler = () => openAdd();
@@ -70,10 +71,12 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.episode) return;
-    // 화수 1~999 범위 검증 (b1922e10 회귀 fix — input clamp 우회한 fill/paste 차단)
+    // silent-fail-prevention: 검증 실패 시 inline 메시지로 안내
+    if (!form.title.trim()) { setFormError('제목을 입력해주세요'); return; }
+    if (!form.episode) { setFormError('화수를 입력해주세요 (1~999)'); return; }
     const ep = Number(form.episode);
-    if (!Number.isFinite(ep) || ep < 1 || ep > 999) return;
+    if (!Number.isFinite(ep) || ep < 1 || ep > 999) { setFormError('화수는 1~999 사이 숫자만 입력해주세요'); return; }
+    setFormError('');
     if (editTarget) {
       await onUpdate(editTarget.id, { ...form, episode: ep });
     } else {
@@ -316,9 +319,14 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                   </div>
                 </div>
               )}
+              {formError && (
+                <div style={{ color: '#ef4444', fontSize: 13, marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6 }}>
+                  ⚠ {formError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-                <button type="button" className="btn" onClick={() => { setShowAdd(false); setEditTarget(null); }}>취소</button>
-                <button type="submit" className="btn btn-primary" disabled={!form.title.trim() || !form.episode}>{editTarget ? '저장' : '추가'}</button>
+                <button type="button" className="btn" onClick={() => { setShowAdd(false); setEditTarget(null); setFormError(''); }}>취소</button>
+                <button type="submit" className="btn btn-primary">{editTarget ? '저장' : '추가'}</button>
               </div>
             </form>
           </div>
