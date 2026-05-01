@@ -145,7 +145,8 @@ export function useCharacters(projectId) {
     assertId(id, 'characterId');
     try {
       await updateDoc(doc(db, 'characters', id), data);
-      setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+      // order 변경 시 즉시 배열 순서 반영 (reorder 종료 후 화면 갱신, #10)
+      setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...data } : c).sort(sortByOrder));
     } catch (err) {
       console.error('캐릭터 업데이트 실패:', err);
       throw err;
@@ -304,7 +305,7 @@ export function useForeshadows(projectId) {
     assertId(id, 'foreshadowId');
     try {
       await updateDoc(doc(db, 'foreshadows', id), data);
-      setForeshadows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+      setForeshadows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f).sort(sortByOrder));
     } catch (err) {
       console.error('복선 업데이트 실패:', err);
       throw err;
@@ -366,7 +367,7 @@ export function useWorldDocs(projectId) {
     assertId(id, 'worldDocId');
     try {
       await updateDoc(doc(db, 'worldDocs', id), data);
-      setDocs(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
+      setDocs(prev => prev.map(d => d.id === id ? { ...d, ...data } : d).sort(sortByOrder));
     } catch (err) {
       console.error('세계관 문서 업데이트 실패:', err);
       throw err;
@@ -428,7 +429,7 @@ export function useTimelineEvents(projectId) {
     assertId(id, 'eventId');
     try {
       await updateDoc(doc(db, 'timelineEvents', id), data);
-      setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+      setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e).sort(sortByOrder));
     } catch (err) {
       console.error('타임라인 이벤트 업데이트 실패:', err);
       throw err;
@@ -490,7 +491,7 @@ export function useFanworks(projectId) {
     assertId(id, 'fanworkId');
     try {
       await updateDoc(doc(db, 'fanworks', id), data);
-      setFanworks(prev => prev.map(f => f.id === id ? { ...f, ...data } : f));
+      setFanworks(prev => prev.map(f => f.id === id ? { ...f, ...data } : f).sort(sortByOrder));
     } catch (err) {
       console.error('링크 업데이트 실패:', err);
       throw err;
