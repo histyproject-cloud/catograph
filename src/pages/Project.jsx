@@ -1261,7 +1261,7 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
   }, [reorderMode]); // eslint-disable-line
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 20, minWidth: 0, boxSizing: 'border-box' }}>
       <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>심어둔 복선과 회수 여부를 한눈에 관리하세요</p>
       {/* 필터 버튼 */}
       {foreshadows.length > 0 && (
@@ -1481,11 +1481,11 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
   const isResolved = fs.resolved ?? !!fs.resolvedEp;
 
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 14px', marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 500 }}>{fs.title}</span>
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 14px', marginBottom: 8, overflow: 'hidden', wordBreak: 'break-word' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, fontWeight: 500, wordBreak: 'break-word' }}>{fs.title}</span>
             <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99,
               background: isResolved ? 'var(--bg4)' : 'var(--accent-glow)',
               color: isResolved ? 'var(--text3)' : 'var(--accent)' }}>
