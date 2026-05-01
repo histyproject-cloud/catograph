@@ -650,6 +650,9 @@ const CharacterList = forwardRef(function CharacterList({ characters, onSelect, 
     prevReorderMode.current = reorderMode;
   }, [reorderMode]);
 
+  const [detailIsDirty, setDetailIsDirty] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+
   const openDetail = (c) => {
     setDetailChar(c);
     requestAnimationFrame(() => setVisible(true));
@@ -660,8 +663,17 @@ const CharacterList = forwardRef(function CharacterList({ characters, onSelect, 
     setTimeout(() => setDetailChar(null), 300);
   };
 
+  // B3-14 fix — detailChar가 있고 unsaved 변경분 있으면 confirm 후 새 캐릭터로 전환
+  const openNewCharInternal = () => {
+    if (detailChar && detailIsDirty) {
+      setShowUnsavedModal(true);
+      return;
+    }
+    openDetail({ id: '__new__', name: '', role: '', age: '', affiliation: '', ability: '', description: '', tags: [] });
+  };
+
   useImperativeHandle(ref, () => ({
-    openNewChar: () => openDetail({ id: '__new__', name: '', role: '', age: '', affiliation: '', ability: '', description: '', tags: [] }),
+    openNewChar: openNewCharInternal,
   }));
 
   const [search, setSearch] = useState('');
@@ -721,7 +733,27 @@ const CharacterList = forwardRef(function CharacterList({ characters, onSelect, 
             onAdd={async (data) => { await onAdd(data); }}
             onDelete={(id) => { onDelete(id); closeDetail(); }}
             onClose={closeDetail}
+            onDirtyChange={setDetailIsDirty}
           />
+        </div>
+      )}
+
+      {/* B3-14 unsaved 가드 모달 — 변경사항 있는 캐릭터 보던 중 + 캐릭터 누르면 표시 */}
+      {showUnsavedModal && (
+        <div className="modal-backdrop" onClick={() => setShowUnsavedModal(false)} style={{ zIndex: 100 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+            <div className="modal-title">저장하지 않은 변경사항이 있어요</div>
+            <p style={{ color: 'var(--text2)', fontSize: 14, padding: '0 24px', marginTop: 8, lineHeight: 1.5 }}>
+              현재 캐릭터의 변경사항이 저장되지 않았어요. 새 캐릭터를 추가하시겠어요?
+            </p>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setShowUnsavedModal(false)}>취소</button>
+              <button className="btn btn-primary" onClick={() => {
+                setShowUnsavedModal(false);
+                openDetail({ id: '__new__', name: '', role: '', age: '', affiliation: '', ability: '', description: '', tags: [] });
+              }}>버리고 추가</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -743,7 +775,7 @@ function CharField({ label, children }) {
 }
 
 // ── 캐릭터 상세 전체화면 ──
-function CharacterDetailPage({ character: c, characters, events, relations, foreshadows, onUpdate, onAdd, onDelete, onClose }) {
+function CharacterDetailPage({ character: c, characters, events, relations, foreshadows, onUpdate, onAdd, onDelete, onClose, onDirtyChange }) {
   const isNew = c.id === '__new__';
   const ac = getAvatarColor(c.name || '?');
   const [pendingDelete, setPendingDelete] = useState(false);
@@ -755,6 +787,30 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
   const [newTag, setNewTag] = useState('');
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // B3-14 fix — c.id 변경 시 form/saved/newTag/pendingDelete reset
+  // (다른 캐릭터로 슬라이드 prop 교체 시, 또는 __new__로 전환 시 이전 값 잔존 차단)
+  useEffect(() => {
+    setForm({
+      name: c.name || '', role: c.role || '', age: c.age || '',
+      affiliation: c.affiliation || '', ability: c.ability || '',
+      description: c.description || '', tags: c.tags || [],
+    });
+    setSaved(false);
+    setNewTag('');
+    setPendingDelete(false);
+  }, [c.id]);
+
+  // isDirty 판정 — 부모(CharacterList)에 알려서 + 캐릭터 클릭 시 unsaved 가드
+  const isDirty = isNew
+    ? (form.name.trim() !== '' || form.role.trim() !== '' || form.age.trim() !== '' ||
+       form.affiliation.trim() !== '' || form.ability.trim() !== '' ||
+       form.description.trim() !== '' || form.tags.length > 0)
+    : (form.name !== (c.name || '') || form.role !== (c.role || '') ||
+       form.age !== (c.age || '') || form.affiliation !== (c.affiliation || '') ||
+       form.ability !== (c.ability || '') || form.description !== (c.description || '') ||
+       JSON.stringify(form.tags) !== JSON.stringify(c.tags || []));
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
