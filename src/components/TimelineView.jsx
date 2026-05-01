@@ -2,21 +2,31 @@ import React, { useState } from 'react';
 import { getAvatarColor } from './DetailPanel';
 
 // ── 드래그 순서 훅 (모션 포함) ──
-function useDragOrder(items, onReorder) {
+// canDrop(a, b): 두 아이템 사이 드롭 가능 여부 (같은 화수끼리만 등). 미지정 시 항상 허용.
+function useDragOrder(items, onReorder, canDrop) {
   const dragItem = React.useRef(null);
   const [draggingIdx, setDraggingIdx] = React.useState(null);
   const [dragOverIdx, setDragOverIdx] = React.useState(null);
 
   const onDragStart = (idx) => { dragItem.current = idx; setDraggingIdx(idx); };
-  const onDragEnter = (idx) => { setDragOverIdx(idx); };
+  const onDragEnter = (idx) => {
+    // 다른 그룹(예: 다른 화수)으로는 드롭 자체가 안 되도록 시각 이동도 차단
+    const from = dragItem.current;
+    if (canDrop && from !== null && items[from] && items[idx] && !canDrop(items[from], items[idx])) {
+      return;
+    }
+    setDragOverIdx(idx);
+  };
   const onDragEnd = () => {
     const from = dragItem.current;
     const to = dragOverIdx;
     if (from !== null && to !== null && from !== to) {
-      const next = [...items];
-      const dragged = next.splice(from, 1)[0];
-      next.splice(to, 0, dragged);
-      onReorder(next);
+      if (!canDrop || canDrop(items[from], items[to])) {
+        const next = [...items];
+        const dragged = next.splice(from, 1)[0];
+        next.splice(to, 0, dragged);
+        onReorder(next);
+      }
     }
     dragItem.current = null;
     setDraggingIdx(null);
@@ -39,13 +49,15 @@ function useDragOrder(items, onReorder) {
   return { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle };
 }
 
-export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder }) {
+export default function TimelineView({ events, characters, foreshadows, onAdd, onUpdate, onUpdateForeshadow, onDelete, reorderMode, onSaveOrder }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [form, setForm] = useState({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' });
   const [expandedId, setExpandedId] = useState(null);
   const [customType, setCustomType] = useState('');
+  // #12 — 복선을 새로 연결할 때 해당 복선의 언급 화수에도 추가할지 묻는 모달
+  const [pendingMentionFS, setPendingMentionFS] = useState(null); // { fs, ep }
 
   const openAdd = () => { setForm({ episode: '', title: '', description: '', charIds: [], foreshadowIds: [], type: 'event' }); setEditTarget(null); setShowAdd(true); };
 
@@ -87,7 +99,12 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     prevReorderMode.current = reorderMode;
   }, [reorderMode]);
 
-  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(sorted, setOrderedEvents);
+  // 같은 화수(episode) 안에서만 순서 이동 가능 (#2)
+  const { onDragStart, onDragEnter, onDragEnd, draggingIdx, dragOverIdx, getItemStyle } = useDragOrder(
+    sorted,
+    setOrderedEvents,
+    (a, b) => (a?.episode ?? null) === (b?.episode ?? null)
+  );
 
   const TYPE_COLORS = {
     event: { bg: 'rgba(139,124,248,0.15)', color: '#a89cf8', label: '사건' },
@@ -261,7 +278,17 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                     {foreshadows.map(fs => {
                       const selected = form.foreshadowIds.includes(fs.id);
                       return (
-                        <span key={fs.id} className="tag" onClick={() => setForm(f => ({ ...f, foreshadowIds: selected ? f.foreshadowIds.filter(id => id !== fs.id) : [...f.foreshadowIds, fs.id] }))}
+                        <span key={fs.id} className="tag" onClick={() => {
+                          // #12 — 복선을 새로 연결하는 경우(OFF→ON), 현재 화수 입력되어 있고
+                          // 그 복선에 해당 화수 언급이 없으면 모달로 자동 추가 여부 묻기
+                          if (!selected && form.episode && String(form.episode).trim() !== '' && onUpdateForeshadow) {
+                            const epNum = Number(form.episode);
+                            if (Number.isFinite(epNum) && !(fs.mentions || []).some(m => Number(m.ep) === epNum)) {
+                              setPendingMentionFS({ fs, ep: epNum });
+                            }
+                          }
+                          setForm(f => ({ ...f, foreshadowIds: selected ? f.foreshadowIds.filter(id => id !== fs.id) : [...f.foreshadowIds, fs.id] }));
+                        }}
                           style={{ background: selected ? 'rgba(245,158,11,0.15)' : 'var(--bg4)', color: selected ? '#f59e0b' : 'var(--text3)', cursor: 'pointer', border: selected ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent', fontSize: 11 }}>
                           {fs.title}
                         </span>
@@ -275,6 +302,30 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                 <button type="submit" className="btn btn-primary" disabled={!form.title.trim() || !form.episode}>{editTarget ? '저장' : '추가'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* #12 — 복선 언급 화수 자동 추가 확인 모달 */}
+      {pendingMentionFS && (
+        <div className="modal-backdrop" onClick={() => setPendingMentionFS(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <div className="modal-title">복선 언급에도 추가할까요?</div>
+            <p style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.7, marginBottom: 18 }}>
+              "<strong style={{ color: 'var(--text)' }}>{pendingMentionFS.fs.title}</strong>" 복선의
+              {' '}<strong style={{ color: 'var(--accent)' }}>{pendingMentionFS.ep}화</strong> 언급에도 자동으로 추가할까요?
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" style={{ flex: 1 }} onClick={() => setPendingMentionFS(null)}>아니요</button>
+              <button className="btn btn-primary" style={{ flex: 1 }}
+                onClick={async () => {
+                  const { fs, ep } = pendingMentionFS;
+                  const newMentions = [...(fs.mentions || []), { ep: String(ep), note: '' }];
+                  await onUpdateForeshadow(fs.id, { mentions: newMentions });
+                  setPendingMentionFS(null);
+                }}>
+                추가하기
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -324,7 +324,7 @@ export default function Project({ user }) {
               reorderMode={reorderMode}
               events={events} characters={characters} foreshadows={foreshadows}
               onAdd={(data) => { if (checkLimit(events.length, 'timelineEvents')) return addEvent(data); }}
-              onUpdate={updateEvent} onDelete={deleteEvent}
+              onUpdate={updateEvent} onUpdateForeshadow={updateForeshadow} onDelete={deleteEvent}
               limit={FREE_LIMITS.timelineEvents} isPro={isPro(user)}
               onSaveOrder={(ordered) => ordered.forEach((e, i) => updateEvent(e.id, { order: i }))}
             />
@@ -1360,6 +1360,25 @@ function ForeshadowView({ foreshadows, characters, onAdd, onUpdate, onDelete, re
                   </button>
                 </div>
               </div>
+              {/* 연결 캐릭터 (#11 — 추가 모달에 누락되어 있던 칸 복원) */}
+              {characters.length > 0 && (
+                <div className="form-group">
+                  <label className="form-label">연결 캐릭터</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {characters.map(c => {
+                      const sel = form.charIds.includes(c.id);
+                      const ac = getAvatarColor(c.name);
+                      return (
+                        <span key={c.id} className="tag"
+                          onClick={() => setForm(f => ({ ...f, charIds: sel ? f.charIds.filter(id => id !== c.id) : [...f.charIds, c.id] }))}
+                          style={{ background: sel ? ac.bg : 'var(--bg4)', color: sel ? ac.color : 'var(--text3)', cursor: 'pointer', border: sel ? `1px solid ${ac.color}40` : '1px solid transparent' }}>
+                          {c.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {/* 회수 여부 토글 */}
               <div className="form-group">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
