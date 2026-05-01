@@ -140,7 +140,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       const elapsed = Date.now() - touchStartTime.current;
       const dx = Math.abs(e.changedTouches[0].clientX - touchStartPos.current.x);
       const dy = Math.abs(e.changedTouches[0].clientY - touchStartPos.current.y);
-      if (elapsed < 300 && dx < 10 && dy < 10 && connectMode && char !== null) {
+      if (elapsed < 500 && dx < 15 && dy < 15 && connectMode && char !== null) {
         // 탭 처리 후 상태 초기화 (버블링 방지를 위해 touchStartTime 클리어)
         touchStartTime.current = null;
         touchStartPos.current = null;
@@ -365,7 +365,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
             <div
               key={char.id}
               onMouseDown={e => onMouseDownCard(e, char)}
-              onClick={() => !connectMode && onCharClick(char)}
+              onClick={() => onCharClick(char)}
               onTouchStart={e => onTouchStartCard(e, char)}
               onTouchEnd={onTouchEndCanvas(char)}
               style={{

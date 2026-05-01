@@ -152,7 +152,7 @@ export default function Project({ user }) {
             <HamburgerIcon />
           </button>
         )}
-        <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 8px' }} onClick={() => navigate('/')}>← 홈</button>
+        <button className="btn btn-ghost" style={{ fontSize: isMobile ? 13 : 12, padding: isMobile ? '0 10px' : '0 8px', height: isMobile ? 34 : 'auto', flexShrink: 0, fontWeight: isMobile ? 500 : 400 }} onClick={() => navigate('/')}>← 뒤로</button>
         <div style={{ width: 1, height: 16, background: 'var(--border)' }} />
         {editingTitle ? (
           <input
