@@ -411,15 +411,9 @@ export default function Project({ user }) {
         </div>
       )}
 
-      {/* 바텀 탭바 (모바일/태블릿) */}
-      {(isMobile || isTablet) && (
-        <Navigation
-          activeTab={activeTab} setActiveTab={handleSetActiveTab}
-          characters={characters} selectedChar={selectedChar} onSelectChar={handleCharClick}
-          projectName={project?.name || ''}
-          sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}
-        />
-      )}
+      {/* (이전엔 모바일/태블릿용 바텀 Navigation을 별도 호출했지만, 첫 번째 Navigation이
+           내부에서 환경별 분기 처리(isMobile→BottomTabBar, 이외→DesktopSidebar)하므로
+           두 번 호출하면 태블릿에서 사이드바가 2번 렌더됨. 첫 번째 호출만 사용.) */}
 
       {/* 관계 라벨 모달 */}
       {showRelModal && (
