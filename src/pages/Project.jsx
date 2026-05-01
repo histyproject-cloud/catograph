@@ -719,6 +719,20 @@ const CharacterList = forwardRef(function CharacterList({ characters, onSelect, 
   );
 });
 
+// ── 캐릭터 상세 전용 정적 스타일/컴포넌트 ──
+// 컴포넌트를 부모 함수 내부에 두면 매 렌더마다 새 컴포넌트로 인식되어
+// 자식 input이 unmount/remount되며 포커스를 잃음 (#4/#4.5 원인). 반드시 외부에 정의.
+const CHAR_INPUT_STYLE = { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+
+function CharField({ label, children }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
 // ── 캐릭터 상세 전체화면 ──
 function CharacterDetailPage({ character: c, characters, events, relations, foreshadows, onUpdate, onAdd, onDelete, onClose }) {
   const isNew = c.id === '__new__';
@@ -788,15 +802,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
   const myForeshadows = (foreshadows || []).filter(f => f.charIds?.includes(c.id));
   const timelineEpisodes = (events || []).filter(ev => ev.charIds?.includes(c.id)).map(ev => ev.episode).sort((a, b) => a - b);
 
-  const inputStyle = { width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
-
-  const Field = ({ label, children }) => (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-      {children}
-    </div>
-  );
-
+  // (CharField, CHAR_INPUT_STYLE은 컴포넌트 외부에 정의됨 — 포커스 유지를 위해)
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 60px' }}>
       {/* 상단 바 */}
@@ -841,7 +847,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
         </label>
         <div style={{ flex: 1 }}>
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            style={{ ...inputStyle, fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 600, border: 'none', background: 'transparent', padding: '4px 0', borderBottom: '1px dashed var(--border2)', borderRadius: 0, width: '100%' }}
+            style={{ ...CHAR_INPUT_STYLE, fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 600, border: 'none', background: 'transparent', padding: '4px 0', borderBottom: '1px dashed var(--border2)', borderRadius: 0, width: '100%' }}
             placeholder="이름" />
           {c.photoURL && (
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -870,20 +876,20 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
 
       {/* 기본 정보 2열 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 4 }}>
-        <Field label="역할"><input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={inputStyle} placeholder="예: 주인공" /></Field>
-        <Field label="나이"><input value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} style={inputStyle} placeholder="예: 23세" /></Field>
-        <Field label="소속"><input value={form.affiliation} onChange={e => setForm(f => ({ ...f, affiliation: e.target.value }))} style={inputStyle} placeholder="예: 스코틀랜드 왕궁" /></Field>
-        <Field label="능력/특기"><input value={form.ability} onChange={e => setForm(f => ({ ...f, ability: e.target.value }))} style={inputStyle} placeholder="예: 정치" /></Field>
+        <CharField label="역할"><input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={CHAR_INPUT_STYLE} placeholder="예: 주인공" /></CharField>
+        <CharField label="나이"><input value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} style={CHAR_INPUT_STYLE} placeholder="예: 23세" /></CharField>
+        <CharField label="소속"><input value={form.affiliation} onChange={e => setForm(f => ({ ...f, affiliation: e.target.value }))} style={CHAR_INPUT_STYLE} placeholder="예: 스코틀랜드 왕궁" /></CharField>
+        <CharField label="능력/특기"><input value={form.ability} onChange={e => setForm(f => ({ ...f, ability: e.target.value }))} style={CHAR_INPUT_STYLE} placeholder="예: 정치" /></CharField>
       </div>
 
       {/* 인물 소개 */}
-      <Field label="인물 소개">
+      <CharField label="인물 소개">
         <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-          rows={5} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }} placeholder="인물을 자유롭게 소개해주세요..." />
-      </Field>
+          rows={5} style={{ ...CHAR_INPUT_STYLE, resize: 'vertical', lineHeight: 1.7 }} placeholder="인물을 자유롭게 소개해주세요..." />
+      </CharField>
 
       {/* 성격 태그 */}
-      <Field label="성격 태그">
+      <CharField label="성격 태그">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {form.tags.map((t, i) => (
             <span key={i} className="tag" style={{ background: 'var(--bg4)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12 }}
@@ -893,13 +899,13 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
           ))}
         </div>
         <form onSubmit={addTag} style={{ display: 'flex', gap: 8 }}>
-          <input value={newTag} onChange={e => setNewTag(e.target.value)} placeholder="태그 입력 후 엔터" style={{ ...inputStyle, flex: 1 }} />
+          <input value={newTag} onChange={e => setNewTag(e.target.value)} placeholder="태그 입력 후 엔터" style={{ ...CHAR_INPUT_STYLE, flex: 1 }} />
           <button type="submit" className="btn" style={{ height: 38, padding: '0 14px' }}>+</button>
         </form>
-      </Field>
+      </CharField>
 
       {/* 등장 화수 — 타임라인 연동 */}
-      <Field label="등장 화수">
+      <CharField label="등장 화수">
         {timelineEpisodes.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {timelineEpisodes.map(ep => {
@@ -918,11 +924,11 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
             타임라인에서 이 캐릭터를 등장인물로 추가하면 여기에 자동으로 표시돼요
           </div>
         )}
-      </Field>
+      </CharField>
 
       {/* 관련 복선 */}
       {myForeshadows.length > 0 && (
-        <Field label={`관련 복선 (${myForeshadows.length})`}>
+        <CharField label={`관련 복선 (${myForeshadows.length})`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {myForeshadows.map(fs => (
               <div key={fs.id} style={{ background: 'var(--bg3)', borderRadius: 8, padding: '10px 14px' }}>
@@ -946,12 +952,12 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
               </div>
             ))}
           </div>
-        </Field>
+        </CharField>
       )}
 
       {/* 관계 목록 */}
       {myRelations.length > 0 && (
-        <Field label={`관계 (${myRelations.length})`}>
+        <CharField label={`관계 (${myRelations.length})`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {myRelations.map(r => {
               const oac = getAvatarColor(r.other.name || '?');
@@ -968,7 +974,7 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
               );
             })}
           </div>
-        </Field>
+        </CharField>
       )}
     </div>
   );
