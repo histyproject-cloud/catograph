@@ -175,20 +175,7 @@ export default function Navigation({ activeTab, setActiveTab, characters, select
     return <BottomTabBar activeTab={activeTab} setActiveTab={setActiveTab} />;
   }
 
-  if (isTablet) {
-    return (
-      <>
-        {sidebarOpen && (
-          <SidebarOverlay
-            activeTab={activeTab} setActiveTab={setActiveTab}
-            characters={characters} selectedChar={selectedChar} onSelectChar={onSelectChar}
-            projectName={projectName} onClose={() => setSidebarOpen(false)}
-          />
-        )}
-      </>
-    );
-  }
-
+  // 태블릿/데스크톱 모두 항상 열린 사이드바 (overlay 토글 제거)
   return (
     <DesktopSidebar
       activeTab={activeTab} setActiveTab={setActiveTab}

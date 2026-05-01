@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../firebase';
@@ -22,7 +22,10 @@ export default function Project({ user }) {
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
 
   const [project, setProject] = useState(null);
+  const charListRef = useRef(null);
   const [activeTab, setActiveTab] = useState('relation');
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
   const handleSetActiveTab = (tab) => { setActiveTab(tab); setReorderMode(false); setSelectedChar(null); };
   const [selectedChar, setSelectedChar] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -173,7 +176,12 @@ export default function Project({ user }) {
         )}
         {!isMobile && (activeTab === 'relation' || activeTab === 'characters') && (
           <button className="btn btn-primary" style={{ fontSize: 13, padding: '0 14px', height: 36 }}
-            onClick={() => { if (checkLimit(characters.length, 'characters')) setShowAddChar(true); }}>
+            onClick={() => {
+              if (checkLimit(characters.length, 'characters')) {
+                if (activeTabRef.current === 'characters') charListRef.current?.openNewChar();
+                else setShowAddChar(true);
+              }
+            }}>
             + 캐릭터
           </button>
         )}
@@ -286,7 +294,7 @@ export default function Project({ user }) {
             />
           )}
           {activeTab === 'characters' && (
-            <CharacterList characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={handleDeleteCharacter} onUpdate={updateCharacter} events={events} relations={relations} foreshadows={foreshadows} reorderMode={reorderMode}
+            <CharacterList ref={charListRef} characters={characters} onSelect={handleCharClick} selected={selectedChar} onDelete={handleDeleteCharacter} onUpdate={updateCharacter} onAdd={addCharacter} events={events} relations={relations} foreshadows={foreshadows} reorderMode={reorderMode}
               onSaveOrder={(ordered) => ordered.forEach((c, i) => updateCharacter(c.id, { order: i }))} />
           )}
           {activeTab === 'world' && (
@@ -365,7 +373,10 @@ export default function Project({ user }) {
           <button
             onClick={() => {
               if (activeTab === 'relation' || activeTab === 'characters') {
-                if (checkLimit(characters.length, 'characters')) setShowAddChar(true);
+                if (checkLimit(characters.length, 'characters')) {
+                  if (activeTabRef.current === 'characters') charListRef.current?.openNewChar();
+                  else setShowAddChar(true);
+                }
               } else if (activeTab === 'world') {
                 if (checkLimit(worldDocs.length, 'worldDocs')) document.dispatchEvent(new CustomEvent('worlddoc:add'));
               } else if (activeTab === 'foreshadow') {
@@ -583,7 +594,7 @@ function useDragOrder(items, onReorder) {
 }
 
 // ── 캐릭터 목록 ──
-function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, events, relations, foreshadows, reorderMode, onSaveOrder }) {
+const CharacterList = forwardRef(function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, onAdd, events, relations, foreshadows, reorderMode, onSaveOrder }, ref) {
   const [detailChar, setDetailChar] = useState(null);
   const [visible, setVisible] = useState(false);
   const [orderedChars, setOrderedChars] = useState(null);
@@ -608,6 +619,10 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
     setVisible(false);
     setTimeout(() => setDetailChar(null), 300);
   };
+
+  useImperativeHandle(ref, () => ({
+    openNewChar: () => openDetail({ id: '__new__', name: '', role: '', age: '', affiliation: '', ability: '', description: '', tags: [] }),
+  }));
 
   const [search, setSearch] = useState('');
   const filteredChars = (orderedChars || characters).filter(c =>
@@ -663,6 +678,7 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
             relations={relations}
             foreshadows={foreshadows}
             onUpdate={(id, data) => { onUpdate(id, data); setDetailChar(prev => ({ ...prev, ...data })); }}
+            onAdd={async (data) => { await onAdd(data); }}
             onDelete={(id) => { onDelete(id); closeDetail(); }}
             onClose={closeDetail}
           />
@@ -670,10 +686,11 @@ function CharacterList({ characters, onSelect, selected, onDelete, onUpdate, eve
       )}
     </div>
   );
-}
+});
 
 // ── 캐릭터 상세 전체화면 ──
-function CharacterDetailPage({ character: c, characters, events, relations, foreshadows, onUpdate, onDelete, onClose }) {
+function CharacterDetailPage({ character: c, characters, events, relations, foreshadows, onUpdate, onAdd, onDelete, onClose }) {
+  const isNew = c.id === '__new__';
   const ac = getAvatarColor(c.name || '?');
   const [pendingDelete, setPendingDelete] = useState(false);
   const [form, setForm] = useState({
@@ -712,10 +729,16 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
     onUpdate(c.id, { photoURL: '' });
   };
 
-  const save = () => {
-    onUpdate(c.id, form);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  const save = async () => {
+    if (isNew) {
+      if (!form.name.trim()) return;
+      await onAdd(form);
+      onClose();
+    } else {
+      onUpdate(c.id, form);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    }
   };
 
   const addTag = (e) => {
@@ -749,24 +772,24 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <button className="btn btn-ghost" style={{ fontSize: 13, padding: '0 12px', height: 36 }} onClick={onClose}>← 목록</button>
         <div style={{ flex: 1 }} />
-        {pendingDelete ? (
+        {!isNew && (pendingDelete ? (
           <>
             <button className="btn" style={{ fontSize: 13, height: 36, padding: '0 14px' }} onClick={() => setPendingDelete(false)}>취소</button>
             <button className="btn btn-danger" style={{ fontSize: 13, height: 36, padding: '0 14px' }} onClick={() => { onDelete(c.id); onClose(); }}>정말 삭제</button>
           </>
         ) : (
           <button className="btn btn-danger" style={{ fontSize: 13, height: 36, padding: '0 14px' }} onClick={() => setPendingDelete(true)}>삭제</button>
-        )}
+        ))}
         <button className="btn btn-primary" style={{ fontSize: 13, height: 36, padding: '0 18px' }} onClick={save}>
-          {saved ? '✓ 저장됨' : '저장'}
+          {isNew ? '추가' : saved ? '✓ 저장됨' : '저장'}
         </button>
       </div>
 
       {/* 아바타 + 이름 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-        {/* 사진 업로드 */}
-        <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
-          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
+        {/* 사진 업로드 (신규 추가 시에는 숨김) */}
+        <label style={{ position: 'relative', cursor: isNew ? 'default' : 'pointer', flexShrink: 0, pointerEvents: isNew ? 'none' : 'auto' }}>
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} disabled={isNew} />
           {c.photoURL ? (
             <img src={c.photoURL} alt={form.name}
               style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', objectPosition: c.photoPosition || 'center top', border: '2px solid var(--border2)' }} />
@@ -922,13 +945,15 @@ function CharacterDetailPage({ character: c, characters, events, relations, fore
 
 function CharacterCard({ character: c, isSelected, onSelect, onDelete }) {
   const ac = getAvatarColor(c.name || '?');
+  const { isMobile, isTablet } = useBreakpoint();
+  const isTouch = isMobile || isTablet;
   const [hovered, setHovered] = React.useState(false);
   const [pendingDelete, setPendingDelete] = React.useState(false);
 
   return (
     <div onClick={() => onSelect(c)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={isTouch ? undefined : () => setHovered(true)}
+      onMouseLeave={isTouch ? undefined : () => setHovered(false)}
       style={{
         background: 'var(--bg2)',
         border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,

@@ -415,6 +415,29 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       </div>
       )}
 
+      {/* 모바일: 중앙 복귀 버튼 (좌하단 — FAB와 충돌 회피) */}
+      {isMobile && (
+        <button
+          className="btn-icon"
+          onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}
+          title="중앙으로"
+          style={{
+            position: 'absolute',
+            bottom: 'calc(var(--bottombar-h) + 12px)',
+            left: 16,
+            width: 44, height: 44,
+            borderRadius: '50%',
+            background: 'var(--bg2)',
+            border: '1.5px solid var(--border2)',
+            color: 'var(--text2)',
+            fontSize: 18,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            zIndex: 10,
+          }}
+        >↺</button>
+      )}
+
       {/* 연결 모드 안내 */}
       {connectMode && (
         <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 99, padding: '6px 16px', fontSize: 12, color: 'var(--accent)', zIndex: 10, whiteSpace: 'nowrap' }}>
