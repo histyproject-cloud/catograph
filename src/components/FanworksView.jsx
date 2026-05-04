@@ -98,6 +98,22 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
     '영상': { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
     '기타': { bg: 'rgba(88,88,100,0.2)', color: '#9d9caa' },
   };
+  // 직접 입력한 유형도 같은 텍스트면 같은 색 자동 배정 (#6 — TimelineView와 동일 패턴)
+  const CUSTOM_PALETTE = [
+    { bg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
+    { bg: 'rgba(244,114,182,0.15)', color: '#f472b6' },
+    { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24' },
+    { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
+    { bg: 'rgba(52,211,153,0.15)', color: '#34d399' },
+    { bg: 'rgba(251,113,133,0.15)', color: '#fb7185' },
+  ];
+  const getTypeColor = (type) => {
+    if (TYPE_COLORS[type]) return TYPE_COLORS[type];
+    if (!type) return TYPE_COLORS['기타'];
+    let hash = 0;
+    for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
+    return CUSTOM_PALETTE[Math.abs(hash) % CUSTOM_PALETTE.length];
+  };
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
@@ -113,7 +129,7 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
 
       <div style={{ display: 'grid', gap: 10 }}>
         {displayFanworks.map((fw, fwIdx) => {
-          const tc = TYPE_COLORS[fw.type] || TYPE_COLORS['기타'];
+          const tc = getTypeColor(fw.type);
           if (editId === fw.id) return (
             <div key={fw.id} style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
               <div className="form-group">

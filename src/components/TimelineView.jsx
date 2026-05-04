@@ -75,7 +75,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     if (!form.title.trim()) { setFormError('제목을 입력해주세요'); return; }
     if (!form.episode) { setFormError('화수를 입력해주세요 (1~999)'); return; }
     const ep = Number(form.episode);
-    if (!Number.isFinite(ep) || ep < 1 || ep > 999) { setFormError('화수는 1~999 사이 숫자만 입력해주세요'); return; }
+    if (!Number.isFinite(ep) || ep < 1 || ep > 100000) { setFormError('화수는 1~100000 사이 숫자만 입력해주세요'); return; }
     setFormError('');
     if (editTarget) {
       await onUpdate(editTarget.id, { ...form, episode: ep });
@@ -245,7 +245,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                   <input
                     type="number"
                     min="1"
-                    max="999"
+                    max="100000"
                     value={form.episode}
                     onChange={e => {
                       const v = e.target.value;

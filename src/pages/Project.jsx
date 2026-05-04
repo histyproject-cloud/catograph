@@ -159,6 +159,29 @@ export default function Project({ user }) {
 
   return (
     <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
+      {/* 모바일 전용 메인 헤더 (대시보드와 통일성) — Cartographic 로고 + 이용방법 */}
+      {isMobile && (
+        <div style={{ height: 44, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0, zIndex: 31 }}>
+          <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="22" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.7" />
+            <circle cx="24" cy="24" r="3" fill="var(--accent)" />
+            <circle cx="11" cy="15" r="2" fill="var(--accent)" opacity="0.5" />
+            <circle cx="37" cy="15" r="2" fill="var(--accent)" opacity="0.5" />
+            <circle cx="11" cy="33" r="2" fill="var(--accent)" opacity="0.5" />
+            <circle cx="37" cy="33" r="2" fill="var(--accent)" opacity="0.5" />
+            <line x1="24" y1="24" x2="11" y2="15" stroke="var(--accent)" strokeWidth="1" opacity="0.4" />
+            <line x1="24" y1="24" x2="37" y2="15" stroke="var(--accent)" strokeWidth="1" opacity="0.4" />
+            <line x1="24" y1="24" x2="11" y2="33" stroke="var(--accent)" strokeWidth="1" opacity="0.4" />
+            <line x1="24" y1="24" x2="37" y2="33" stroke="var(--accent)" strokeWidth="1" opacity="0.4" />
+          </svg>
+          <span onClick={() => navigate('/')} style={{ fontFamily: 'var(--font-serif)', fontSize: 16, letterSpacing: '-0.02em', cursor: 'pointer', color: 'var(--text)' }}>Cartographic</span>
+          <div style={{ flex: 1 }} />
+          <a href="/how-to.html" target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 11, color: 'var(--text3)', textDecoration: 'none', padding: '4px 10px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', flexShrink: 0 }}>
+            이용방법
+          </a>
+        </div>
+      )}
       {/* 헤더 */}
       <header style={{ height: 'var(--header-h)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0, zIndex: 30 }}>
         {/* 햄버거 (태블릿) */}
@@ -1171,19 +1194,26 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder, 
   }, [reorderMode]);
 
   const [worldError, setWorldError] = useState('');
-  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); setSaved(true); setWorldError(''); };
+  // 새로 만든 빈 문서 추적 (#3 — 저장 안 하고 나가면 빈 흔적 남지 않도록 onDelete)
+  const [isNewDoc, setIsNewDoc] = useState(false);
+  const selectDoc = d => { setSelected(d); setTitle(d.title); setContent(d.content || ''); setSaved(true); setWorldError(''); setIsNewDoc(false); };
   const save = () => {
     if (!selected) return;
-    // silent-fail-prevention: 제목 빈 경우 inline 메시지로 안내
     if (!title.trim()) { setWorldError('제목을 입력해주세요'); return; }
     setWorldError('');
     onUpdate(selected.id, { title, content });
     setSaved(true);
+    setIsNewDoc(false); // 저장 후 더 이상 신규 아님
   };
   const addNew = async () => {
     const ref = await onAdd('새 문서');
-    if (!ref) return; // 제한 초과 등으로 생성 안 된 경우
-    selectDoc({ id: ref.id, title: '새 문서', content: '' });
+    if (!ref) return;
+    setSelected({ id: ref.id, title: '새 문서', content: '' });
+    setTitle('새 문서');
+    setContent('');
+    setSaved(true);
+    setWorldError('');
+    setIsNewDoc(true); // 새로 만든 거 표시 — 저장 안 하고 나가면 cleanup
   };
 
   const addNewRef = React.useRef(addNew);
@@ -1211,7 +1241,13 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder, 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <button className="btn btn-ghost" style={{ fontSize: 12, padding: '0 10px', height: 32 }}
-          onClick={() => { if (!saved) { setShowUnsaved(true); return; } setSelected(null); }}>← 목록</button>
+          onClick={() => {
+            if (!saved) { setShowUnsaved(true); return; }
+            // 저장된 상태이지만 isNewDoc면 빈 새 문서 cleanup (#3)
+            if (isNewDoc && selected) onDelete(selected.id);
+            setSelected(null);
+            setIsNewDoc(false);
+          }}>← 목록</button>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <input value={title} onChange={e => { setTitle(e.target.value); setSaved(false); }}
             style={{ fontSize: 16, fontFamily: 'var(--font-serif)', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none', fontWeight: 600 }} />
@@ -1248,7 +1284,14 @@ function WorldView({ docs, onAdd, onUpdate, onDelete, reorderMode, onSaveOrder, 
             <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 20 }}>변경 사항을 저장하지 않고 나가시겠어요?</p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn" style={{ flex: 1 }} onClick={() => setShowUnsaved(false)}>취소</button>
-              <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { setShowUnsaved(false); setSaved(true); setSelected(null); }}>나가기</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => {
+                setShowUnsaved(false);
+                setSaved(true);
+                // 새로 만든 빈 문서면 cleanup (#3)
+                if (isNewDoc && selected) onDelete(selected.id);
+                setSelected(null);
+                setIsNewDoc(false);
+              }}>나가기</button>
             </div>
           </div>
         </div>
@@ -1591,7 +1634,9 @@ function FSCard({ fs, characters, onUpdate, onDelete }) {
     </div>
   );
 
-  const mentions = fs.mentions || (fs.plantedEp ? [{ ep: fs.plantedEp, note: '' }] : []);
+  // 표시 시 화수 오름차순 정렬 (#4) — 입력 순서와 무관하게 항상 작은 화수가 먼저
+  const rawMentions = fs.mentions || (fs.plantedEp ? [{ ep: fs.plantedEp, note: '' }] : []);
+  const mentions = [...rawMentions].sort((a, b) => (Number(a.ep) || 0) - (Number(b.ep) || 0));
   const isResolved = fs.resolved ?? !!fs.resolvedEp;
 
   return (

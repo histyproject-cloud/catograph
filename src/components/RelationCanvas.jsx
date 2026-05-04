@@ -101,7 +101,15 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
     e.stopPropagation();
     touchStartTime.current = Date.now();
     touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    if (connectMode) return; // 연결 모드에서는 드래그 시작 안 함
+    if (connectMode) {
+      // #2 — connectMode일 때 onTouchStart에서 즉시 처리 (race condition 회피).
+      // tap/drag 분기 로직이 가끔 못 잡는 케이스를 onTouchStart로 보장.
+      // touchStartTime을 null로 클리어해 onTouchEnd의 중복 호출 방지.
+      // handleCharClick은 idempotent이라 onClick fallback과 중복 호출돼도 안전.
+      onCharClick(char);
+      touchStartTime.current = null;
+      return;
+    }
     if (e.touches.length !== 1) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const t = e.touches[0];
