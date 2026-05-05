@@ -73,7 +73,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
     e.preventDefault();
     // silent-fail-prevention: 검증 실패 시 inline 메시지로 안내
     if (!form.title.trim()) { setFormError('제목을 입력해주세요'); return; }
-    if (!form.episode) { setFormError('화수를 입력해주세요 (1~999)'); return; }
+    if (!form.episode) { setFormError('화수를 입력해주세요 (1~100000)'); return; }
     const ep = Number(form.episode);
     if (!Number.isFinite(ep) || ep < 1 || ep > 100000) { setFormError('화수는 1~100000 사이 숫자만 입력해주세요'); return; }
     setFormError('');
@@ -252,8 +252,7 @@ export default function TimelineView({ events, characters, foreshadows, onAdd, o
                       if (v === '') return setForm(f => ({ ...f, episode: '' }));
                       const n = Number(v);
                       if (!Number.isFinite(n)) return;
-                      // 1~999로 clamp (b1922e10 회귀 fix)
-                      setForm(f => ({ ...f, episode: String(Math.min(999, Math.max(1, Math.floor(n)))) }));
+                      setForm(f => ({ ...f, episode: String(Math.min(100000, Math.max(1, Math.floor(n)))) }));
                     }}
                     style={{ width: '100%' }}
                     placeholder="예: 3화"

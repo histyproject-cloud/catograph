@@ -102,10 +102,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
     touchStartTime.current = Date.now();
     touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     if (connectMode) {
-      // #2 — connectMode일 때 onTouchStart에서 즉시 처리 (race condition 회피).
-      // tap/drag 분기 로직이 가끔 못 잡는 케이스를 onTouchStart로 보장.
-      // touchStartTime을 null로 클리어해 onTouchEnd의 중복 호출 방지.
-      // handleCharClick은 idempotent이라 onClick fallback과 중복 호출돼도 안전.
+      e.preventDefault(); // iOS 컨텍스트 메뉴 방지
       onCharClick(char);
       touchStartTime.current = null;
       return;
@@ -205,7 +202,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
         backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)',
         backgroundSize: '28px 28px',
         cursor: connectMode ? 'crosshair' : dragging ? 'grabbing' : 'default',
-        touchAction: 'none', userSelect: 'none',
+        touchAction: 'none', userSelect: 'none', WebkitTouchCallout: 'none',
       }}
     >
       <div style={{ position: 'absolute', inset: 0, transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: '0 0' }}>
