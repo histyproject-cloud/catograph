@@ -446,7 +446,9 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       {/* 연결 모드 안내 */}
       {connectMode && (
         <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 99, padding: '6px 16px', fontSize: 12, color: 'var(--accent)', zIndex: 10, whiteSpace: 'nowrap' }}>
-          {connectFrom ? '관계를 받을 캐릭터를 탭하세요 →' : '관계의 시작 캐릭터를 탭하세요'}
+          {connectFrom
+            ? (isMobile ? '관계를 받을 캐릭터를 1초 이상 눌러주세요' : '관계를 받을 캐릭터를 탭하세요 →')
+            : (isMobile ? '관계의 시작 캐릭터를 1초 이상 눌러주세요' : '관계의 시작 캐릭터를 탭하세요')}
         </div>
       )}
 
