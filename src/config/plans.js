@@ -10,7 +10,7 @@ export const FREE_LIMITS = {
   characters: 10,
   worldDocs: 5,
   foreshadows: 15,
-  timelineEvents: 15,
+  timelineEvents: 30,
 };
 
 // ── 제한 초과 메시지 ──
@@ -19,7 +19,7 @@ export const LIMIT_MESSAGES = {
   characters: '무료 플랜은 캐릭터를 10명까지 등록할 수 있어요.',
   worldDocs: '무료 플랜은 설정집 문서를 5개까지 만들 수 있어요.',
   foreshadows: '무료 플랜은 복선을 15개까지 등록할 수 있어요.',
-  timelineEvents: '무료 플랜은 타임라인 이벤트를 15개까지 등록할 수 있어요.',
+  timelineEvents: '무료 플랜은 타임라인 이벤트를 30개까지 등록할 수 있어요.',
 };
 
 // ── Pro 여부 체크 ──

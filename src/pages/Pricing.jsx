@@ -117,7 +117,7 @@ export default function Pricing({ user }) {
     );
   };
 
-  const FREE_FEATURES = ['프로젝트 3개 생성 가능','캐릭터 최대 10명 등록','설정집 문서 최대 5개 등록','복선 최대 15개 등록','타임라인 최대 15개 등록','공유 링크 (읽기 전용) 전송 가능'];
+  const FREE_FEATURES = ['프로젝트 3개 생성 가능','캐릭터 최대 10명 등록','설정집 문서 최대 5개 등록','복선 최대 15개 등록','타임라인 최대 30개 등록','공유 링크 (읽기 전용) 전송 가능'];
   const PRO_FEATURES = ['프로젝트 무제한 생성','캐릭터 무제한 등록','설정집 문서 무제한 등록','복선 무제한 등록','타임라인 무제한 등록','공유 링크 (읽기 전용) 전송 가능','우선 고객 지원'];
   const ENTERPRISE_FEATURES = ['30명 이상 팀을 위한 플랜','Pro 기능 전체 포함','인당 요금 할인','우선 기술 지원 (SLA)','맞춤 계약 및 세금계산서'];
 
@@ -216,7 +216,7 @@ export default function Pricing({ user }) {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 99, padding: '6px 8px' }}>
             <button onClick={() => setYearly(false)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: !yearly ? 'var(--accent)' : 'transparent', color: !yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s' }}>월간</button>
             <button onClick={() => setYearly(true)} style={{ padding: '6px 16px', borderRadius: 99, border: 'none', background: yearly ? 'var(--accent)' : 'transparent', color: yearly ? '#fff' : 'var(--text2)', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}>
-              연간 <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>25% 할인</span>
+              연간 <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>약 25% 할인</span>
             </button>
           </div>
         </div>
