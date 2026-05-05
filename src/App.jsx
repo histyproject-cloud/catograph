@@ -47,7 +47,14 @@ export default function App() {
         // 문서 없으면 기본 문서 생성
         const userDocSnap = await getDoc(doc(db, 'users', u.uid));
         if (!userDocSnap.exists()) {
-          await setDoc(doc(db, 'users', u.uid), { createdAt: serverTimestamp() });
+          await setDoc(doc(db, 'users', u.uid), {
+            createdAt: serverTimestamp(),
+            email: u.email || '',
+            displayName: u.displayName || '',
+          });
+        } else if (!userDocSnap.data()?.email && u.email) {
+          // 기존 유저 중 email 필드 없는 경우 보완
+          await setDoc(doc(db, 'users', u.uid), { email: u.email, displayName: u.displayName || '' }, { merge: true });
         }
 
         // Firestore 실시간 구독 → 결제/구독 변경 시 user state 자동 갱신
