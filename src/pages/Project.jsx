@@ -1809,13 +1809,18 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
     }
   };
 
+  const TAB_LABELS = {
+    relation: '관계도', characters: '캐릭터', world: '세계관',
+    foreshadow: '복선', timeline: '타임라인', fanworks: '링크',
+  };
   const SHARE_TABS = [
-    { id: 'all', label: '전체 공유', desc: '캐릭터, 세계관, 복선, 타임라인 모두' },
-    { id: 'current', label: '현재 탭만', desc: `지금 보고 있는 탭만 (${activeTab})` },
+    { id: 'all', label: '전체 공유', desc: '캐릭터, 세계관, 복선, 타임라인, 링크 모두' },
+    { id: 'current', label: '현재 탭만', desc: `지금 보고 있는 탭만 (${TAB_LABELS[activeTab] || activeTab})`, disabled: activeTab === 'relation' },
     { id: 'characters', label: '캐릭터만', desc: '캐릭터 목록과 상세 정보만' },
     { id: 'world', label: '세계관만', desc: '설정집 문서만' },
     { id: 'foreshadow', label: '복선만', desc: '복선 목록만' },
     { id: 'timeline', label: '타임라인만', desc: '타임라인 이벤트만' },
+    { id: 'fanworks', label: '링크만', desc: '팬작품·외부 링크만' },
   ];
 
   return (
@@ -1852,17 +1857,20 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>공유할 탭 선택</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {SHARE_TABS.map(t => (
-                      <button key={t.id} onClick={() => handleTabChange(t.id)} style={{
+                      <button key={t.id} onClick={() => !t.disabled && handleTabChange(t.id)} style={{
                         display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
                         borderRadius: 'var(--radius)', border: `1px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border)'}`,
                         background: shareTab === t.id ? 'var(--accent-glow, rgba(139,124,248,0.08))' : 'transparent',
-                        cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                        cursor: t.disabled ? 'not-allowed' : 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                        opacity: t.disabled ? 0.4 : 1,
                       }}>
                         <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${shareTab === t.id ? 'var(--accent)' : 'var(--border2)'}`, background: shareTab === t.id ? 'var(--accent)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {shareTab === t.id && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                         </div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: shareTab === t.id ? 500 : 400, color: 'var(--text)' }}>{t.label}</div>
+                          <div style={{ fontSize: 13, fontWeight: shareTab === t.id ? 500 : 400, color: 'var(--text)' }}>
+                            {t.label}{t.disabled ? ' — 공유 미지원' : ''}
+                          </div>
                           <div style={{ fontSize: 11, color: 'var(--text3)' }}>{t.desc}</div>
                         </div>
                       </button>
@@ -1878,7 +1886,9 @@ function ShareModal({ projectId, project, onClose, onUpdate, activeTab }) {
                     </button>
                   </div>
                   <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
-                    링크를 받은 사람은 선택한 탭을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요.
+                    링크를 받은 사람은 선택한 탭을 <strong style={{ color: 'var(--text2)' }}>읽기 전용</strong>으로 볼 수 있어요.<br />
+                    <span style={{ color: 'var(--text3)' }}>✦ 수정 내용이 실시간으로 반영돼요. 링크를 받은 사람은 이후 변경사항도 모두 볼 수 있어요.</span><br />
+                    <span style={{ color: 'var(--coral, #f87171)' }}>⚠ 링크가 있는 누구나 접근할 수 있으니 공유 시 주의하세요.</span>
                   </div>
                 </div>
               </>
