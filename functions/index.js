@@ -109,10 +109,15 @@ exports.deleteAccount = onCall({ cors: true, secrets: [TOSS_SECRET_KEY] }, async
       }
     }
 
-    // 6. 유저 문서 삭제
+    // 6. _system 쿠폰 시도 기록 삭제
+    try {
+      await db.collection("_system").doc(`coupon_attempts_${uid}`).delete();
+    } catch { /* 없으면 무시 */ }
+
+    // 7. 유저 문서 삭제
     await db.collection("users").doc(uid).delete();
 
-    // 7. Firebase Auth 계정 삭제
+    // 8. Firebase Auth 계정 삭제
     await getAuth().deleteUser(uid);
 
     return { success: true };
@@ -530,7 +535,7 @@ exports.monthlyFirestoreBackup = onSchedule(
     const projectId = process.env.GCLOUD_PROJECT;
     const databaseName = adminClient.databasePath(projectId, "(default)");
     const timestamp = new Date().toISOString().slice(0, 7); // YYYY-MM
-    const outputUriPrefix = `gs://${projectId}.appspot.com/firestore-backups/${timestamp}`;
+    const outputUriPrefix = `gs://catograph-5d8f5.firebasestorage.app/firestore-backups/${timestamp}`;
 
     try {
       const [operation] = await adminClient.exportDocuments({
