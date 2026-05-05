@@ -249,7 +249,7 @@ export default function Pricing({ user }) {
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}</div>
             </div>
             <button className={`btn ${isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon ? '' : 'btn-primary'}`}
-              style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: isReserved(yearly ? 'yearly' : 'monthly') || canReserve(yearly ? 'yearly' : 'monthly') ? 8 : 24, cursor: (isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon) ? 'default' : 'pointer' }}
+              style={{ width: '100%', justifyContent: 'center', minHeight: 42, fontSize: 14, whiteSpace: 'normal', lineHeight: 1.4, padding: '10px 12px', marginBottom: isReserved(yearly ? 'yearly' : 'monthly') || canReserve(yearly ? 'yearly' : 'monthly') ? 8 : 24, cursor: (isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon) ? 'default' : 'pointer' }}
               onClick={() => {
                 if (isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon) return;
                 if (canReserve(yearly ? 'yearly' : 'monthly')) {
