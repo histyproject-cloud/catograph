@@ -523,14 +523,13 @@ exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, 
   return { success: true };
 });
 
-/**
- * 월간 Firestore 자동 백업
- * 매월 1일 오전 3시(KST)에 GCS 버킷으로 전체 내보내기
- * 저장 위치: gs://{projectId}.appspot.com/firestore-backups/YYYY-MM/
- */
 exports.monthlyFirestoreBackup = onSchedule(
   { schedule: "0 3 * * *", timeZone: "Asia/Seoul", region: "asia-northeast3" },
   async () => {
+    const { Storage } = require("@google-cloud/storage");
+    const storage = new Storage();
+    const bucket = storage.bucket("catograph-5d8f5.firebasestorage.app");
+
     const adminClient = new firestoreV1.FirestoreAdminClient();
     const projectId = process.env.GCLOUD_PROJECT;
     const databaseName = adminClient.databasePath(projectId, "(default)");
@@ -541,13 +540,25 @@ exports.monthlyFirestoreBackup = onSchedule(
       const [operation] = await adminClient.exportDocuments({
         name: databaseName,
         outputUriPrefix,
-        collectionIds: [], // 빈 배열 = 전체 컬렉션 백업
+        collectionIds: [],
       });
-      console.log(`✅ 월간 백업 시작: ${outputUriPrefix}`);
+      console.log(`✅ 백업 시작: ${outputUriPrefix}`);
       console.log(`   Operation: ${operation.name}`);
     } catch (err) {
-      console.error("월간 백업 실패:", err);
+      console.error("백업 실패:", err);
       throw err;
+    }
+
+    // 7일 이상 된 백업 삭제
+    try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 7);
+      const [files] = await bucket.getFiles({ prefix: "firestore-backups/" });
+      const toDelete = files.filter(f => f.metadata.timeCreated && new Date(f.metadata.timeCreated) < cutoff);
+      await Promise.all(toDelete.map(f => f.delete()));
+      if (toDelete.length > 0) console.log(`🗑 오래된 백업 ${toDelete.length}개 삭제`);
+    } catch (err) {
+      console.warn("오래된 백업 삭제 실패 (무시):", err.message);
     }
   }
 );
