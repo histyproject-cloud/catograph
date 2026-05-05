@@ -248,24 +248,26 @@ export default function Pricing({ user }) {
               </div>
               <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{yearly ? '월 2,492원 · 25% 할인' : '연간 결제 시 25% 할인'}</div>
             </div>
-            <button className={`btn ${isCurrentPlan(yearly ? 'yearly' : 'monthly') ? '' : 'btn-primary'}`}
-              style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: isReserved(yearly ? 'yearly' : 'monthly') || canReserve(yearly ? 'yearly' : 'monthly') ? 8 : 24, cursor: isCurrentPlan(yearly ? 'yearly' : 'monthly') ? 'default' : 'pointer' }}
+            <button className={`btn ${isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon ? '' : 'btn-primary'}`}
+              style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 14, marginBottom: isReserved(yearly ? 'yearly' : 'monthly') || canReserve(yearly ? 'yearly' : 'monthly') ? 8 : 24, cursor: (isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon) ? 'default' : 'pointer' }}
               onClick={() => {
-                if (isCurrentPlan(yearly ? 'yearly' : 'monthly')) return;
+                if (isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon) return;
                 if (canReserve(yearly ? 'yearly' : 'monthly')) {
                   handleReservePlan(yearly ? 'yearly' : 'monthly');
                 } else {
                   handlePayment();
                 }
               }}
-              disabled={isCurrentPlan(yearly ? 'yearly' : 'monthly') || paying || reserving || isReserved(yearly ? 'yearly' : 'monthly')}>
-              {isCurrentPlan(yearly ? 'yearly' : 'monthly')
-                ? '✦ 현재 플랜'
-                : isReserved(yearly ? 'yearly' : 'monthly')
-                  ? '✓ 전환 예약됨'
-                  : canReserve(yearly ? 'yearly' : 'monthly')
-                    ? (reserving ? '처리 중...' : `다음 결제일부터 전환`)
-                    : (paying ? '처리 중...' : (showTrialBenefit ? '30일 무료로 시작하기' : '구독 시작하기'))}
+              disabled={isCurrentPlan(yearly ? 'yearly' : 'monthly') || isCoupon || paying || reserving || isReserved(yearly ? 'yearly' : 'monthly')}>
+              {isCoupon
+                ? `쿠폰 이용 중 · ${formatDate(currentPeriodEnd)}까지`
+                : isCurrentPlan(yearly ? 'yearly' : 'monthly')
+                  ? '✦ 현재 플랜'
+                  : isReserved(yearly ? 'yearly' : 'monthly')
+                    ? '✓ 전환 예약됨'
+                    : canReserve(yearly ? 'yearly' : 'monthly')
+                      ? (reserving ? '처리 중...' : `다음 결제일부터 전환`)
+                      : (paying ? '처리 중...' : (showTrialBenefit ? '30일 무료로 시작하기' : '구독 시작하기'))}
             </button>
             {/* 예약 안내 문구 + 예약 취소 */}
             {isReserved(yearly ? 'yearly' : 'monthly') && (
