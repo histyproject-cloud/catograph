@@ -529,12 +529,12 @@ exports.cancelSubscription = onCall({ secrets: [TOSS_SECRET_KEY], cors: true }, 
  * 저장 위치: gs://{projectId}.appspot.com/firestore-backups/YYYY-MM/
  */
 exports.monthlyFirestoreBackup = onSchedule(
-  { schedule: "0 3 1 * *", timeZone: "Asia/Seoul", region: "asia-northeast3" },
+  { schedule: "0 3 * * *", timeZone: "Asia/Seoul", region: "asia-northeast3" },
   async () => {
     const adminClient = new firestoreV1.FirestoreAdminClient();
     const projectId = process.env.GCLOUD_PROJECT;
     const databaseName = adminClient.databasePath(projectId, "(default)");
-    const timestamp = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const outputUriPrefix = `gs://catograph-5d8f5.firebasestorage.app/firestore-backups/${timestamp}`;
 
     try {
