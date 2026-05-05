@@ -18,6 +18,8 @@ import NotFound from './pages/NotFound';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFail from './pages/PaymentFail';
 
+const CONSENT_VERSION = '2026-04-01';
+
 export default function App() {
   const [user, setUser] = useState(undefined);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -60,7 +62,7 @@ export default function App() {
               const next = { ...currentAuthUser, ...userData };
               // 동의/온보딩 모달은 최초 1회만
               if (prev === undefined || prev === null) {
-                if (!userData?.consentAt) setShowConsent(true);
+                if (!userData?.consentAt || userData?.consentVersion !== CONSENT_VERSION) setShowConsent(true);
                 else if (!userData?.onboardingDone) setShowOnboarding(true);
               }
               return next;
@@ -94,8 +96,10 @@ export default function App() {
     }
   };
 
-  if (user === undefined) return (
-    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+  // 공유 링크는 인증 대기 없이 바로 렌더링
+  const isSharedRoute = window.location.pathname.startsWith('/shared/');
+  if (user === undefined && !isSharedRoute) return (
+    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
       <div style={{ width: 28, height: 28, border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>

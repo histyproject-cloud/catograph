@@ -14,6 +14,7 @@ export default function SharedView() {
   const [foreshadows, setForeshadows] = useState([]);
   const [worldDocs, setWorldDocs] = useState([]);
   const [events, setEvents] = useState([]);
+  const [fanworks, setFanworks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(tabParam || 'characters');
@@ -34,13 +35,14 @@ export default function SharedView() {
           return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         };
 
-        const [chars, fs, docs, evs] = await Promise.all([
-          fetch('characters'), fetch('foreshadows'), fetch('worldDocs'), fetch('timelineEvents')
+        const [chars, fs, docs, evs, fws] = await Promise.all([
+          fetch('characters'), fetch('foreshadows'), fetch('worldDocs'), fetch('timelineEvents'), fetch('fanworks')
         ]);
         setCharacters(chars);
         setForeshadows(fs);
         setWorldDocs(docs);
         setEvents(evs.sort((a, b) => (a.episode || 0) - (b.episode || 0)));
+        setFanworks(fws);
         setLoading(false);
       } catch (e) {
         setError('불러오는 중 오류가 발생했어요');
@@ -69,6 +71,8 @@ export default function SharedView() {
     { id: 'world', label: '세계관' },
     { id: 'foreshadow', label: '복선' },
     { id: 'timeline', label: '타임라인' },
+    { id: 'fanworks', label: '링크' },
+    { id: 'relation', label: '관계도' },
   ];
 
   // tabParam이 있으면 해당 탭만, 없으면 전체
@@ -83,15 +87,16 @@ export default function SharedView() {
         <LogoMark />
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 18 }}>{project?.name}</span>
         <span className="tag" style={{ background: 'rgba(45,212,191,0.12)', color: 'var(--teal)', fontSize: 11, marginLeft: 4 }}>읽기 전용</span>
+        <span className="tag" style={{ background: 'rgba(139,124,248,0.10)', color: 'var(--accent)', fontSize: 11 }}>수정 시 실시간 반영</span>
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 11, color: 'var(--text3)' }}>Cartograph</span>
       </header>
 
       {/* 탭 */}
-      <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)', padding: '0 20px', display: 'flex', gap: 4 }}>
+      <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg2)', padding: '0 20px', display: 'flex', gap: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-            padding: '10px 14px', fontSize: 13, border: 'none', background: 'none', cursor: 'pointer',
+            padding: '10px 14px', fontSize: 13, border: 'none', background: 'none', cursor: 'pointer', flexShrink: 0,
             color: activeTab === t.id ? 'var(--text)' : 'var(--text3)',
             borderBottom: activeTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
             fontWeight: activeTab === t.id ? 500 : 400, transition: 'all 0.15s'
@@ -132,19 +137,20 @@ export default function SharedView() {
 
         {/* 세계관 탭 */}
         {activeTab === 'world' && (
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{ width: 180, flexShrink: 0 }}>
+          <div>
+            {/* 문서 목록 — 모바일: 가로 스크롤, 데스크톱: 세로 사이드바 */}
+            <div style={{ display: 'flex', gap: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', marginBottom: selectedDoc ? 16 : 0, flexWrap: 'nowrap' }}>
               {worldDocs.map(d => (
-                <button key={d.id} onClick={() => setSelectedDoc(d)} style={{ width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, background: selectedDoc?.id === d.id ? 'var(--bg3)' : 'transparent', color: selectedDoc?.id === d.id ? 'var(--text)' : 'var(--text2)', border: 'none', cursor: 'pointer', display: 'block', marginBottom: 2 }}>{d.title}</button>
+                <button key={d.id} onClick={() => setSelectedDoc(d)} style={{ flexShrink: 0, textAlign: 'left', padding: '6px 12px', borderRadius: 99, fontSize: 13, background: selectedDoc?.id === d.id ? 'var(--bg3)' : 'transparent', color: selectedDoc?.id === d.id ? 'var(--text)' : 'var(--text2)', border: `1px solid ${selectedDoc?.id === d.id ? 'var(--border2)' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap' }}>{d.title}</button>
               ))}
             </div>
             {selectedDoc ? (
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedDoc.title}</h2>
+              <div>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>{selectedDoc.title}</h2>
                 <p style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{selectedDoc.content || '내용 없음'}</p>
               </div>
             ) : (
-              <div style={{ flex: 1, color: 'var(--text3)', fontSize: 13, paddingTop: 8 }}>문서를 선택하세요</div>
+              <div style={{ color: 'var(--text3)', fontSize: 13, paddingTop: 8 }}>문서를 선택하세요</div>
             )}
           </div>
         )}
@@ -207,6 +213,39 @@ export default function SharedView() {
                 </div>
               );
             })}
+          </div>
+        )}
+        {/* 관계도 탭 — 공유 미지원 안내 */}
+        {activeTab === 'relation' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', gap: 16, textAlign: 'center' }}>
+            <div style={{ fontSize: 32, opacity: 0.25 }}>✦</div>
+            <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+              관계도는 공유 링크로 제공되지 않아요.<br />
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>캐릭터 탭에서 각 인물의 정보를 확인할 수 있어요.</span>
+            </p>
+          </div>
+        )}
+
+        {/* 링크 탭 */}
+        {activeTab === 'fanworks' && (
+          <div>
+            {fanworks.length === 0 ? (
+              <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>등록된 링크가 없어요</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {fanworks.map(fw => (
+                  <a key={fw.id} href={fw.url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'block', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 16px', textDecoration: 'none', transition: 'border-color 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: fw.author || fw.description ? 4 : 0 }}>{fw.title || fw.url}</div>
+                    {fw.author && <div style={{ fontSize: 12, color: 'var(--accent)' }}>{fw.author}</div>}
+                    {fw.description && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{fw.description}</div>}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
