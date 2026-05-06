@@ -533,7 +533,8 @@ exports.monthlyFirestoreBackup = onSchedule(
     const adminClient = new firestoreV1.FirestoreAdminClient();
     const projectId = process.env.GCLOUD_PROJECT;
     const databaseName = adminClient.databasePath(projectId, "(default)");
-    const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000); // UTC → KST
+    const timestamp = kstNow.toISOString().slice(0, 10); // YYYY-MM-DD (KST 기준)
     const outputUriPrefix = `gs://catograph-5d8f5.firebasestorage.app/firestore-backups/${timestamp}`;
 
     try {
