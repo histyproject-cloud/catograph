@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth, app } from '../firebase';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, app, db } from '../firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { isPro, getSubscriptionLabel } from '../config/plans';
 
@@ -14,12 +15,15 @@ const fmt = (ts) => {
 export default function Settings({ user, onShowOnboarding, theme, onToggleTheme }) {
   const navigate = useNavigate();
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteConsentModal, setDeleteConsentModal] = useState(false);
+  const [deleteChecked, setDeleteChecked] = useState(false);
   const [cancellingSubscription, setCancellingSubscription] = useState(false);
   const [cancellingPlan, setCancellingPlan] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
+  const [togglingMarketing, setTogglingMarketing] = useState(false);
 
   // 커스텀 확인 모달
   const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm }
@@ -38,24 +42,29 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
   };
 
   const handleDeleteAccount = () => {
-    showConfirm(
-      '회원 탈퇴',
-      '정말 탈퇴하시겠어요?\n모든 데이터가 삭제되며 복구할 수 없습니다.',
-      async () => {
-        setDeletingAccount(true);
-        try {
-          const deleteAccount = httpsCallable(functions, 'deleteAccount');
-          await deleteAccount();
-          await signOut(auth);
-          navigate('/login');
-        } catch (e) {
-          console.error(e);
-          showToast('탈퇴 처리 중 오류가 발생했어요. 이메일로 문의해 주세요.', 'error');
-        } finally {
-          setDeletingAccount(false);
-        }
-      }
-    );
+    setDeleteChecked(false);
+    setDeleteConsentModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteConsentModal(false);
+    setDeletingAccount(true);
+    try {
+      // 삭제 동의 기록 저장 (PIPA 준수 — 탈퇴 처리 전 Firestore에 기록)
+      await updateDoc(doc(db, 'users', user.uid), {
+        deletionConsentAt: serverTimestamp(),
+        deletionConsentVersion: '2026-05-06',
+      });
+      const deleteAccountFn = httpsCallable(functions, 'deleteAccount');
+      await deleteAccountFn();
+      await signOut(auth);
+      navigate('/login');
+    } catch (e) {
+      console.error(e);
+      showToast('탈퇴 처리 중 오류가 발생했어요. 이메일로 문의해 주세요.', 'error');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   // 구독 해지: 빌링키 해제 + status → cancelled (기간까지 Pro 유지)
@@ -117,6 +126,26 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
       setCouponError(err.message || '쿠폰 적용에 실패했어요. 코드를 다시 확인해주세요.');
     } finally {
       setApplyingCoupon(false);
+    }
+  };
+
+  const handleToggleMarketing = async () => {
+    if (togglingMarketing) return;
+    setTogglingMarketing(true);
+    const next = !user?.marketingConsent;
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        marketingConsent: next,
+        ...(next
+          ? { marketingConsentAt: serverTimestamp() }
+          : { marketingConsentRevokedAt: serverTimestamp() }),
+      });
+      showToast(next ? '마케팅 수신 동의가 완료됐어요.' : '마케팅 수신 동의가 철회됐어요.');
+    } catch (e) {
+      console.error(e);
+      showToast('처리 중 오류가 발생했어요.', 'error');
+    } finally {
+      setTogglingMarketing(false);
     }
   };
 
@@ -302,6 +331,32 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
           </div>
         </section>
 
+        {/* 개인정보 동의 관리 */}
+        <section style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 16 }}>개인정보 동의 관리</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 2 }}>마케팅 정보 수신 동의</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>이벤트·업데이트 소식을 이메일로 받아요 (선택)</div>
+            </div>
+            <button
+              onClick={handleToggleMarketing}
+              disabled={togglingMarketing}
+              style={{
+                width: 44, height: 24, borderRadius: 12, border: 'none', cursor: togglingMarketing ? 'not-allowed' : 'pointer',
+                background: user?.marketingConsent ? 'var(--accent)' : 'var(--border2, #555)',
+                position: 'relative', transition: 'background 0.2s', flexShrink: 0, opacity: togglingMarketing ? 0.5 : 1,
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: user?.marketingConsent ? 23 : 3,
+                width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s',
+              }} />
+            </button>
+          </div>
+        </section>
+
         {/* 법적 정보 */}
         <section style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 16 }}>법적 정보</div>
@@ -365,6 +420,73 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
                 onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}
               >
                 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 회원 탈퇴 동의 모달 ── */}
+      {deleteConsentModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+          onClick={() => setDeleteConsentModal(false)}
+        >
+          <div
+            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--coral, #f87171)', marginBottom: 4 }}>⚠ 회원 탈퇴</div>
+            <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>탈퇴 전 아래 내용을 반드시 확인해 주세요.</div>
+
+            {/* 삭제되는 정보 */}
+            <div style={{ background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--coral, #f87171)', marginBottom: 8 }}>즉시 삭제되는 정보</div>
+              {['모든 프로젝트 및 작품 데이터', '캐릭터, 관계도, 복선, 타임라인', '설정집 문서, 링크 목록', '프로필 사진', '구독 정보 및 빌링키'].map(item => (
+                <div key={item} style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.8 }}>✕ {item}</div>
+              ))}
+            </div>
+
+            {/* 보존되는 정보 */}
+            <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', marginBottom: 8 }}>법적 의무로 보존되는 정보</div>
+              <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.8 }}>• 결제 내역 — 전자상거래법에 따라 5년 보관</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, opacity: 0.7 }}>삭제 후 복구는 불가능합니다.</div>
+            </div>
+
+            {/* 동의 체크박스 */}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: 20 }}>
+              <input
+                type="checkbox"
+                checked={deleteChecked}
+                onChange={e => setDeleteChecked(e.target.checked)}
+                style={{ marginTop: 2, flexShrink: 0, accentColor: 'var(--coral, #f87171)', width: 16, height: 16 }}
+              />
+              <span style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
+                위 내용을 확인했으며, 모든 데이터 삭제에 동의합니다.
+              </span>
+            </label>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-ghost"
+                style={{ fontSize: 13, height: 36, padding: '0 16px' }}
+                onClick={() => setDeleteConsentModal(false)}
+              >
+                취소
+              </button>
+              <button
+                style={{
+                  fontSize: 13, height: 36, padding: '0 16px', borderRadius: 'var(--radius)',
+                  background: deleteChecked ? 'var(--coral, #f87171)' : 'var(--border)',
+                  color: deleteChecked ? '#fff' : 'var(--text3)',
+                  border: 'none', cursor: deleteChecked ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s', fontWeight: 500,
+                }}
+                onClick={handleConfirmDelete}
+                disabled={!deleteChecked}
+              >
+                탈퇴하기
               </button>
             </div>
           </div>
