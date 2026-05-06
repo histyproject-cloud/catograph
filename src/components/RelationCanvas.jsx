@@ -46,6 +46,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
   const isPanning = useRef(false);
   const lastPan = useRef({ x: 0, y: 0 });
   const lastPinchDist = useRef(null);
+  const rafId = useRef(null);
 
   const getPos = useCallback((char) =>
     localPositions[char.id] || char.position || { x: 80 + Math.random() * 300, y: 80 + Math.random() * 200 },
@@ -63,12 +64,18 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
 
   const onMouseMoveCanvas = useCallback((e) => {
     if (!dragging) return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setLocalPositions(p => ({ ...p, [dragging]: { x: (e.clientX - rect.left) / scale - pan.x / scale - dragOffset.x, y: (e.clientY - rect.top) / scale - pan.y / scale - dragOffset.y } }));
+    if (rafId.current) return; // 이전 프레임 대기 중이면 스킵
+    rafId.current = requestAnimationFrame(() => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        setLocalPositions(p => ({ ...p, [dragging]: { x: (e.clientX - rect.left) / scale - pan.x / scale - dragOffset.x, y: (e.clientY - rect.top) / scale - pan.y / scale - dragOffset.y } }));
+      }
+      rafId.current = null;
+    });
   }, [dragging, dragOffset, scale, pan]);
 
   const onMouseUpCanvas = useCallback(() => {
+    if (rafId.current) { cancelAnimationFrame(rafId.current); rafId.current = null; }
     if (dragging && localPositions[dragging]) onUpdatePosition(dragging, localPositions[dragging]);
     setDragging(null);
   }, [dragging, localPositions, onUpdatePosition]);
@@ -129,10 +136,15 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
       return;
     }
     if (dragging && e.touches.length === 1) {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      if (rafId.current) return;
       const t = e.touches[0];
-      setLocalPositions(p => ({ ...p, [dragging]: { x: (t.clientX - rect.left) / scale - pan.x / scale - dragOffset.x, y: (t.clientY - rect.top) / scale - pan.y / scale - dragOffset.y } }));
+      rafId.current = requestAnimationFrame(() => {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect) {
+          setLocalPositions(p => ({ ...p, [dragging]: { x: (t.clientX - rect.left) / scale - pan.x / scale - dragOffset.x, y: (t.clientY - rect.top) / scale - pan.y / scale - dragOffset.y } }));
+        }
+        rafId.current = null;
+      });
     }
   };
 
@@ -205,7 +217,7 @@ export default function RelationCanvas({ characters, relations, selectedChar, co
         touchAction: 'none', userSelect: 'none', WebkitTouchCallout: 'none',
       }}
     >
-      <div style={{ position: 'absolute', inset: 0, transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: '0 0' }}>
+      <div style={{ position: 'absolute', inset: 0, transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: '0 0', willChange: 'transform' }}>
         <svg style={{ position: 'absolute', top: 0, left: 0, width: '9999px', height: '9999px', overflow: 'visible' }}>
           <defs>
             <marker id="arr" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
