@@ -733,6 +733,7 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
             couponLabel: coupon.label || `${couponDays}일권`, // 표시용 라벨
             currentPeriodEnd: end,
             startedAt: FieldValue.serverTimestamp(),
+            hasUsedTrial: true,   // 쿠폰 사용자도 이후 Toss 30일 trial 차단
             // ── 이전 결제/해지 잔존 필드 정리 ──
             // (쿠폰은 이전 구독이 만료된 후에만 적용 가능하므로
             //  billingKey 등은 살아있으면 안 됨)
