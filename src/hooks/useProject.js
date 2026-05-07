@@ -62,7 +62,7 @@ export function useProjects(userId) {
   const createProject = async (name) => {
     if (!userId) throw new Error('로그인이 필요합니다.');
     try {
-      return await addDoc(collection(db, 'projects'), { name, ownerId: userId, createdAt: serverTimestamp(), sharedWith: [] });
+      return await addDoc(collection(db, 'projects'), { name, ownerId: userId, createdAt: serverTimestamp() });
     } catch (err) {
       console.error('프로젝트 생성 실패:', err);
       throw err;

@@ -11,3 +11,15 @@ node_modules
 scripts/serviceAccountKey.json
 scripts/node_modules/
 scripts/coupon_codes_*.txt
+
+# Claude Code 워크트리 (세션 임시 폴더)
+.claude/worktrees/
+
+# Firebase 호스팅 캐시
+.firebase/
+
+# Playwright / 테스트 도구 로그
+.playwright-mcp/
+
+# 빌드 산출물 및 로컬 전용 파일
+*.map
