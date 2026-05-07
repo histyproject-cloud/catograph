@@ -6,6 +6,42 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
 
+      function isAllowedUserProfileUpdate() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email',
+          'displayName',
+          'agreedToTerms',
+          'agreedToPrivacy',
+          'marketingConsent',
+          'marketingConsentAt',
+          'marketingConsentRevokedAt',
+          'consentAt',
+          'consentVersion',
+          'onboardingDone',
+          'onboardingDoneAt',
+          'deletionConsentAt',
+          'deletionConsentVersion',
+        ])
+        && (!request.resource.data.keys().hasAny(['email']) || request.resource.data.email is string)
+        && (!request.resource.data.keys().hasAny(['displayName']) || request.resource.data.displayName is string)
+        && (!request.resource.data.keys().hasAny(['agreedToTerms']) || request.resource.data.agreedToTerms is bool)
+        && (!request.resource.data.keys().hasAny(['agreedToPrivacy']) || request.resource.data.agreedToPrivacy is bool)
+        && (!request.resource.data.keys().hasAny(['marketingConsent']) || request.resource.data.marketingConsent is bool)
+        && (!request.resource.data.keys().hasAny(['consentVersion']) || request.resource.data.consentVersion is string)
+        && (!request.resource.data.keys().hasAny(['onboardingDone']) || request.resource.data.onboardingDone is bool)
+        && (!request.resource.data.keys().hasAny(['deletionConsentVersion']) || request.resource.data.deletionConsentVersion is string);
+      }
+
+      function isPendingPlanUpdate() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscription'])
+          && resource.data.subscription is map
+          && request.resource.data.subscription is map
+          && request.resource.data.subscription.diff(resource.data.subscription)
+              .affectedKeys().hasOnly(['pendingPlan'])
+          && request.resource.data.subscription.pendingPlan is string
+          && request.resource.data.subscription.pendingPlan in ['monthly', 'yearly'];
+      }
+
       // 신규 user 문서 생성 시 허용 필드 화이트리스트
       // (subscription, billingKey 등 server-only 필드는 클라이언트 create 차단)
       allow create: if request.auth != null && request.auth.uid == uid
@@ -13,29 +49,35 @@ service cloud.firestore {
         && request.resource.data.email is string
         && request.resource.data.displayName is string;
 
-      // 클라이언트 업데이트: subscription 필드를 건드릴 경우 pendingPlan만 허용
-      // (status, billingKey, currentPeriodEnd, plan 등은 Cloud Function만 쓸 수 있음)
+      // 클라이언트 업데이트: 정상 UI 필드 + subscription.pendingPlan만 허용
+      // hasUsedEduTrial, eduEmail, 결제/체험 판단 필드는 Cloud Functions 전용
       allow update: if request.auth != null && request.auth.uid == uid
-        && (
-          // subscription 필드를 아예 건드리지 않는 경우 (프로필, 동의 등)
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription'])
-          ||
-          // subscription 하위에서 pendingPlan('monthly'|'yearly')만 변경 허용
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscription'])
-            && request.resource.data.subscription.diff(resource.data.subscription)
-                .affectedKeys().hasOnly(['pendingPlan'])
-            && request.resource.data.subscription.pendingPlan is string
-            && request.resource.data.subscription.pendingPlan in ['monthly', 'yearly']
-          )
-        );
+        && (isAllowedUserProfileUpdate() || isPendingPlanUpdate());
     }
 
     match /projects/{projectId} {
       allow read: if (request.auth != null && request.auth.uid == resource.data.ownerId)
                   || resource.data.shareEnabled == true;
-      allow write: if request.auth != null && request.auth.uid == resource.data.ownerId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.ownerId
+        && request.resource.data.keys().hasOnly(['name', 'ownerId', 'createdAt', 'sharedWith'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120;
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.ownerId
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'shareEnabled', 'shareTab'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['name'])
+          || (request.resource.data.name is string
+            && request.resource.data.name.size() > 0
+            && request.resource.data.name.size() <= 120))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shareEnabled'])
+          || request.resource.data.shareEnabled is bool)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shareTab'])
+          || (request.resource.data.shareTab is string
+            && request.resource.data.shareTab in ['all', 'characters', 'world', 'foreshadow', 'timeline', 'fanworks']));
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
     }
 
     function isOwner(projectId) {
