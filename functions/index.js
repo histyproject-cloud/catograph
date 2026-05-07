@@ -806,9 +806,8 @@ function getTrustedClientIp(req) {
   if (xff && typeof xff === "string") {
     const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
     if (parts.length >= 2) return parts[parts.length - 2];
-    if (parts.length === 1) return parts[0];
   }
-  return req.ip || req.socket?.remoteAddress || "";
+  return null;
 }
 
 // 토스 결제 조회 API 로 webhook 페이로드 진정성 검증.
@@ -837,8 +836,8 @@ exports.tossWebhook = onRequest(
 
     // 1차 필터: 토스 발신 IP 검증 (XFF 위조 방어 — getTrustedClientIp 사용)
     const clientIp = getTrustedClientIp(req);
-    if (!TOSS_IPS.has(clientIp)) {
-      console.warn("허용되지 않은 IP:", clientIp);
+    if (!clientIp || !TOSS_IPS.has(clientIp)) {
+      console.warn("허용되지 않은 IP:", clientIp || "missing trusted XFF");
       res.status(403).send("Forbidden");
       return;
     }
