@@ -25,6 +25,7 @@ export default function App() {
   const [user, setUser] = useState(undefined);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [showEduWelcome, setShowEduWelcome] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const authUserRef = useRef(null); // Firebase Auth 유저 객체 보관 (onSnapshot 콜백에서 사용)
 
@@ -60,7 +61,7 @@ export default function App() {
               const functions = getFunctions(app, 'asia-northeast3');
               const applyEduTrial = httpsCallable(functions, 'applyEduTrial');
               await applyEduTrial();
-              console.log('대학생 무료체험 적용 완료');
+              setShowEduWelcome(true);
             } catch (err) {
               console.warn('대학생 무료체험 적용 실패 (무시):', err.message);
             }
@@ -144,6 +145,25 @@ export default function App() {
           onClose={handleOnboardingComplete}
           onComplete={handleOnboardingComplete}
         />
+      )}
+      {showEduWelcome && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20 }}>
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-lg)', padding: 36, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🎓</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent)', marginBottom: 8, fontFamily: 'var(--font-serif)' }}>대학생 혜택 적용!</div>
+            <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 24 }}>
+              대학 이메일이 확인됐어요.<br />
+              <strong style={{ color: 'var(--text)' }}>Pro 플랜 3개월</strong>을 무료로 이용할 수 있어요. ✦
+            </div>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', height: 44, fontSize: 15, fontWeight: 600 }}
+              onClick={() => setShowEduWelcome(false)}
+            >
+              시작하기
+            </button>
+          </div>
+        </div>
       )}
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
