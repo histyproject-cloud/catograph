@@ -1,14 +1,26 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // 캐릭터 사진: 로그인한 유저만 업로드/삭제 가능, 읽기는 공유 뷰 고려해 누구나 허용
-    // 업로드 제한: 이미지 파일만, 최대 5MB
+
+    // 캐릭터 사진 소유자 확인:
+    //   characters/{charId} → projectId → projects/{projectId}.ownerId == request.auth.uid
+    function isCharacterOwner(charId) {
+      let charDoc = firestore.get(/databases/(default)/documents/characters/$(charId));
+      let projectId = charDoc.data.projectId;
+      let projDoc = firestore.get(/databases/(default)/documents/projects/$(projectId));
+      return request.auth != null && projDoc.data.ownerId == request.auth.uid;
+    }
+
+    // 캐릭터 사진:
+    //   - 읽기: 공유 뷰 지원을 위해 누구나 허용 (URL 추측이 어려운 charId 기반)
+    //   - 쓰기: 프로젝트 소유자만 + 이미지/5MB 제한
+    //   - 삭제: 프로젝트 소유자만
     match /characters/{charId}/photo {
       allow read: if true;
-      allow write: if request.auth != null
+      allow write: if isCharacterOwner(charId)
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
-      allow delete: if request.auth != null;
+      allow delete: if isCharacterOwner(charId);
     }
   }
 }
