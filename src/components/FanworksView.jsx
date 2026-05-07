@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
 
+function sanitizeFanworkUrl(rawUrl) {
+  const trimmed = (rawUrl || '').trim();
+  if (!trimmed) throw new Error('URL을 입력해주세요');
+  if (/^\s*(javascript|data|vbscript):/i.test(trimmed)) {
+    throw new Error('javascript:/data: URL은 사용할 수 없어요');
+  }
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : 'https://' + trimmed;
+  const url = new URL(withScheme);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('http/https URL만 사용할 수 있어요');
+  }
+  return url.href;
+}
+
 function useDragOrder(items, onReorder) {
   const dragItem = React.useRef(null);
   const [draggingIdx, setDraggingIdx] = React.useState(null);
@@ -54,14 +68,13 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
     e.preventDefault();
     // silent-fail-prevention: 검증 실패 시 inline 메시지로 안내
     if (!form.title.trim()) { setFormError('제목을 입력해주세요'); return; }
-    if (!form.url.trim()) { setFormError('URL을 입력해주세요'); return; }
-    let url = form.url.trim();
-    // javascript: / data: 차단 (XSS 방어)
-    if (/^\s*(javascript|data|vbscript):/i.test(url)) {
-      setFormError('javascript:/data: URL은 사용할 수 없어요');
+    let url;
+    try {
+      url = sanitizeFanworkUrl(form.url);
+    } catch (err) {
+      setFormError(err.message);
       return;
     }
-    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
     setFormError('');
     await onAdd({ ...form, url });
     setForm({ title: '', url: '', author: '', type: '그림' });
@@ -69,24 +82,28 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
   };
 
   const startEdit = (fw) => {
+    setFormError('');
     setEditId(fw.id);
     setEditForm({ title: fw.title, url: fw.url, author: fw.author || '', type: fw.type || '그림' });
   };
 
   const saveEdit = async () => {
-    await onUpdate(editId, editForm);
+    let url;
+    try {
+      url = sanitizeFanworkUrl(editForm.url);
+    } catch (err) {
+      setFormError(err.message);
+      return;
+    }
+    setFormError('');
+    await onUpdate(editId, { ...editForm, url });
     setEditId(null);
   };
 
   const handleOpen = (url) => {
     // javascript:/data: 프로토콜 등을 통한 XSS 차단
     try {
-      const trimmed = (url || '').trim();
-      if (!trimmed) return;
-      const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : 'https://' + trimmed;
-      const u = new URL(withScheme);
-      if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
-      window.open(u.href, '_blank', 'noopener,noreferrer');
+      window.open(sanitizeFanworkUrl(url), '_blank', 'noopener,noreferrer');
     } catch {
       // 유효하지 않은 URL은 무시 (silent fail)
     }
@@ -162,6 +179,11 @@ export default function FanworksView({ fanworks, onAdd, onUpdate, onDelete, reor
                   )}
                 </div>
               </div>
+              {formError && (
+                <div style={{ marginBottom: 10, color: '#f87171', fontSize: 12 }}>
+                  ⚠ {formError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button className="btn" style={{ fontSize: 12 }} onClick={() => setEditId(null)}>취소</button>
                 <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={saveEdit}>저장</button>

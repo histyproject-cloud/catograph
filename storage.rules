@@ -1,7 +1,6 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
     // 캐릭터 사진: 본인 소유 캐릭터의 사진만 업로드/삭제 가능
     // 읽기는 공유 뷰 고려해 누구나 허용 (URL을 아는 경우만)
     //

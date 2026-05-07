@@ -587,7 +587,12 @@ exports.applyEduTrial = onCall({ cors: true }, async (request) => {
 
   const uid = request.auth.uid;
   const email = (request.auth.token.email || "").toLowerCase();
+  const emailVerified = request.auth.token.email_verified === true;
   const isEdu = email.endsWith(".ac.kr") || email.endsWith(".edu");
+
+  if (!emailVerified) {
+    throw new HttpsError("permission-denied", "인증된 이메일만 대학생 무료체험을 신청할 수 있습니다.");
+  }
 
   if (!isEdu) {
     throw new HttpsError("invalid-argument", "대학 이메일(.ac.kr / .edu)이 아닙니다.");
@@ -728,6 +733,7 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
             couponLabel: coupon.label || `${couponDays}일권`, // 표시용 라벨
             currentPeriodEnd: end,
             startedAt: FieldValue.serverTimestamp(),
+            hasUsedTrial: true,   // 쿠폰 사용자도 이후 Toss 30일 trial 차단
             // ── 이전 결제/해지 잔존 필드 정리 ──
             // (쿠폰은 이전 구독이 만료된 후에만 적용 가능하므로
             //  billingKey 등은 살아있으면 안 됨)
@@ -797,17 +803,47 @@ const TOSS_IPS = new Set([
   "115.92.221.125", "115.92.221.126", "115.92.221.127",
 ]);
 
+// GCP HTTPS Load Balancer는 X-Forwarded-For 끝에 두 항목을 append 한다:
+//   "<existing>, <client_ip>, <lb_ip>"
+// → 끝에서 두 번째 항목이 LB가 본 신뢰 가능한 client IP.
+//   클라이언트가 보낸 XFF 첫 번째 값을 그대로 신뢰하면 IP 위조로 우회됨.
+function getTrustedClientIp(req) {
+  const xff = req.headers["x-forwarded-for"];
+  if (xff && typeof xff === "string") {
+    const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 2) return parts[parts.length - 2];
+  }
+  return null;
+}
+
+// 토스 결제 조회 API 로 webhook 페이로드 진정성 검증.
+// (PAYMENT_STATUS_CHANGED 웹훅에는 시그니처가 없으므로 결제 조회 API 호출이
+//  실질적인 진정성 보증 수단이 된다. paymentKey 가 토스에 실제 존재하고
+//  customerKey/status/amount 가 webhook payload 와 일치해야 정당한 webhook.)
+async function fetchTossPayment(paymentKey, secretKey) {
+  const auth = "Basic " + Buffer.from(`${secretKey}:`).toString("base64");
+  const r = await fetch(
+    `https://api.tosspayments.com/v1/payments/${encodeURIComponent(paymentKey)}`,
+    { headers: { Authorization: auth, "Content-Type": "application/json" } }
+  );
+  if (!r.ok) {
+    const err = new Error(`Toss API ${r.status}`);
+    // 5xx 또는 404 는 잠시 후 재조회로 회복 가능 → Toss 재시도에 맡긴다
+    err.transient = r.status >= 500 || r.status === 404;
+    throw err;
+  }
+  return await r.json();
+}
+
 exports.tossWebhook = onRequest(
   { secrets: [TOSS_SECRET_KEY], region: "asia-northeast3", minInstances: 1 },
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
-    // 토스 IP 검증 (X-Forwarded-For 우선, 없으면 X-Real-IP, 없으면 req.ip)
-    const xff = req.headers["x-forwarded-for"]?.split(",")[0]?.trim();
-    const xri = req.headers["x-real-ip"]?.trim();
-    const clientIp = xff || xri || req.ip;
-    if (!TOSS_IPS.has(clientIp)) {
-      console.warn("허용되지 않은 IP:", clientIp);
+    // 1차 필터: 토스 발신 IP 검증 (XFF 위조 방어 — getTrustedClientIp 사용)
+    const clientIp = getTrustedClientIp(req);
+    if (!clientIp || !TOSS_IPS.has(clientIp)) {
+      console.warn("허용되지 않은 IP:", clientIp || "missing trusted XFF");
       res.status(403).send("Forbidden");
       return;
     }
@@ -822,7 +858,12 @@ exports.tossWebhook = onRequest(
       if (eventType === "PAYMENT_STATUS_CHANGED" && data?.status === "DONE") {
         const customerKey = data.customerKey;
         const incomingOrderId = data.orderId;
-        if (!customerKey) { res.status(200).send("ok"); return; }
+        const incomingPaymentKey = data.paymentKey;
+        if (!customerKey || !incomingOrderId || !incomingPaymentKey) {
+          // 식별자가 없는 이벤트는 무시 (재시도 X)
+          res.status(200).send("ok");
+          return;
+        }
 
         // billingScheduler가 직접 결제하고 Firestore 업데이트까지 처리하는 orderId → 웹훅은 스킵
         // (auto_ prefix = 스케줄러 생성 orderId, 이중 처리 방지)
@@ -832,83 +873,152 @@ exports.tossWebhook = onRequest(
           return;
         }
 
+        // 2차 검증: 토스 결제 조회 API로 webhook 페이로드 진정성 검증
+        // (IP 우회 + payload 위조 시나리오를 차단하는 핵심 방어선)
+        let verified;
+        try {
+          verified = await fetchTossPayment(incomingPaymentKey, TOSS_SECRET_KEY.value());
+        } catch (err) {
+          console.error("Toss 결제 조회 실패:", err.message, "transient:", err.transient);
+          // transient 면 503 으로 토스 재시도 유도, 영구 실패면 400
+          res.status(err.transient ? 503 : 400).send("Payment verification failed");
+          return;
+        }
+
+        if (verified.customerKey !== customerKey) {
+          console.error(`customerKey 불일치 webhook=${customerKey} toss=${verified.customerKey}`);
+          res.status(400).send("customerKey mismatch");
+          return;
+        }
+
+        if (verified.status !== "DONE") {
+          console.error(`Toss status 불일치 webhook=DONE toss=${verified.status}`);
+          res.status(400).send("status mismatch");
+          return;
+        }
+
+        if (verified.orderId !== incomingOrderId) {
+          console.error(`orderId 불일치 webhook=${incomingOrderId} toss=${verified.orderId}`);
+          res.status(400).send("orderId mismatch");
+          return;
+        }
+
         // customerKey = uid로 유저 조회
         const userRef = db.collection("users").doc(customerKey);
-        const userSnap = await userRef.get();
-        if (!userSnap.exists) { res.status(200).send("ok"); return; }
+        const paymentDocId = encodeURIComponent(incomingPaymentKey);
+        const processedRef = db.collection("_system").doc(`processed_payment_${paymentDocId}`);
+        const paymentRef = db.collection("payments").doc(paymentDocId);
 
-        const sub = userSnap.data()?.subscription || {};
+        const result = await db.runTransaction(async (transaction) => {
+          const processedSnap = await transaction.get(processedRef);
+          if (processedSnap.exists) {
+            return { skipped: true, reason: "paymentKey already processed" };
+          }
 
-        // ── idempotency: 이미 처리한 orderId면 스킵 ──
-        if (incomingOrderId && sub.lastOrderId === incomingOrderId) {
-          console.log(`웹훅 중복 수신 스킵: ${incomingOrderId}`);
-          res.status(200).send("ok");
-          return;
-        }
+          const userSnap = await transaction.get(userRef);
+          if (!userSnap.exists) {
+            transaction.set(processedRef, {
+              uid: customerKey,
+              orderId: incomingOrderId,
+              paymentKey: incomingPaymentKey,
+              skipped: true,
+              reason: "user_not_found",
+              createdAt: FieldValue.serverTimestamp(),
+            });
+            return { skipped: true, reason: "user not found" };
+          }
 
-        // ── billingScheduler가 이미 처리했는지 확인 (같은 날 이미 갱신됐으면 스킵) ──
-        // 스케줄러가 먼저 처리하면 lastOrderId가 auto_로 시작하는 orderId로 갱신됨
-        // 웹훅은 billingScheduler가 만든 orderId와 다른 orderId로 들어오므로 구분 가능
-        // → orderId 기반 중복 체크만으로 충분
+          const sub = userSnap.data()?.subscription || {};
 
-        const pendingPlan = sub.pendingPlan || null;
+          // ── idempotency: 이미 처리한 orderId면 스킵하되 paymentKey도 처리 완료로 마킹 ──
+          if (sub.lastOrderId === incomingOrderId) {
+            transaction.set(processedRef, {
+              uid: customerKey,
+              orderId: incomingOrderId,
+              paymentKey: incomingPaymentKey,
+              skipped: true,
+              reason: "orderId already processed",
+              createdAt: FieldValue.serverTimestamp(),
+            });
+            return { skipped: true, reason: "orderId already processed" };
+          }
 
-        // pendingPlan이 있으면 플랜 전환, 없으면 현재 플랜 유지
-        const newPlan = pendingPlan || sub.plan || "monthly";
-        const isYearly = newPlan === "yearly";
+          const pendingPlan = sub.pendingPlan || null;
+          const newPlan = pendingPlan || sub.plan || "monthly";
+          const isYearly = newPlan === "yearly";
 
-        // 결제 금액 재검증 (위조·중간자 방어)
-        // — 토스 응답이 변조되더라도 plan별 expected amount와 다르면 거부
-        const expectedAmount = isYearly ? 29900 : 3300;
-        if (typeof data.totalAmount === "number" && data.totalAmount !== expectedAmount) {
-          const maskedUid = customerKey ? `${customerKey.slice(0, 8)}****` : "unknown";
-          console.error(`결제 금액 불일치 [${maskedUid}] plan=${newPlan} 기대=${expectedAmount} 수신=${data.totalAmount} orderId=${incomingOrderId}`);
-          res.status(400).send("Invalid amount");
-          return;
-        }
+          // 결제 금액 재검증 (defense in depth — Toss API 응답 기준)
+          const expectedAmount = isYearly ? 29900 : 3300;
+          if (verified.totalAmount !== expectedAmount) {
+            const err = new Error("Invalid amount");
+            err.statusCode = 400;
+            err.publicMessage = "Invalid amount";
+            err.details = { newPlan, expectedAmount };
+            throw err;
+          }
 
-        const now = new Date();
-        // 이전 결제일 기준으로 계산해 drift 방지
-        const base = sub.currentPeriodEnd?.toDate?.() || now;
-        const periodEnd = new Date(base);
-        if (isYearly) {
-          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          const now = new Date();
+          // 이전 결제일 기준으로 계산해 drift 방지
+          const base = sub.currentPeriodEnd?.toDate?.() || now;
+          const periodEnd = new Date(base);
+          if (isYearly) {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          } else {
+            periodEnd.setMonth(periodEnd.getMonth() + 1);
+          }
+
+          transaction.update(userRef, {
+            "subscription.status": "active",
+            "subscription.plan": newPlan,
+            "subscription.currentPeriodEnd": periodEnd,
+            "subscription.lastPaidAt": FieldValue.serverTimestamp(),
+            "subscription.lastOrderId": incomingOrderId,
+            "subscription.pendingPlan": FieldValue.delete(), // 예약 초기화
+            // 이전 결제 실패 흔적 정리
+            "subscription.lastFailedAt": FieldValue.delete(),
+            "subscription.lastFailReason": FieldValue.delete(),
+          });
+
+          transaction.set(processedRef, {
+            uid: customerKey,
+            orderId: incomingOrderId,
+            paymentKey: incomingPaymentKey,
+            amount: verified.totalAmount,
+            processedAt: FieldValue.serverTimestamp(),
+          });
+
+          // 결제 이력 기록 (웹훅 경유, 토스 API 검증 응답 기준)
+          transaction.set(paymentRef, {
+            uid: customerKey,
+            type: "webhook_payment",
+            orderId: incomingOrderId,
+            amount: verified.totalAmount,
+            plan: newPlan,
+            paymentKey: incomingPaymentKey,
+            method: verified.method || data.method || "CARD",
+            approvedAt: verified.approvedAt || data.approvedAt || null,
+            receiptUrl: verified.receipt?.url || data.receipt?.url || "",
+            nextPeriodEnd: periodEnd,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+
+          return { skipped: false, newPlan };
+        });
+
+        if (result.skipped) {
+          console.log(`웹훅 중복/스킵: ${incomingOrderId} (${result.reason})`);
         } else {
-          periodEnd.setMonth(periodEnd.getMonth() + 1);
+          console.log(`구독 갱신 완료: ${customerKey} → ${result.newPlan}`);
         }
-
-        await userRef.update({
-          "subscription.status": "active",
-          "subscription.plan": newPlan,
-          "subscription.currentPeriodEnd": periodEnd,
-          "subscription.lastPaidAt": FieldValue.serverTimestamp(),
-          "subscription.lastOrderId": incomingOrderId || FieldValue.delete(),
-          "subscription.pendingPlan": FieldValue.delete(), // 예약 초기화
-          // 이전 결제 실패 흔적 정리
-          "subscription.lastFailedAt": FieldValue.delete(),
-          "subscription.lastFailReason": FieldValue.delete(),
-        });
-
-        // 결제 이력 기록 (웹훅 경유)
-        await db.collection("payments").add({
-          uid: customerKey,
-          type: "webhook_payment",
-          orderId: incomingOrderId || null,
-          amount: data.totalAmount || (newPlan === "yearly" ? 29900 : 3300),
-          plan: newPlan,
-          paymentKey: data.paymentKey || "",
-          method: data.method || "CARD",
-          approvedAt: data.approvedAt || null,
-          receiptUrl: data.receipt?.url || "",
-          nextPeriodEnd: periodEnd,
-          createdAt: FieldValue.serverTimestamp(),
-        });
-
-        console.log(`구독 갱신 완료: ${customerKey} → ${newPlan}`);
       }
 
       res.status(200).send("ok");
     } catch (err) {
+      if (err.statusCode) {
+        if (err.details) console.error("tossWebhook validation error:", err.publicMessage, err.details);
+        res.status(err.statusCode).send(err.publicMessage || "validation error");
+        return;
+      }
       console.error("tossWebhook error:", err);
       res.status(500).send("error");
     }
