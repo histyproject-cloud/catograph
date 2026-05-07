@@ -13,6 +13,15 @@ const TAB_COLLECTIONS = {
   fanworks: 'fanworks',
 };
 
+function safeExternalUrl(rawUrl) {
+  try {
+    const url = new URL((rawUrl || '').trim());
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function SharedView() {
   const { id: projectId } = useParams();
   const [searchParams] = useSearchParams();
@@ -270,17 +279,20 @@ export default function SharedView() {
               <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60, fontSize: 13 }}>등록된 링크가 없어요</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {fanworks.map(fw => (
-                  <a key={fw.id} href={fw.url} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 16px', textDecoration: 'none', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: fw.author || fw.description ? 4 : 0 }}>{fw.title || fw.url}</div>
-                    {fw.author && <div style={{ fontSize: 12, color: 'var(--accent)' }}>{fw.author}</div>}
-                    {fw.description && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{fw.description}</div>}
-                  </a>
-                ))}
+                {fanworks.map(fw => {
+                  const safeUrl = safeExternalUrl(fw.url);
+                  return (
+                    <a key={fw.id} href={safeUrl || undefined} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'block', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 16px', textDecoration: 'none', transition: 'border-color 0.15s', pointerEvents: safeUrl ? 'auto' : 'none' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: fw.author || fw.description ? 4 : 0 }}>{fw.title || fw.url}</div>
+                      {fw.author && <div style={{ fontSize: 12, color: 'var(--accent)' }}>{fw.author}</div>}
+                      {fw.description && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{fw.description}</div>}
+                    </a>
+                  );
+                })}
               </div>
             )}
           </div>

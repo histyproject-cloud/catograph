@@ -53,6 +53,13 @@ service cloud.firestore {
       return proj.shareEnabled == true && (shareTab == 'all' || shareTab == tab);
     }
 
+    function isValidFanwork(data) {
+      return !data.keys().hasAny(['url'])
+        || (data.url is string
+          && data.url.size() <= 2048
+          && data.url.matches('^https?://[^ ]+$'));
+    }
+
     match /characters/{id} {
       allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'characters');
       allow create: if isOwner(request.resource.data.projectId);
@@ -90,9 +97,11 @@ service cloud.firestore {
     }
     match /fanworks/{id} {
       allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'fanworks');
-      allow create: if isOwner(request.resource.data.projectId);
+      allow create: if isOwner(request.resource.data.projectId)
+        && isValidFanwork(request.resource.data);
       allow update: if isOwner(resource.data.projectId)
-        && request.resource.data.projectId == resource.data.projectId;
+        && request.resource.data.projectId == resource.data.projectId
+        && isValidFanwork(request.resource.data);
       allow delete: if isOwner(resource.data.projectId);
     }
 
