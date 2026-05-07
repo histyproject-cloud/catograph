@@ -50,6 +50,13 @@ function assertPrintableAscii(value, name) {
   }
 }
 
+function hasPriorSubscriptionBenefit(sub = {}) {
+  return sub.hasUsedTrial === true
+    || !!sub.couponCode
+    || !!sub.lastPaidAt
+    || !!sub.cancelledAt;
+}
+
 /**
  * 회원 탈퇴 함수
  * 호출 시 해당 유저의 모든 Firestore 데이터 + Storage 파일 + Auth 계정 삭제
@@ -215,11 +222,7 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
     //   - cancelledAt 존재  (해지 후 재구독)
     const userDocSnap = await db.collection("users").doc(uid).get();
     const existingSub = userDocSnap.data()?.subscription || {};
-    const isReturning =
-      existingSub.hasUsedTrial === true
-      || !!existingSub.couponCode
-      || !!existingSub.lastPaidAt
-      || !!existingSub.cancelledAt;
+    const isReturning = hasPriorSubscriptionBenefit(existingSub);
 
     const now = new Date();
     const amountFinal = yearly ? 29900 : 3300;
@@ -628,31 +631,41 @@ exports.applyEduTrial = onCall({ cors: true }, async (request) => {
   }
 
   const userRef = db.collection("users").doc(uid);
-  const snap = await userRef.get();
-  const data = snap.data() || {};
-
-  // 이미 edu trial 또는 다른 trial/구독 사용 이력 있으면 차단
-  if (data.hasUsedEduTrial) {
-    throw new HttpsError("already-exists", "대학생 무료체험은 1회만 사용할 수 있습니다.");
-  }
-  if (data.subscription?.status && data.subscription.status !== "expired") {
-    throw new HttpsError("failed-precondition", "이미 구독 중이거나 체험 중입니다.");
-  }
-
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + 90); // 90일 무료
 
-  await userRef.update({
-    hasUsedEduTrial: true,
-    eduEmail: email,
-    subscription: {
-      status: "trial",
-      plan: "monthly",
-      trialEndsAt: trialEndsAt,
-      currentPeriodEnd: trialEndsAt,
-      startedAt: FieldValue.serverTimestamp(),
-      hasUsedTrial: true, // 이후 TossPayments 30일 무료 차단
-    },
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(userRef);
+    if (!snap.exists) {
+      throw new HttpsError("failed-precondition", "사용자 문서가 아직 준비되지 않았습니다.");
+    }
+
+    const data = snap.data() || {};
+    const sub = data.subscription || {};
+
+    // 이미 edu trial 또는 다른 trial/구독/쿠폰 사용 이력 있으면 차단
+    if (data.hasUsedEduTrial) {
+      throw new HttpsError("already-exists", "대학생 무료체험은 1회만 사용할 수 있습니다.");
+    }
+    if (hasPriorSubscriptionBenefit(sub)) {
+      throw new HttpsError("failed-precondition", "이미 무료체험 또는 구독 혜택을 사용한 계정입니다.");
+    }
+    if (sub.status && sub.status !== "expired") {
+      throw new HttpsError("failed-precondition", "이미 구독 중이거나 체험 중입니다.");
+    }
+
+    transaction.update(userRef, {
+      hasUsedEduTrial: true,
+      eduEmail: email,
+      subscription: {
+        status: "trial",
+        plan: "monthly",
+        trialEndsAt: trialEndsAt,
+        currentPeriodEnd: trialEndsAt,
+        startedAt: FieldValue.serverTimestamp(),
+        hasUsedTrial: true, // 이후 TossPayments 30일 무료 차단
+      },
+    });
   });
 
   console.log(`대학생 무료체험 적용: ${uid} (${email}) → ${trialEndsAt.toISOString().slice(0, 10)}까지`);
