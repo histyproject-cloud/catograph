@@ -225,7 +225,9 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
               {/* trial 안내 */}
               {isTrial && (
                 <div style={{ background: 'var(--bg3)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12, fontSize: 12, color: 'var(--text2)' }}>
-                  💡 무료 체험 중이에요. {fmt(sub.currentPeriodEnd)}부터 자동 결제가 시작됩니다.
+                  {sub.billingKey
+                    ? `💡 무료 체험 중이에요. ${fmt(sub.currentPeriodEnd)}부터 자동 결제가 시작됩니다.`
+                    : `💡 무료 체험 중이에요. ${fmt(sub.currentPeriodEnd)}에 Pro 모드가 종료돼요.`}
                 </div>
               )}
               {/* pendingPlan 예약 안내 */}
@@ -241,19 +243,23 @@ export default function Settings({ user, onShowOnboarding, theme, onToggleTheme 
                   </button>
                 </div>
               )}
-              {/* 구독 해지 */}
-              <button
-                style={{ fontSize: 13, color: cancellingSubscription ? 'var(--text3)' : 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 16px', cursor: cancellingSubscription ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: cancellingSubscription ? 0.5 : 1 }}
-                onMouseEnter={e => { if (!cancellingSubscription) { e.currentTarget.style.color = 'var(--coral, #f87171)'; e.currentTarget.style.borderColor = 'var(--coral, #f87171)'; } }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                onClick={handleCancelSubscription} disabled={cancellingSubscription}>
-                {cancellingSubscription ? '처리 중...' : '구독 해지'}
-              </button>
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-                {isTrial
-                  ? `해지 시 ${fmt(sub.currentPeriodEnd)}까지 무료 체험을 이용하고, 자동 결제는 진행되지 않아요.`
-                  : `해지 후에도 ${fmt(sub.currentPeriodEnd)}까지 Pro를 이용할 수 있어요.`}
-              </div>
+              {/* 구독 해지 — billingKey 없는 유저(쿠폰/edu)는 자동결제 없으므로 해지 버튼 불필요 */}
+              {sub.billingKey && (
+                <>
+                  <button
+                    style={{ fontSize: 13, color: cancellingSubscription ? 'var(--text3)' : 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 16px', cursor: cancellingSubscription ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: cancellingSubscription ? 0.5 : 1 }}
+                    onMouseEnter={e => { if (!cancellingSubscription) { e.currentTarget.style.color = 'var(--coral, #f87171)'; e.currentTarget.style.borderColor = 'var(--coral, #f87171)'; } }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                    onClick={handleCancelSubscription} disabled={cancellingSubscription}>
+                    {cancellingSubscription ? '처리 중...' : '구독 해지'}
+                  </button>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
+                    {isTrial
+                      ? `해지 시 ${fmt(sub.currentPeriodEnd)}까지 무료 체험을 이용하고, 자동 결제는 진행되지 않아요.`
+                      : `해지 후에도 ${fmt(sub.currentPeriodEnd)}까지 Pro를 이용할 수 있어요.`}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
