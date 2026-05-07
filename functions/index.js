@@ -797,15 +797,46 @@ const TOSS_IPS = new Set([
   "115.92.221.125", "115.92.221.126", "115.92.221.127",
 ]);
 
+// GCP HTTPS Load Balancer는 X-Forwarded-For 끝에 두 항목을 append 한다:
+//   "<existing>, <client_ip>, <lb_ip>"
+// → 끝에서 두 번째 항목이 LB가 본 신뢰 가능한 client IP.
+//   클라이언트가 보낸 XFF 첫 번째 값을 그대로 신뢰하면 IP 위조로 우회됨.
+function getTrustedClientIp(req) {
+  const xff = req.headers["x-forwarded-for"];
+  if (xff && typeof xff === "string") {
+    const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 2) return parts[parts.length - 2];
+    if (parts.length === 1) return parts[0];
+  }
+  return req.ip || req.socket?.remoteAddress || "";
+}
+
+// 토스 결제 조회 API 로 webhook 페이로드 진정성 검증.
+// (PAYMENT_STATUS_CHANGED 웹훅에는 시그니처가 없으므로 결제 조회 API 호출이
+//  실질적인 진정성 보증 수단이 된다. paymentKey 가 토스에 실제 존재하고
+//  customerKey/status/amount 가 webhook payload 와 일치해야 정당한 webhook.)
+async function fetchTossPayment(paymentKey, secretKey) {
+  const auth = "Basic " + Buffer.from(`${secretKey}:`).toString("base64");
+  const r = await fetch(
+    `https://api.tosspayments.com/v1/payments/${encodeURIComponent(paymentKey)}`,
+    { headers: { Authorization: auth, "Content-Type": "application/json" } }
+  );
+  if (!r.ok) {
+    const err = new Error(`Toss API ${r.status}`);
+    // 5xx 또는 404 는 잠시 후 재조회로 회복 가능 → Toss 재시도에 맡긴다
+    err.transient = r.status >= 500 || r.status === 404;
+    throw err;
+  }
+  return await r.json();
+}
+
 exports.tossWebhook = onRequest(
   { secrets: [TOSS_SECRET_KEY], region: "asia-northeast3", minInstances: 1 },
   async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
-    // 토스 IP 검증 (X-Forwarded-For 우선, 없으면 X-Real-IP, 없으면 req.ip)
-    const xff = req.headers["x-forwarded-for"]?.split(",")[0]?.trim();
-    const xri = req.headers["x-real-ip"]?.trim();
-    const clientIp = xff || xri || req.ip;
+    // 1차 필터: 토스 발신 IP 검증 (XFF 위조 방어 — getTrustedClientIp 사용)
+    const clientIp = getTrustedClientIp(req);
     if (!TOSS_IPS.has(clientIp)) {
       console.warn("허용되지 않은 IP:", clientIp);
       res.status(403).send("Forbidden");
@@ -822,13 +853,42 @@ exports.tossWebhook = onRequest(
       if (eventType === "PAYMENT_STATUS_CHANGED" && data?.status === "DONE") {
         const customerKey = data.customerKey;
         const incomingOrderId = data.orderId;
-        if (!customerKey) { res.status(200).send("ok"); return; }
+        const incomingPaymentKey = data.paymentKey;
+        if (!customerKey || !incomingPaymentKey) {
+          // 식별자가 없는 이벤트는 무시 (재시도 X)
+          res.status(200).send("ok");
+          return;
+        }
 
         // billingScheduler가 직접 결제하고 Firestore 업데이트까지 처리하는 orderId → 웹훅은 스킵
         // (auto_ prefix = 스케줄러 생성 orderId, 이중 처리 방지)
         if (incomingOrderId?.startsWith("auto_")) {
           console.log(`스케줄러 처리 orderId 스킵: ${incomingOrderId}`);
           res.status(200).send("ok");
+          return;
+        }
+
+        // 2차 검증: 토스 결제 조회 API로 webhook 페이로드 진정성 검증
+        // (IP 우회 + payload 위조 시나리오를 차단하는 핵심 방어선)
+        let verified;
+        try {
+          verified = await fetchTossPayment(incomingPaymentKey, TOSS_SECRET_KEY.value());
+        } catch (err) {
+          console.error("Toss 결제 조회 실패:", err.message, "transient:", err.transient);
+          // transient 면 503 으로 토스 재시도 유도, 영구 실패면 400
+          res.status(err.transient ? 503 : 400).send("Payment verification failed");
+          return;
+        }
+
+        if (verified.customerKey !== customerKey) {
+          console.error(`customerKey 불일치 webhook=${customerKey} toss=${verified.customerKey}`);
+          res.status(400).send("customerKey mismatch");
+          return;
+        }
+
+        if (verified.status !== "DONE") {
+          console.error(`Toss status 불일치 webhook=DONE toss=${verified.status}`);
+          res.status(400).send("status mismatch");
           return;
         }
 
@@ -857,12 +917,11 @@ exports.tossWebhook = onRequest(
         const newPlan = pendingPlan || sub.plan || "monthly";
         const isYearly = newPlan === "yearly";
 
-        // 결제 금액 재검증 (위조·중간자 방어)
-        // — 토스 응답이 변조되더라도 plan별 expected amount와 다르면 거부
+        // 결제 금액 재검증 (defense in depth — Toss API 응답 기준)
         const expectedAmount = isYearly ? 29900 : 3300;
-        if (typeof data.totalAmount === "number" && data.totalAmount !== expectedAmount) {
-          const maskedUid = customerKey ? `${customerKey.slice(0, 8)}****` : "unknown";
-          console.error(`결제 금액 불일치 [${maskedUid}] plan=${newPlan} 기대=${expectedAmount} 수신=${data.totalAmount} orderId=${incomingOrderId}`);
+        if (verified.totalAmount !== expectedAmount) {
+          const maskedUid = `${customerKey.slice(0, 8)}****`;
+          console.error(`결제 금액 불일치 [${maskedUid}] plan=${newPlan} 기대=${expectedAmount} 토스=${verified.totalAmount} orderId=${incomingOrderId}`);
           res.status(400).send("Invalid amount");
           return;
         }
@@ -889,17 +948,17 @@ exports.tossWebhook = onRequest(
           "subscription.lastFailReason": FieldValue.delete(),
         });
 
-        // 결제 이력 기록 (웹훅 경유)
+        // 결제 이력 기록 (웹훅 경유, 토스 API 검증 응답 기준)
         await db.collection("payments").add({
           uid: customerKey,
           type: "webhook_payment",
           orderId: incomingOrderId || null,
-          amount: data.totalAmount || (newPlan === "yearly" ? 29900 : 3300),
+          amount: verified.totalAmount,
           plan: newPlan,
-          paymentKey: data.paymentKey || "",
-          method: data.method || "CARD",
-          approvedAt: data.approvedAt || null,
-          receiptUrl: data.receipt?.url || "",
+          paymentKey: incomingPaymentKey,
+          method: verified.method || data.method || "CARD",
+          approvedAt: verified.approvedAt || data.approvedAt || null,
+          receiptUrl: verified.receipt?.url || data.receipt?.url || "",
           nextPeriodEnd: periodEnd,
           createdAt: FieldValue.serverTimestamp(),
         });
