@@ -26,6 +26,30 @@ async function deleteInBatches(refs) {
   }
 }
 
+function requireString(value, name, maxLength) {
+  if (typeof value !== "string") {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > maxLength) {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+  return trimmed;
+}
+
+function requireBoolean(value, name) {
+  if (typeof value !== "boolean") {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+  return value;
+}
+
+function assertPrintableAscii(value, name) {
+  if (!/^[\x21-\x7E]+$/.test(value)) {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+}
+
 /**
  * 회원 탈퇴 함수
  * 호출 시 해당 유저의 모든 Firestore 데이터 + Storage 파일 + Auth 계정 삭제
@@ -139,11 +163,16 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
   }
 
   const uid = request.auth.uid;
-  const { authKey, customerKey, yearly, orderId, amount } = request.data;
+  const payload = request.data || {};
+  const authKey = requireString(payload.authKey, "authKey", 512);
+  const customerKey = requireString(payload.customerKey, "customerKey", 128);
+  const yearly = requireBoolean(payload.yearly, "yearly");
+  const orderId = payload.orderId === undefined || payload.orderId === null
+    ? null
+    : requireString(payload.orderId, "orderId", 128);
 
-  if (!authKey || !customerKey) {
-    throw new HttpsError("invalid-argument", "authKey, customerKey가 필요합니다.");
-  }
+  assertPrintableAscii(authKey, "authKey");
+  if (orderId) assertPrintableAscii(orderId, "orderId");
 
   // customerKey는 uid와 일치해야 함
   if (customerKey !== uid) {
@@ -641,9 +670,9 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
   }
 
   const uid = request.auth.uid;
-  const code = (request.data?.code || "").toUpperCase().trim();
-  if (!code) {
-    throw new HttpsError("invalid-argument", "쿠폰 코드를 입력해주세요.");
+  const code = requireString(request.data?.code, "coupon code", 64).toUpperCase();
+  if (!/^[A-Z0-9-]{4,64}$/.test(code)) {
+    throw new HttpsError("invalid-argument", "쿠폰 코드 형식이 올바르지 않습니다.");
   }
 
   // ── Brute force 방어: 1시간 내 5회 시도 제한 ──
@@ -681,10 +710,17 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       }
 
       const coupon = couponSnap.data();
+      const maxUses = Number.isInteger(coupon.maxUses) ? coupon.maxUses : 0;
+      const usedCount = Number.isInteger(coupon.usedCount) ? coupon.usedCount : 0;
+      const durationDays = Number.isInteger(coupon.durationDays) ? coupon.durationDays : 365;
 
       // ── 쿠폰 활성화 여부 ──
       if (!coupon.isActive) {
         throw new HttpsError("failed-precondition", "사용할 수 없는 쿠폰 코드예요.");
+      }
+
+      if (maxUses < 1 || durationDays < 1 || durationDays > 3660) {
+        throw new HttpsError("failed-precondition", "쿠폰 설정이 올바르지 않습니다.");
       }
 
       // ── 쿠폰 자체 만료일 ──
@@ -693,7 +729,7 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       }
 
       // ── 총 사용 횟수 ──
-      if (coupon.usedCount >= coupon.maxUses) {
+      if (usedCount >= maxUses) {
         throw new HttpsError("failed-precondition", "이미 모든 사용 횟수가 소진된 쿠폰이에요.");
       }
 
@@ -719,9 +755,9 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       // ── 쿠폰 적용 ──
       const now = new Date();
       const end = new Date(now);
-      end.setDate(end.getDate() + (coupon.durationDays || 365));
+      end.setDate(end.getDate() + durationDays);
 
-      const couponDays = coupon.durationDays || 365;
+      const couponDays = durationDays;
       transaction.set(
         userRef,
         {
