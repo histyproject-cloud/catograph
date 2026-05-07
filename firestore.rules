@@ -45,12 +45,12 @@ service cloud.firestore {
 
     // 공유 활성 여부 + 탭 단위 스코프 검사
     // - shareEnabled 가 true 여야 하고,
-    // - 프로젝트 문서에 sharedTabs 필드가 없거나 빈 리스트면 (legacy) 전체 탭 공개
-    // - sharedTabs 가 명시되어 있으면 요청한 탭이 포함된 경우에만 공개
+    // - 기존 클라이언트가 저장하는 shareTab 문자열을 기준으로 공개 범위를 제한
+    // - shareTab 미설정 또는 'all' 은 legacy 전체 공개
     function isSharedTab(projectId, tab) {
       let proj = get(/databases/$(database)/documents/projects/$(projectId)).data;
-      let tabs = proj.get('sharedTabs', []);
-      return proj.shareEnabled == true && (tabs.size() == 0 || tab in tabs);
+      let shareTab = proj.get('shareTab', 'all');
+      return proj.shareEnabled == true && (shareTab == 'all' || shareTab == tab);
     }
 
     match /characters/{id} {
@@ -61,28 +61,28 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.projectId);
     }
     match /relations/{id} {
-      allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'relations');
+      allow read: if isOwner(resource.data.projectId);
       allow create: if isOwner(request.resource.data.projectId);
       allow update: if isOwner(resource.data.projectId)
         && request.resource.data.projectId == resource.data.projectId;
       allow delete: if isOwner(resource.data.projectId);
     }
     match /foreshadows/{id} {
-      allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'foreshadows');
+      allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'foreshadow');
       allow create: if isOwner(request.resource.data.projectId);
       allow update: if isOwner(resource.data.projectId)
         && request.resource.data.projectId == resource.data.projectId;
       allow delete: if isOwner(resource.data.projectId);
     }
     match /worldDocs/{id} {
-      allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'worldDocs');
+      allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'world');
       allow create: if isOwner(request.resource.data.projectId);
       allow update: if isOwner(resource.data.projectId)
         && request.resource.data.projectId == resource.data.projectId;
       allow delete: if isOwner(resource.data.projectId);
     }
     match /timelineEvents/{id} {
-      allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'timelineEvents');
+      allow read: if isOwner(resource.data.projectId) || isSharedTab(resource.data.projectId, 'timeline');
       allow create: if isOwner(request.resource.data.projectId);
       allow update: if isOwner(resource.data.projectId)
         && request.resource.data.projectId == resource.data.projectId;

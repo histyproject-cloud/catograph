@@ -4,6 +4,15 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '../firebase';
 import { getAvatarColor } from '../components/DetailPanel';
 
+const SHARED_TAB_IDS = ['characters', 'world', 'foreshadow', 'timeline', 'fanworks'];
+const TAB_COLLECTIONS = {
+  characters: 'characters',
+  world: 'worldDocs',
+  foreshadow: 'foreshadows',
+  timeline: 'timelineEvents',
+  fanworks: 'fanworks',
+};
+
 export default function SharedView() {
   const { id: projectId } = useParams();
   const [searchParams] = useSearchParams();
@@ -30,19 +39,46 @@ export default function SharedView() {
         if (!projData.shareEnabled) { setError('공유가 비활성화된 프로젝트예요'); setLoading(false); return; }
         setProject(projData);
 
-        const fetch = async (col) => {
+        const shareTab = SHARED_TAB_IDS.includes(projData.shareTab) ? projData.shareTab : 'all';
+        const allowedTabs = shareTab === 'all' ? SHARED_TAB_IDS : [shareTab];
+        const tabsToLoad = tabParam
+          ? allowedTabs.filter(tab => tab === tabParam)
+          : allowedTabs;
+        const isRelationOnly = tabParam === 'relation' && shareTab === 'all';
+
+        setActiveTab(tabParam || allowedTabs[0] || 'characters');
+
+        if (isRelationOnly) {
+          setLoading(false);
+          return;
+        }
+
+        if (tabsToLoad.length === 0) {
+          setError('공유되지 않은 탭이에요');
+          setLoading(false);
+          return;
+        }
+
+        const fetch = async (tab) => {
+          const col = TAB_COLLECTIONS[tab];
           const snap = await getDocs(query(collection(db, col), where('projectId', '==', projectId)));
-          return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          return [tab, snap.docs.map(d => ({ id: d.id, ...d.data() }))];
         };
 
-        const [chars, fs, docs, evs, fws] = await Promise.all([
-          fetch('characters'), fetch('foreshadows'), fetch('worldDocs'), fetch('timelineEvents'), fetch('fanworks')
-        ]);
-        setCharacters(chars);
-        setForeshadows(fs);
-        setWorldDocs(docs);
-        setEvents(evs.sort((a, b) => (a.episode || 0) - (b.episode || 0)));
-        setFanworks(fws);
+        const results = await Promise.allSettled(tabsToLoad.map(fetch));
+        const loaded = {};
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            const [tab, docs] = result.value;
+            loaded[tab] = docs;
+          }
+        });
+
+        setCharacters(loaded.characters || []);
+        setForeshadows(loaded.foreshadow || []);
+        setWorldDocs(loaded.world || []);
+        setEvents((loaded.timeline || []).sort((a, b) => (a.episode || 0) - (b.episode || 0)));
+        setFanworks(loaded.fanworks || []);
         setLoading(false);
       } catch (e) {
         setError('불러오는 중 오류가 발생했어요');
@@ -75,10 +111,11 @@ export default function SharedView() {
     { id: 'relation', label: '관계도' },
   ];
 
-  // tabParam이 있으면 해당 탭만, 없으면 전체
+  const shareTab = SHARED_TAB_IDS.includes(project?.shareTab) ? project.shareTab : 'all';
+  const allowedTabs = shareTab === 'all' ? [...SHARED_TAB_IDS, 'relation'] : [shareTab];
   const TABS = tabParam
-    ? ALL_TABS.filter(t => t.id === tabParam)
-    : ALL_TABS;
+    ? ALL_TABS.filter(t => t.id === tabParam && allowedTabs.includes(t.id))
+    : ALL_TABS.filter(t => allowedTabs.includes(t.id));
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
