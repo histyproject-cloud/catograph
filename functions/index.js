@@ -587,7 +587,12 @@ exports.applyEduTrial = onCall({ cors: true }, async (request) => {
 
   const uid = request.auth.uid;
   const email = (request.auth.token.email || "").toLowerCase();
+  const emailVerified = request.auth.token.email_verified === true;
   const isEdu = email.endsWith(".ac.kr") || email.endsWith(".edu");
+
+  if (!emailVerified) {
+    throw new HttpsError("permission-denied", "인증된 이메일만 대학생 무료체험을 신청할 수 있습니다.");
+  }
 
   if (!isEdu) {
     throw new HttpsError("invalid-argument", "대학 이메일(.ac.kr / .edu)이 아닙니다.");
