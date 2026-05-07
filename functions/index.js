@@ -26,6 +26,37 @@ async function deleteInBatches(refs) {
   }
 }
 
+function requireString(value, name, maxLength) {
+  if (typeof value !== "string") {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > maxLength) {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+  return trimmed;
+}
+
+function requireBoolean(value, name) {
+  if (typeof value !== "boolean") {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+  return value;
+}
+
+function assertPrintableAscii(value, name) {
+  if (!/^[\x21-\x7E]+$/.test(value)) {
+    throw new HttpsError("invalid-argument", `${name} 형식이 올바르지 않습니다.`);
+  }
+}
+
+function hasPriorSubscriptionBenefit(sub = {}) {
+  return sub.hasUsedTrial === true
+    || !!sub.couponCode
+    || !!sub.lastPaidAt
+    || !!sub.cancelledAt;
+}
+
 /**
  * 회원 탈퇴 함수
  * 호출 시 해당 유저의 모든 Firestore 데이터 + Storage 파일 + Auth 계정 삭제
@@ -139,11 +170,16 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
   }
 
   const uid = request.auth.uid;
-  const { authKey, customerKey, yearly, orderId, amount } = request.data;
+  const payload = request.data || {};
+  const authKey = requireString(payload.authKey, "authKey", 512);
+  const customerKey = requireString(payload.customerKey, "customerKey", 128);
+  const yearly = requireBoolean(payload.yearly, "yearly");
+  const orderId = payload.orderId === undefined || payload.orderId === null
+    ? null
+    : requireString(payload.orderId, "orderId", 128);
 
-  if (!authKey || !customerKey) {
-    throw new HttpsError("invalid-argument", "authKey, customerKey가 필요합니다.");
-  }
+  assertPrintableAscii(authKey, "authKey");
+  if (orderId) assertPrintableAscii(orderId, "orderId");
 
   // customerKey는 uid와 일치해야 함
   if (customerKey !== uid) {
@@ -186,11 +222,7 @@ exports.issueBillingKey = onCall({ secrets: [TOSS_SECRET_KEY], cors: true, minIn
     //   - cancelledAt 존재  (해지 후 재구독)
     const userDocSnap = await db.collection("users").doc(uid).get();
     const existingSub = userDocSnap.data()?.subscription || {};
-    const isReturning =
-      existingSub.hasUsedTrial === true
-      || !!existingSub.couponCode
-      || !!existingSub.lastPaidAt
-      || !!existingSub.cancelledAt;
+    const isReturning = hasPriorSubscriptionBenefit(existingSub);
 
     const now = new Date();
     const amountFinal = yearly ? 29900 : 3300;
@@ -599,31 +631,41 @@ exports.applyEduTrial = onCall({ cors: true }, async (request) => {
   }
 
   const userRef = db.collection("users").doc(uid);
-  const snap = await userRef.get();
-  const data = snap.data() || {};
-
-  // 이미 edu trial 또는 다른 trial/구독 사용 이력 있으면 차단
-  if (data.hasUsedEduTrial) {
-    throw new HttpsError("already-exists", "대학생 무료체험은 1회만 사용할 수 있습니다.");
-  }
-  if (data.subscription?.status && data.subscription.status !== "expired") {
-    throw new HttpsError("failed-precondition", "이미 구독 중이거나 체험 중입니다.");
-  }
-
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + 90); // 90일 무료
 
-  await userRef.update({
-    hasUsedEduTrial: true,
-    eduEmail: email,
-    subscription: {
-      status: "trial",
-      plan: "monthly",
-      trialEndsAt: trialEndsAt,
-      currentPeriodEnd: trialEndsAt,
-      startedAt: FieldValue.serverTimestamp(),
-      hasUsedTrial: true, // 이후 TossPayments 30일 무료 차단
-    },
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(userRef);
+    if (!snap.exists) {
+      throw new HttpsError("failed-precondition", "사용자 문서가 아직 준비되지 않았습니다.");
+    }
+
+    const data = snap.data() || {};
+    const sub = data.subscription || {};
+
+    // 이미 edu trial 또는 다른 trial/구독/쿠폰 사용 이력 있으면 차단
+    if (data.hasUsedEduTrial) {
+      throw new HttpsError("already-exists", "대학생 무료체험은 1회만 사용할 수 있습니다.");
+    }
+    if (hasPriorSubscriptionBenefit(sub)) {
+      throw new HttpsError("failed-precondition", "이미 무료체험 또는 구독 혜택을 사용한 계정입니다.");
+    }
+    if (sub.status && sub.status !== "expired") {
+      throw new HttpsError("failed-precondition", "이미 구독 중이거나 체험 중입니다.");
+    }
+
+    transaction.update(userRef, {
+      hasUsedEduTrial: true,
+      eduEmail: email,
+      subscription: {
+        status: "trial",
+        plan: "monthly",
+        trialEndsAt: trialEndsAt,
+        currentPeriodEnd: trialEndsAt,
+        startedAt: FieldValue.serverTimestamp(),
+        hasUsedTrial: true, // 이후 TossPayments 30일 무료 차단
+      },
+    });
   });
 
   console.log(`대학생 무료체험 적용: ${uid} (${email}) → ${trialEndsAt.toISOString().slice(0, 10)}까지`);
@@ -641,9 +683,9 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
   }
 
   const uid = request.auth.uid;
-  const code = (request.data?.code || "").toUpperCase().trim();
-  if (!code) {
-    throw new HttpsError("invalid-argument", "쿠폰 코드를 입력해주세요.");
+  const code = requireString(request.data?.code, "coupon code", 64).toUpperCase();
+  if (!/^[A-Z0-9-]{4,64}$/.test(code)) {
+    throw new HttpsError("invalid-argument", "쿠폰 코드 형식이 올바르지 않습니다.");
   }
 
   // ── Brute force 방어: 1시간 내 5회 시도 제한 ──
@@ -681,10 +723,17 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       }
 
       const coupon = couponSnap.data();
+      const maxUses = Number.isInteger(coupon.maxUses) ? coupon.maxUses : 0;
+      const usedCount = Number.isInteger(coupon.usedCount) ? coupon.usedCount : 0;
+      const durationDays = Number.isInteger(coupon.durationDays) ? coupon.durationDays : 365;
 
       // ── 쿠폰 활성화 여부 ──
       if (!coupon.isActive) {
         throw new HttpsError("failed-precondition", "사용할 수 없는 쿠폰 코드예요.");
+      }
+
+      if (maxUses < 1 || durationDays < 1 || durationDays > 3660) {
+        throw new HttpsError("failed-precondition", "쿠폰 설정이 올바르지 않습니다.");
       }
 
       // ── 쿠폰 자체 만료일 ──
@@ -693,7 +742,7 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       }
 
       // ── 총 사용 횟수 ──
-      if (coupon.usedCount >= coupon.maxUses) {
+      if (usedCount >= maxUses) {
         throw new HttpsError("failed-precondition", "이미 모든 사용 횟수가 소진된 쿠폰이에요.");
       }
 
@@ -719,9 +768,9 @@ exports.applyCoupon = onCall({ cors: true }, async (request) => {
       // ── 쿠폰 적용 ──
       const now = new Date();
       const end = new Date(now);
-      end.setDate(end.getDate() + (coupon.durationDays || 365));
+      end.setDate(end.getDate() + durationDays);
 
-      const couponDays = coupon.durationDays || 365;
+      const couponDays = durationDays;
       transaction.set(
         userRef,
         {
