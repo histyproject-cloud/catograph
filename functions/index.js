@@ -354,7 +354,7 @@ exports.billingScheduler = onSchedule(
       const amount = isYearly ? 29900 : 3300;
 
       if (!billingKey) {
-        // 빌링키 없음 = 쿠폰 사용자가 만료일에 도달
+        // 빌링키 없음 = 쿠폰/edu trial 사용자가 만료일에 도달
         // → 구독 상태를 'expired'로 변경 (Free 플랜으로 자동 전환)
         if (sub.couponCode) {
           await db.collection("users").doc(uid).update({
@@ -368,6 +368,18 @@ exports.billingScheduler = onSchedule(
             createdAt: FieldValue.serverTimestamp(),
           });
           console.log(`쿠폰 만료 처리: ${uid} (${sub.couponCode})`);
+        } else if (userDoc.data().hasUsedEduTrial) {
+          // 대학생 3개월 무료 체험 만료 → 청구 없이 Free 전환
+          await db.collection("users").doc(uid).update({
+            "subscription.status": "expired",
+            "subscription.expiredAt": FieldValue.serverTimestamp(),
+          });
+          await db.collection("payments").add({
+            uid,
+            type: "edu_trial_expired",
+            createdAt: FieldValue.serverTimestamp(),
+          });
+          console.log(`대학생 무료체험 만료: ${uid}`);
         } else {
           console.warn(`빌링키 없음: ${uid}`);
         }
@@ -563,6 +575,55 @@ exports.monthlyFirestoreBackup = onSchedule(
     }
   }
 );
+
+/**
+ * 대학생 3개월 무료체험 적용
+ * - .ac.kr / .edu 이메일 도메인 검증
+ * - 90일 trial 설정 + hasUsedTrial = true (이후 30일 무료 차단)
+ * - 빌링키 없이 만료 시 billingScheduler가 Free로 전환
+ */
+exports.applyEduTrial = onCall({ cors: true }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+
+  const uid = request.auth.uid;
+  const email = (request.auth.token.email || "").toLowerCase();
+  const isEdu = email.endsWith(".ac.kr") || email.endsWith(".edu");
+
+  if (!isEdu) {
+    throw new HttpsError("invalid-argument", "대학 이메일(.ac.kr / .edu)이 아닙니다.");
+  }
+
+  const userRef = db.collection("users").doc(uid);
+  const snap = await userRef.get();
+  const data = snap.data() || {};
+
+  // 이미 edu trial 또는 다른 trial/구독 사용 이력 있으면 차단
+  if (data.hasUsedEduTrial) {
+    throw new HttpsError("already-exists", "대학생 무료체험은 1회만 사용할 수 있습니다.");
+  }
+  if (data.subscription?.status && data.subscription.status !== "expired") {
+    throw new HttpsError("failed-precondition", "이미 구독 중이거나 체험 중입니다.");
+  }
+
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + 90); // 90일 무료
+
+  await userRef.update({
+    hasUsedEduTrial: true,
+    eduEmail: email,
+    subscription: {
+      status: "trial",
+      plan: "monthly",
+      trialEndsAt: trialEndsAt,
+      currentPeriodEnd: trialEndsAt,
+      startedAt: FieldValue.serverTimestamp(),
+      hasUsedTrial: true, // 이후 TossPayments 30일 무료 차단
+    },
+  });
+
+  console.log(`대학생 무료체험 적용: ${uid} (${email}) → ${trialEndsAt.toISOString().slice(0, 10)}까지`);
+  return { success: true, trialEndsAt: trialEndsAt.toISOString() };
+});
 
 /**
  * 쿠폰 코드 적용

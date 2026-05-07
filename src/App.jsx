@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth, db, app } from './firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import Login from './pages/Login';
@@ -52,6 +53,18 @@ export default function App() {
             email: u.email || '',
             displayName: u.displayName || '',
           });
+          // 대학 이메일(.ac.kr / .edu) 신규 가입 → 3개월 무료 자동 적용
+          const email = (u.email || '').toLowerCase();
+          if (email.endsWith('.ac.kr') || email.endsWith('.edu')) {
+            try {
+              const functions = getFunctions(app, 'asia-northeast3');
+              const applyEduTrial = httpsCallable(functions, 'applyEduTrial');
+              await applyEduTrial();
+              console.log('대학생 무료체험 적용 완료');
+            } catch (err) {
+              console.warn('대학생 무료체험 적용 실패 (무시):', err.message);
+            }
+          }
         } else if (!userDocSnap.data()?.email && u.email) {
           // 기존 유저 중 email 필드 없는 경우 보완
           await setDoc(doc(db, 'users', u.uid), { email: u.email, displayName: u.displayName || '' }, { merge: true });
